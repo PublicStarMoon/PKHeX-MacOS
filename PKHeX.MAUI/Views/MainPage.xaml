@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.MainPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="PKHeX - Pokémon Save Editor">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Grid Grid.Row="0" BackgroundColor="LightGray" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Label Grid.Column="0" Text="PKHeX - Pokémon Save Editor" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+            <Button Grid.Column="1" x:Name="LoadSaveButton" Text="Load Save" Clicked="OnLoadSaveClicked" Margin="5,0"/>
+            <Button Grid.Column="2" x:Name="ExportSaveButton" Text="Export Save" Clicked="OnExportSaveClicked" Margin="5,0"/>
+            <Button Grid.Column="3" x:Name="AboutButton" Text="About" Clicked="OnAboutClicked" Margin="5,0"/>
+        </Grid>
+
+        <!-- Main Content Area -->
+        <ScrollView Grid.Row="1" Padding="10">
+            <StackLayout>
+                <Label Text="Welcome to PKHeX for macOS!" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,20"/>
+                
+                <Label Text="This is a port of PKHeX (Pokémon Save Editor) to run natively on macOS using .NET MAUI." 
+                       FontSize="16" HorizontalOptions="Center" HorizontalTextAlignment="Center" Margin="0,10"/>
+
+                <!-- File Operations Section -->
+                <Frame BackgroundColor="LightBlue" Padding="15" Margin="0,20">
+                    <StackLayout>
+                        <Label Text="File Operations" FontSize="18" FontAttributes="Bold"/>
+                        <Label Text="Current Save File: Not loaded" x:Name="CurrentSaveLabel" Margin="0,5"/>
+                        
+                        <Grid Margin="0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Button Grid.Column="0" Text="Open Save File" x:Name="OpenSaveButton" 
+                                    Clicked="OnOpenSaveClicked" Margin="0,0,5,0"/>
+                            <Button Grid.Column="1" Text="Save Changes" x:Name="SaveChangesButton" 
+                                    Clicked="OnSaveChangesClicked" Margin="5,0,0,0" IsEnabled="False"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Save File Info Section -->
+                <Frame BackgroundColor="LightGreen" Padding="15" Margin="0,10" x:Name="SaveInfoFrame" IsVisible="False">
+                    <StackLayout>
+                        <Label Text="Save File Information" FontSize="18" FontAttributes="Bold"/>
+                        <Label x:Name="GameVersionLabel" Text="Game: Unknown"/>
+                        <Label x:Name="TrainerNameLabel" Text="Trainer: Unknown"/>
+                        <Label x:Name="TrainerIdLabel" Text="Trainer ID: Unknown"/>
+                        <Label x:Name="PlayTimeLabel" Text="Play Time: Unknown"/>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Pokémon Editor Section -->
+                <Frame BackgroundColor="LightYellow" Padding="15" Margin="0,10">
+                    <StackLayout>
+                        <Label Text="Pokémon Editor" FontSize="18" FontAttributes="Bold"/>
+                        <Label Text="Load a save file to start editing Pokémon!" FontSize="14"/>
+                        
+                        <Button Text="Open PKM Database" x:Name="DatabaseButton" 
+                                Clicked="OnDatabaseClicked" Margin="0,10" IsEnabled="False"/>
+                        <Button Text="Batch Editor" x:Name="BatchEditorButton" 
+                                Clicked="OnBatchEditorClicked" Margin="0,5" IsEnabled="False"/>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Status Section -->
+                <Frame BackgroundColor="LightCoral" Padding="15" Margin="0,10">
+                    <StackLayout>
+                        <Label Text="Status" FontSize="18" FontAttributes="Bold"/>
+                        <Label x:Name="StatusLabel" Text="Ready. Please load a save file to begin." FontSize="14"/>
+                    </StackLayout>
+                </Frame>
+            </StackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>
