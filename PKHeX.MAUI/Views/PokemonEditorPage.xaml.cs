@@ -410,7 +410,7 @@ public partial class PokemonEditorPage : ContentPage
         try
         {
             PokemonHelper.FixTrainerInfo(_pokemon, _saveFile);
-            LoadPokemonData(_pokemon);
+            LoadPokemonData();
             await DisplayAlert("Success", "Trainer info has been fixed to prevent disobedience issues.", "OK");
         }
         catch (Exception ex)
@@ -491,21 +491,6 @@ public partial class PokemonEditorPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Failed to open save editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnHealClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null) return;
-
-        try
-        {
-            _pokemon.Heal();
-            await DisplayAlert("Success", "Pokémon has been fully healed!", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to heal Pokémon: {ex.Message}", "OK");
         }
     }
 

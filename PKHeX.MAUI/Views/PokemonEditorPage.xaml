@@ -48,7 +48,7 @@
                         
                         <Label Grid.Row="3" Grid.Column="0" Text="Nature:" VerticalOptions="Center"/>
                         <Picker Grid.Row="3" Grid.Column="1" x:Name="NaturePicker" SelectedIndexChanged="OnNatureChanged"/>
-                    </StackLayout>
+                    </Grid>
                 </StackLayout>
             </Frame>
 
@@ -173,7 +173,7 @@
             <!-- Validation and Trainer Info -->
             <Frame BackgroundColor="LightYellow" Padding="10">
                 <StackLayout>
-                    <Label Text="Tools & Validation" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Tools &amp; Validation" FontSize="16" FontAttributes="Bold"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

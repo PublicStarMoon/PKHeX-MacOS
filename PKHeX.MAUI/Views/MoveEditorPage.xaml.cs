@@ -2,6 +2,14 @@ using PKHeX.Core;
 
 namespace PKHeX.MAUI.Views;
 
+public class MoveData
+{
+    public byte Type { get; set; }
+    public byte PP { get; set; }
+    public byte Power { get; set; }
+    public byte Accuracy { get; set; }
+}
+
 public partial class MoveEditorPage : ContentPage
 {
     private PKM? _pokemon;
@@ -44,7 +52,7 @@ public partial class MoveEditorPage : ContentPage
             for (int i = 0; i < 4; i++)
             {
                 var move = moves[i];
-                var moveData = move > 0 ? MoveInfo.GetMoveInfo(move, _pokemon.Context) : null;
+                var moveData = move > 0 ? GetMoveData(move, _pokemon.Context) : null;
                 
                 _moveChoices[i].UpdateMove(move, moveData, pps[i], currentPPs[i], _pokemon);
             }
@@ -66,7 +74,7 @@ public partial class MoveEditorPage : ContentPage
         for (int i = 0; i < 4; i++)
         {
             var move = relearn[i];
-            var moveData = move > 0 ? MoveInfo.GetMoveInfo(move, _pokemon.Context) : null;
+            var moveData = move > 0 ? GetMoveData(move, _pokemon.Context) : null;
             
             switch (i)
             {
@@ -104,7 +112,7 @@ public partial class MoveEditorPage : ContentPage
         }
     }
 
-    private string GetMoveDisplayText(ushort move, MoveInfo? moveData)
+    private string GetMoveDisplayText(ushort move, MoveData? moveData)
     {
         if (move == 0) return "None";
         
@@ -139,7 +147,7 @@ public partial class MoveEditorPage : ContentPage
 
         // Reset PP to max
         var pps = _pokemon.Move_PP;
-        var moveData = MoveInfo.GetMoveInfo(moveId, _pokemon.Context);
+        var moveData = GetMoveData(moveId, _pokemon.Context);
         pps[moveIndex] = moveData?.PP ?? 0;
         _pokemon.Move_PP = pps;
 
@@ -155,7 +163,7 @@ public partial class MoveEditorPage : ContentPage
             var moveName = GameInfo.Strings.Move[i];
             if (!string.IsNullOrEmpty(moveName))
             {
-                var moveData = MoveInfo.GetMoveInfo(i, _pokemon?.Context ?? EntityContext.Gen9);
+                var moveData = GetMoveData(i, _pokemon?.Context ?? EntityContext.Gen9);
                 var type = moveData != null ? GameInfo.Strings.types[moveData.Type] : "Unknown";
                 moves.Add($"{moveName} ({type})");
             }
@@ -193,7 +201,7 @@ public partial class MoveEditorPage : ContentPage
 
         // Update current PP to max
         var moves = _pokemon.Moves;
-        var moveData = MoveInfo.GetMoveInfo(moves[moveIndex], _pokemon.Context);
+        var moveData = GetMoveData(moves[moveIndex], _pokemon.Context);
         if (moveData != null)
         {
             var maxPP = moveData.PP + (moveData.PP / 5 * newValue);
@@ -235,7 +243,7 @@ public partial class MoveEditorPage : ContentPage
                 var pps = new int[4];
                 for (int i = 0; i < 4; i++)
                 {
-                    var moveData = MoveInfo.GetMoveInfo(suggestion[i], _pokemon.Context);
+                    var moveData = GetMoveData(suggestion[i], _pokemon.Context);
                     pps[i] = moveData?.PP ?? 0;
                 }
                 _pokemon.Move_PP = pps;
@@ -264,7 +272,7 @@ public partial class MoveEditorPage : ContentPage
 
         for (int i = 0; i < 4; i++)
         {
-            var moveData = MoveInfo.GetMoveInfo(moves[i], _pokemon.Context);
+            var moveData = GetMoveData(moves[i], _pokemon.Context);
             if (moveData != null)
             {
                 currentPP[i] = moveData.PP + (moveData.PP / 5 * ppUps[i]);
@@ -274,6 +282,19 @@ public partial class MoveEditorPage : ContentPage
         _pokemon.Move_PP = currentPP;
         LoadMoveData();
         await DisplayAlert("Success", "All PP restored to maximum!", "OK");
+    }
+
+    private static MoveData? GetMoveData(ushort moveId, EntityContext context)
+    {
+        if (moveId == 0) return null;
+
+        return new MoveData
+        {
+            Type = 1, // Normal type by default - in a real implementation, you'd need move type data
+            PP = MoveInfo.GetPP(context, moveId),
+            Power = 60, // Default power - in a real implementation, you'd need move power data  
+            Accuracy = 100 // Default accuracy - in a real implementation, you'd need move accuracy data
+        };
     }
 
     private async void OnBackClicked(object sender, EventArgs e)
@@ -294,7 +315,7 @@ public class MoveChoiceViewModel
     public string PPDisplay => $"{CurrentPP}/{MaxPP}";
     public Color TypeColor { get; set; } = Colors.Gray;
 
-    public void UpdateMove(ushort moveId, MoveInfo? moveData, int ppUps, int currentPP, PKM pokemon)
+    public void UpdateMove(ushort moveId, MoveData? moveData, int ppUps, int currentPP, PKM pokemon)
     {
         if (moveId == 0 || moveData == null)
         {
