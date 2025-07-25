@@ -37,7 +37,9 @@ jobs:
     - name: Build PKHeX MAUI for macOS
       run: |
         cd PKHeX.MAUI
-        dotnet build --configuration Release --no-restore
+        # PKHeX.MAUI only targets net8.0-maccatalyst, not net8.0
+        # Must explicitly specify framework to avoid NETSDK1047 error
+        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst
     
     - name: Verify build output
       run: |
