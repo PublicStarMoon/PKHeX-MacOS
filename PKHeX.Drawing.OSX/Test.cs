@@ -9,7 +9,7 @@ namespace PKHeX.Drawing.OSX
     {
         public static void Main()
         {
-            Color c = ColorUtil2.ColorBaseStatTotal(600);
+            Color c = ColorUtil.ColorBaseStatTotal(600);
 
             Console.WriteLine(c.ToPixel<Argb32>());
         }
