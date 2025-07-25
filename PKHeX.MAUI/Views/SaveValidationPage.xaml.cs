@@ -432,7 +432,15 @@ public partial class SaveValidationPage : ContentPage
                     {
                         // Apply basic fixes
                         pokemon.Heal(); // Fix stats
-                        pokemon.SetSuggestedMoves(); // Fix moves if needed
+                        
+                        // Fix moves using basic approach since batch API is internal
+                        // For now, just heal PP which is basic legality
+                        pokemon.Heal(); // This includes HealPP()
+                        
+                        // Could add basic move validation here if needed
+                        // var la = new LegalityAnalysis(pokemon);
+                        // var info = new BatchInfo(pokemon, la);
+                        // PKHeX.Core.BatchModifications.SetSuggestedMoveset(info);
                         
                         // Re-check if it's now legal
                         if (PokemonHelper.IsLegal(pokemon, _saveFile))

@@ -257,7 +257,7 @@ public partial class PokemonBoxPage : ContentPage
                      $"Level: {pokemon.CurrentLevel}\n" +
                      $"Nature: {(Nature)pokemon.Nature}\n" +
                      $"Ability: {pokemon.Ability}\n" +
-                     $"HP: {pokemon.HP_Current}/{pokemon.Stat_HP}\n" +
+                     $"HP: {pokemon.GetHPCurrent()}/{pokemon.GetStatHP()}\n" +
                      $"Attack: {pokemon.Stat_ATK}\n" +
                      $"Defense: {pokemon.Stat_DEF}\n" +
                      $"Sp.Atk: {pokemon.Stat_SPA}\n" +

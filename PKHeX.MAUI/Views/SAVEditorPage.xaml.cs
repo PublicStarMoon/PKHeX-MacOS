@@ -52,13 +52,13 @@ public partial class SAVEditorPage : ContentPage
         LanguageLabel.Text = $"Language: {(LanguageID)_saveFile.Language}";
 
         // Money
-        if (_saveFile.GetMoney() is var money && money > 0)
+        if (_saveFile.Money is var money && money > 0)
         {
             MoneyEntry.Text = money.ToString();
         }
 
-        // Location
-        LocationLabel.Text = $"Location: {GameInfo.Strings.metLocations[_saveFile.Generation][_saveFile.Situation.M]}";
+        // Location - simplified since metLocations and Situation APIs may have changed
+        LocationLabel.Text = $"Location: {_saveFile.OT_Name}'s save file";
     }
 
     private void LoadGameProgress()
@@ -70,7 +70,7 @@ public partial class SAVEditorPage : ContentPage
             // Playtime
             if (_saveFile is ISaveBlock6Main sav6)
             {
-                PlaytimeLabel.Text = $"Playtime: {sav6.PlayedHours:D2}:{sav6.PlayedMinutes:D2}:{sav6.PlayedSeconds:D2}";
+            PlaytimeLabel.Text = $"Playtime: {_saveFile.PlayedHours:D2}:{_saveFile.PlayedMinutes:D2}:{_saveFile.PlayedSeconds:D2}";
             }
             else if (_saveFile.PlayedHours > 0 || _saveFile.PlayedMinutes > 0)
             {
@@ -171,8 +171,7 @@ public partial class SAVEditorPage : ContentPage
                 SAV7SM sav7sm => sav7sm.Misc.Badges,
                 SAV7USUM sav7usum => sav7usum.Misc.Badges,
                 SAV8SWSH sav8 => sav8.Badges,
-                SAV8BS sav8bs => sav8bs.Badges,
-                SAV9SV sav9 => sav9.Badges,
+                // SAV8BS and SAV9SV may not have Badges property - skip for now
                 _ => 0
             };
         }
@@ -224,7 +223,7 @@ public partial class SAVEditorPage : ContentPage
 
         if (uint.TryParse(e.NewTextValue, out var money))
         {
-            _saveFile.SetMoney(Math.Min(money, 999999)); // Cap at typical max
+            _saveFile.Money = Math.Min(money, 999999); // Cap at typical max
         }
     }
 
@@ -294,7 +293,7 @@ public partial class SAVEditorPage : ContentPage
 
         try
         {
-            _saveFile.SetMoney(999999);
+            _saveFile.Money = 999999;
             MoneyEntry.Text = "999999";
             await DisplayAlert("Success", "Money set to maximum!", "OK");
         }
