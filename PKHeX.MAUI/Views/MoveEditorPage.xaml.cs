@@ -240,12 +240,12 @@ public partial class MoveEditorPage : ContentPage
         try
         {
             var la = new LegalityAnalysis(_pokemon);
-            Span<ushort> suggestion = stackalloc ushort[4];
+            var suggestion = new ushort[4];
             la.GetSuggestedCurrentMoves(suggestion);
             
             if (suggestion[0] != 0) // At least one move was suggested
             {
-                _pokemon.Moves = suggestion.ToArray();
+                _pokemon.Moves = suggestion;
                 
                 // Set PP to max for all moves
                 var pps = new int[4];

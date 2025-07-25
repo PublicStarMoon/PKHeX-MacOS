@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
         <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers>
         <OutputType>Exe</OutputType>
         <RootNamespace>PKHeX.MAUI</RootNamespace>

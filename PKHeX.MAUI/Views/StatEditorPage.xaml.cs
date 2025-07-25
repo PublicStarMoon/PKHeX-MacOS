@@ -183,8 +183,10 @@ public partial class StatEditorPage : ContentPage
         if (_pokemon == null) return Colors.Black;
 
         var nature = _pokemon.Nature;
-        var increased = Nature.GetStatMultiplier(nature, statIndex + 1) > 1.0f;
-        var decreased = Nature.GetStatMultiplier(nature, statIndex + 1) < 1.0f;
+        var (up, dn) = NatureAmp.GetNatureModification(nature);
+        
+        var increased = up == statIndex;
+        var decreased = dn == statIndex;
 
         if (increased) return Colors.Red;
         if (decreased) return Colors.Blue;

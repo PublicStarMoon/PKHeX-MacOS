@@ -119,3 +119,26 @@ public static class PKMExtensions
     /// </summary>
     public static void SetStatHP(this PKM pkm, int value) => pkm.Stat_HPMax = value;
 }
+
+/// <summary>
+/// Extension methods for IHyperTrain to provide compatibility with legacy code
+/// </summary>
+public static class HyperTrainExtensions
+{
+    /// <summary>
+    /// Sets hyper training flag for a specific stat index
+    /// </summary>
+    public static void SetHyperTraining(this IHyperTrain ht, int index, bool value)
+    {
+        switch (index)
+        {
+            case 0: ht.HT_HP = value; break;
+            case 1: ht.HT_ATK = value; break;
+            case 2: ht.HT_DEF = value; break;
+            case 3: ht.HT_SPE = value; break;
+            case 4: ht.HT_SPA = value; break;
+            case 5: ht.HT_SPD = value; break;
+            default: throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be between 0 and 5.");
+        }
+    }
+}
