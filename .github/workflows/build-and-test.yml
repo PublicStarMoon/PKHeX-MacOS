@@ -33,9 +33,6 @@ jobs:
     
     - name: Build PKHeX.Drawing.Misc
       run: dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore
-    
-    - name: Build PKHeX.Drawing.OSX
-      run: dotnet build PKHeX.Drawing.OSX/PKHeX.Drawing.OSX.csproj --configuration Release --no-restore
 
   build-macos-ui:
     runs-on: macos-latest
