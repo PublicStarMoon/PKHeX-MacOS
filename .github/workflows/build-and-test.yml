@@ -20,19 +20,18 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --ignore-failed-sources
     
-    - name: Build PKHeX.Core
-      run: dotnet build PKHeX.Core/PKHeX.Core.csproj --configuration Release --no-restore
+    - name: Build Core Projects
+      run: |
+        dotnet build PKHeX.Core/PKHeX.Core.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build PKHeX.Drawing/PKHeX.Drawing.csproj --configuration Release --no-restore --verbosity minimal  
+        dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-restore --verbosity minimal
     
-    - name: Build PKHeX.Drawing
-      run: dotnet build PKHeX.Drawing/PKHeX.Drawing.csproj --configuration Release --no-restore
-    
-    - name: Build PKHeX.Drawing.PokeSprite
-      run: dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore
-    
-    - name: Build PKHeX.Drawing.Misc
-      run: dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore
+    - name: Run Tests
+      run: dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-build --verbosity minimal
 
   build-macos-ui:
     runs-on: macos-latest
