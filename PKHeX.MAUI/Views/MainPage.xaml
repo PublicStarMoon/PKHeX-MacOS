@@ -70,8 +70,12 @@
                         <Label Text="Pokémon Editor" FontSize="18" FontAttributes="Bold"/>
                         <Label Text="Load a save file to start editing Pokémon!" FontSize="14"/>
                         
+                        <Button Text="Open Pokemon Box Editor" x:Name="BoxEditorButton" 
+                                Clicked="OnBoxEditorClicked" Margin="0,10" IsEnabled="False" BackgroundColor="LightBlue"/>
                         <Button Text="Open PKM Database" x:Name="DatabaseButton" 
-                                Clicked="OnDatabaseClicked" Margin="0,10" IsEnabled="False"/>
+                                Clicked="OnDatabaseClicked" Margin="0,5" IsEnabled="False"/>
+                        <Button Text="Validate Save File" x:Name="ValidateButton" 
+                                Clicked="OnValidateClicked" Margin="0,5" IsEnabled="False" BackgroundColor="Orange"/>
                         <Button Text="Batch Editor" x:Name="BatchEditorButton" 
                                 Clicked="OnBatchEditorClicked" Margin="0,5" IsEnabled="False"/>
                     </StackLayout>

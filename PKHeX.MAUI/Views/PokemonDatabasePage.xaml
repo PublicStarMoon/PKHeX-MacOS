@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.PokemonDatabasePage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Pokemon Database">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="LightBlue" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked"/>
+            <Label Grid.Column="1" Text="Pokemon Database" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+            <Button Grid.Column="2" x:Name="GenerateButton" Text="Generate Random" Clicked="OnGenerateRandomClicked"/>
+        </Grid>
+
+        <!-- Search and Filter -->
+        <Grid Grid.Row="1" Padding="10" BackgroundColor="LightGray">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <SearchBar Grid.Column="0" x:Name="SearchBar" Placeholder="Search Pokemon..." TextChanged="OnSearchTextChanged"/>
+            <Picker Grid.Column="1" x:Name="GenerationPicker" Title="Generation" SelectedIndexChanged="OnGenerationChanged" Margin="5,0"/>
+            <Button Grid.Column="2" x:Name="ClearSearchButton" Text="Clear" Clicked="OnClearSearchClicked"/>
+        </Grid>
+
+        <!-- Pokemon List -->
+        <CollectionView Grid.Row="2" x:Name="PokemonCollectionView" SelectionMode="Single" SelectionChanged="OnPokemonSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" BackgroundColor="White" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <Label Grid.Column="0" Text="{Binding Id}" FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="{Binding Name}" FontSize="16" VerticalOptions="Center"/>
+                        <Label Grid.Column="2" Text="{Binding Generation}" FontSize="12" VerticalOptions="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Bottom Actions -->
+        <Grid Grid.Row="3" BackgroundColor="LightGray" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Label Grid.Column="0" x:Name="StatusLabel" Text="Select a Pokemon to view details" VerticalOptions="Center"/>
+            <Button Grid.Column="1" x:Name="ViewDetailsButton" Text="View Details" Clicked="OnViewDetailsClicked" IsEnabled="False" Margin="5,0"/>
+            <Button Grid.Column="2" x:Name="CreatePokemonButton" Text="Create Pokemon" Clicked="OnCreatePokemonClicked" IsEnabled="False" BackgroundColor="LightGreen"/>
+        </Grid>
+    </Grid>
+
+</ContentPage>

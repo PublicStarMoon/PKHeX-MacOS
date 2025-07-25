@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.SAVEditorPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Save File Editor"
+             BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackLayout Grid.Row="0" Spacing="10">
+            <Label Text="Save File Editor" 
+                   FontSize="24" 
+                   FontAttributes="Bold" 
+                   HorizontalOptions="Center"/>
+            <Label x:Name="GameInfoHeaderLabel" 
+                   Text="Game: Unknown" 
+                   FontSize="16" 
+                   HorizontalOptions="Center" 
+                   TextColor="{DynamicResource SecondaryTextColor}"/>
+        </StackLayout>
+
+        <!-- Main Content -->
+        <ScrollView Grid.Row="1" Margin="0,20,0,20">
+            <StackLayout Spacing="20">
+
+                <!-- Trainer Information -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Trainer Information" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            
+                            <!-- Trainer Name -->
+                            <Label Grid.Row="0" Grid.Column="0" Text="Name:" VerticalOptions="Center"/>
+                            <Entry Grid.Row="0" Grid.Column="1" x:Name="TrainerNameEntry" Placeholder="Trainer Name" TextChanged="OnTrainerNameChanged"/>
+                            
+                            <!-- Trainer ID -->
+                            <Label Grid.Row="1" Grid.Column="0" Text="ID:" VerticalOptions="Center"/>
+                            <Label Grid.Row="1" Grid.Column="1" x:Name="TrainerIDLabel" Text="00000" VerticalOptions="Center"/>
+                            
+                            <!-- Gender -->
+                            <Label Grid.Row="2" Grid.Column="0" Text="Gender:" VerticalOptions="Center"/>
+                            <Label Grid.Row="2" Grid.Column="1" x:Name="GenderLabel" Text="Male" VerticalOptions="Center"/>
+                            
+                            <!-- Language -->
+                            <Label Grid.Row="3" Grid.Column="0" Text="Language:" VerticalOptions="Center"/>
+                            <Label Grid.Row="3" Grid.Column="1" x:Name="LanguageLabel" Text="English" VerticalOptions="Center"/>
+                            
+                            <!-- Money -->
+                            <Label Grid.Row="4" Grid.Column="0" Text="Money:" VerticalOptions="Center"/>
+                            <Entry Grid.Row="4" Grid.Column="1" x:Name="MoneyEntry" Placeholder="0" Keyboard="Numeric" TextChanged="OnMoneyChanged"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Game Progress -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Game Progress" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            
+                            <!-- Playtime -->
+                            <Label Grid.Row="0" Grid.Column="0" x:Name="PlaytimeLabel" Text="Playtime: 00:00:00" FontSize="14"/>
+                            
+                            <!-- Location -->
+                            <Label Grid.Row="0" Grid.Column="1" x:Name="LocationLabel" Text="Location: Unknown" FontSize="14"/>
+                            
+                            <!-- Badges -->
+                            <Label Grid.Row="1" Grid.Column="0" x:Name="BadgesLabel" Text="Badges: 0/8" FontSize="14"/>
+                            
+                            <!-- Pokédex -->
+                            <Label Grid.Row="1" Grid.Column="1" x:Name="PokedexLabel" Text="Pokédex: 0 seen, 0 caught" FontSize="14"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Game Statistics -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Game Statistics" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <ScrollView HeightRequest="100">
+                            <Label x:Name="StatisticsLabel" 
+                                   Text="No statistics available" 
+                                   FontSize="14"
+                                   TextColor="{DynamicResource SecondaryTextColor}"/>
+                        </ScrollView>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Save File Information -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Save File Information" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            
+                            <Label Grid.Row="0" Grid.Column="0" x:Name="GameVersionLabel" Text="Version: Unknown" FontSize="14"/>
+                            <Label Grid.Row="0" Grid.Column="1" x:Name="GenerationLabel" Text="Generation: 0" FontSize="14"/>
+                            <Label Grid.Row="1" Grid.Column="0" x:Name="SaveTypeLabel" Text="Save Type: Unknown" FontSize="14"/>
+                            <Label Grid.Row="1" Grid.Column="1" x:Name="FileSizeLabel" Text="File Size: 0 bytes" FontSize="14"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Advanced Editors -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Advanced Editors" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            
+                            <Button Grid.Row="0" Grid.Column="0"
+                                    Text="Inventory Editor" 
+                                    BackgroundColor="{DynamicResource PrimaryColor}"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnInventoryClicked"/>
+                            
+                            <Button Grid.Row="0" Grid.Column="1"
+                                    Text="Pokédex Editor" 
+                                    BackgroundColor="{DynamicResource SecondaryColor}"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnPokedexClicked"/>
+                            
+                            <Button Grid.Row="1" Grid.Column="0"
+                                    Text="Event Flags" 
+                                    BackgroundColor="{DynamicResource AccentColor}"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnEventFlagsClicked"/>
+                            
+                            <Button Grid.Row="1" Grid.Column="1"
+                                    Text="Misc Data" 
+                                    BackgroundColor="Orange"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnMiscDataClicked"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Quick Actions -->
+                <Frame BackgroundColor="{DynamicResource CardBackgroundColor}" 
+                       HasShadow="True" 
+                       CornerRadius="10" 
+                       Padding="15">
+                    <StackLayout Spacing="15">
+                        <Label Text="Quick Actions" 
+                               FontSize="18" 
+                               FontAttributes="Bold"/>
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            
+                            <Button Grid.Row="0" Grid.Column="0"
+                                    Text="Max Money" 
+                                    BackgroundColor="Green"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnMaxMoneyClicked"/>
+                            
+                            <Button Grid.Row="0" Grid.Column="1"
+                                    Text="Complete Pokédex" 
+                                    BackgroundColor="Blue"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnCompletePokedexClicked"/>
+                            
+                            <Button Grid.Row="1" Grid.Column="0"
+                                    Text="All Badges" 
+                                    BackgroundColor="Gold"
+                                    TextColor="Black"
+                                    CornerRadius="8"
+                                    Clicked="OnMaxBadgesClicked"/>
+                            
+                            <Button Grid.Row="1" Grid.Column="1"
+                                    Text="Reset Playtime" 
+                                    BackgroundColor="Red"
+                                    TextColor="White"
+                                    CornerRadius="8"
+                                    Clicked="OnResetPlaytimeClicked"/>
+                        </Grid>
+                        
+                        <StackLayout Spacing="5">
+                            <Label Text="⚠️ Quick actions modify save data immediately" 
+                                   FontSize="12" 
+                                   TextColor="Red"/>
+                            <Label Text="Use advanced editors for more precise control" 
+                                   FontSize="12" 
+                                   TextColor="{DynamicResource SecondaryTextColor}"/>
+                        </StackLayout>
+                    </StackLayout>
+                </Frame>
+
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Footer -->
+        <Button Grid.Row="2"
+                Text="Back"
+                BackgroundColor="{DynamicResource PrimaryColor}"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="50"
+                Clicked="OnBackClicked"/>
+
+    </Grid>
+</ContentPage>

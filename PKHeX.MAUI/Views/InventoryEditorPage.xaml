@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.InventoryEditorPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Inventory Editor"
+             BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Label Grid.Row="0" 
+               Text="Inventory Editor" 
+               FontSize="24" 
+               FontAttributes="Bold" 
+               HorizontalOptions="Center"/>
+
+        <!-- Content -->
+        <StackLayout Grid.Row="1" Spacing="20" VerticalOptions="Center">
+            <Label x:Name="StatusLabel" Text="Inventory Editor" HorizontalOptions="Center"/>
+            <Label x:Name="ItemCountLabel" Text="Items: 0" HorizontalOptions="Center"/>
+            <Label Text="⚠️ Full inventory editor implementation coming soon" 
+                   HorizontalOptions="Center" 
+                   TextColor="Orange"/>
+        </StackLayout>
+
+        <!-- Footer -->
+        <Button Grid.Row="2"
+                Text="Back"
+                BackgroundColor="{DynamicResource PrimaryColor}"
+                TextColor="White"
+                CornerRadius="10"
+                HeightRequest="50"
+                Clicked="OnBackClicked"/>
+    </Grid>
+</ContentPage>

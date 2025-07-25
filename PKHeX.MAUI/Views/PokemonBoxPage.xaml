@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.PokemonBoxPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Pokemon Box Editor">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Menu Bar -->
+        <Grid Grid.Row="0" BackgroundColor="LightGray" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked" Margin="0,0,10,0"/>
+            <Label Grid.Column="1" Text="Pokemon Box Editor" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+            <Button Grid.Column="2" x:Name="SaveButton" Text="Save Changes" Clicked="OnSaveClicked" Margin="5,0"/>
+            <Button Grid.Column="3" x:Name="ExportBoxButton" Text="Export Box" Clicked="OnExportBoxClicked" Margin="5,0"/>
+        </Grid>
+
+        <!-- Box Selection and Info -->
+        <Grid Grid.Row="1" Padding="10" BackgroundColor="LightBlue">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Label Grid.Column="0" Text="Box:" VerticalOptions="Center" Margin="0,0,10,0"/>
+            <Picker Grid.Column="1" x:Name="BoxPicker" SelectedIndexChanged="OnBoxChanged"/>
+            <Label Grid.Column="2" x:Name="BoxCountLabel" Text="30/30" VerticalOptions="Center" Margin="10,0"/>
+            <Button Grid.Column="3" x:Name="ClearBoxButton" Text="Clear Box" Clicked="OnClearBoxClicked" BackgroundColor="LightCoral"/>
+        </Grid>
+
+        <!-- Pokemon Box Grid -->
+        <ScrollView Grid.Row="2" Padding="10">
+            <Grid x:Name="PokemonGrid" RowSpacing="5" ColumnSpacing="5">
+                <!-- Grid will be populated programmatically -->
+            </Grid>
+        </ScrollView>
+
+        <!-- Bottom Status Bar -->
+        <Grid Grid.Row="3" BackgroundColor="LightGray" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Label Grid.Column="0" x:Name="StatusLabel" Text="Select a Pokemon to edit" VerticalOptions="Center"/>
+            <Button Grid.Column="1" x:Name="AddPokemonButton" Text="+ Add Pokemon" Clicked="OnAddPokemonClicked" BackgroundColor="LightGreen"/>
+        </Grid>
+    </Grid>
+
+</ContentPage>

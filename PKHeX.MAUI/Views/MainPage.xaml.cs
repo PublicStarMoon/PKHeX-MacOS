@@ -84,12 +84,58 @@ public partial class MainPage : ContentPage
 
     private async void OnDatabaseClicked(object sender, EventArgs e)
     {
-        await DisplayAlert("PKM Database", "Database functionality will be available in the full version.", "OK");
+        try
+        {
+            var databasePage = new PokemonDatabasePage(_currentSave);
+            await Navigation.PushAsync(databasePage);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to open database: {ex.Message}", "OK");
+        }
     }
 
     private async void OnBatchEditorClicked(object sender, EventArgs e)
     {
         await DisplayAlert("Batch Editor", "Batch editing functionality will be available in the full version.", "OK");
+    }
+
+    private async void OnBoxEditorClicked(object sender, EventArgs e)
+    {
+        if (_currentSave == null)
+        {
+            await DisplayAlert("Error", "No save file loaded!", "OK");
+            return;
+        }
+
+        try
+        {
+            var boxPage = new PokemonBoxPage(_currentSave);
+            await Navigation.PushAsync(boxPage);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to open box editor: {ex.Message}", "OK");
+        }
+    }
+
+    private async void OnValidateClicked(object sender, EventArgs e)
+    {
+        if (_currentSave == null)
+        {
+            await DisplayAlert("Error", "No save file loaded!", "OK");
+            return;
+        }
+
+        try
+        {
+            var validationPage = new SaveValidationPage(_currentSave);
+            await Navigation.PushAsync(validationPage);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to open validation page: {ex.Message}", "OK");
+        }
     }
 
     private async Task OpenSaveFile()
@@ -212,7 +258,9 @@ public partial class MainPage : ContentPage
 
                 SaveInfoFrame.IsVisible = true;
                 SaveChangesButton.IsEnabled = true;
+                BoxEditorButton.IsEnabled = true;
                 DatabaseButton.IsEnabled = true;
+                ValidateButton.IsEnabled = true;
                 BatchEditorButton.IsEnabled = true;
                 
                 StatusLabel.Text = $"Successfully loaded {sav.GetType().Name} save file!";

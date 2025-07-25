@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.PokemonEditorPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Pokemon Editor">
+
+    <ScrollView>
+        <StackLayout Padding="10" Spacing="10">
+            
+            <!-- Header -->
+            <Grid BackgroundColor="LightBlue" Padding="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked"/>
+                <Label Grid.Column="1" x:Name="HeaderLabel" Text="Pokemon Editor" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Button Grid.Column="2" x:Name="SaveButton" Text="Save" Clicked="OnSaveClicked" BackgroundColor="LightGreen"/>
+            </Grid>
+
+            <!-- Basic Information -->
+            <Frame BackgroundColor="LightYellow" Padding="10">
+                <StackLayout>
+                    <Label Text="Basic Information" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Label Grid.Row="0" Grid.Column="0" Text="Species:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="0" Grid.Column="1" x:Name="SpeciesPicker" SelectedIndexChanged="OnSpeciesChanged"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Nickname:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="NicknameEntry" TextChanged="OnNicknameChanged"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Level:" VerticalOptions="Center"/>
+                        <Slider Grid.Row="2" Grid.Column="1" x:Name="LevelSlider" Minimum="1" Maximum="100" ValueChanged="OnLevelChanged"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Nature:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="3" Grid.Column="1" x:Name="NaturePicker" SelectedIndexChanged="OnNatureChanged"/>
+                    </StackLayout>
+                </StackLayout>
+            </Frame>
+
+            <!-- Stats -->
+            <Frame BackgroundColor="LightGreen" Padding="10">
+                <StackLayout>
+                    <Label Text="Stats" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- HP -->
+                        <Label Grid.Row="0" Grid.Column="0" Text="HP:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="0" Grid.Column="1" x:Name="HPSlider" Minimum="0" Maximum="31" ValueChanged="OnHPChanged"/>
+                        <Label Grid.Row="0" Grid.Column="2" x:Name="HPLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        
+                        <!-- Attack -->
+                        <Label Grid.Row="1" Grid.Column="0" Text="Attack:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="1" Grid.Column="1" x:Name="AttackSlider" Minimum="0" Maximum="31" ValueChanged="OnAttackChanged"/>
+                        <Label Grid.Row="1" Grid.Column="2" x:Name="AttackLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        
+                        <!-- Defense -->
+                        <Label Grid.Row="2" Grid.Column="0" Text="Defense:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="2" Grid.Column="1" x:Name="DefenseSlider" Minimum="0" Maximum="31" ValueChanged="OnDefenseChanged"/>
+                        <Label Grid.Row="2" Grid.Column="2" x:Name="DefenseLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        
+                        <!-- Sp. Attack -->
+                        <Label Grid.Row="3" Grid.Column="0" Text="Sp. Atk:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="3" Grid.Column="1" x:Name="SpAttackSlider" Minimum="0" Maximum="31" ValueChanged="OnSpAttackChanged"/>
+                        <Label Grid.Row="3" Grid.Column="2" x:Name="SpAttackLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        
+                        <!-- Sp. Defense -->
+                        <Label Grid.Row="4" Grid.Column="0" Text="Sp. Def:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="4" Grid.Column="1" x:Name="SpDefenseSlider" Minimum="0" Maximum="31" ValueChanged="OnSpDefenseChanged"/>
+                        <Label Grid.Row="4" Grid.Column="2" x:Name="SpDefenseLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        
+                        <!-- Speed -->
+                        <Label Grid.Row="5" Grid.Column="0" Text="Speed:" VerticalOptions="Center" Margin="0,0,10,0"/>
+                        <Slider Grid.Row="5" Grid.Column="1" x:Name="SpeedSlider" Minimum="0" Maximum="31" ValueChanged="OnSpeedChanged"/>
+                        <Label Grid.Row="5" Grid.Column="2" x:Name="SpeedLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                    </Grid>
+                    
+                    <Button Text="Randomize IVs" x:Name="RandomizeIVsButton" Clicked="OnRandomizeIVsClicked" Margin="0,10,0,0"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Moves -->
+            <Frame BackgroundColor="LightCoral" Padding="10">
+                <StackLayout>
+                    <Label Text="Moves" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Label Grid.Row="0" Grid.Column="0" Text="Move 1:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="0" Grid.Column="1" x:Name="Move1Picker" SelectedIndexChanged="OnMove1Changed"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Move 2:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="1" Grid.Column="1" x:Name="Move2Picker" SelectedIndexChanged="OnMove2Changed"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Move 3:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="2" Grid.Column="1" x:Name="Move3Picker" SelectedIndexChanged="OnMove3Changed"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Move 4:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="3" Grid.Column="1" x:Name="Move4Picker" SelectedIndexChanged="OnMove4Changed"/>
+                    </Grid>
+                    
+                    <Button Text="Suggest Legal Moves" x:Name="SuggestMovesButton" Clicked="OnSuggestMovesClicked" Margin="0,10,0,0"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Special Properties -->
+            <Frame BackgroundColor="LightPink" Padding="10">
+                <StackLayout>
+                    <Label Text="Special Properties" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <CheckBox Grid.Row="0" Grid.Column="0" x:Name="ShinyCheckBox" CheckedChanged="OnShinyChanged"/>
+                        <Label Grid.Row="0" Grid.Column="1" Text="Shiny" VerticalOptions="Center"/>
+                        
+                        <CheckBox Grid.Row="1" Grid.Column="0" x:Name="EggCheckBox" CheckedChanged="OnEggChanged"/>
+                        <Label Grid.Row="1" Grid.Column="1" Text="Egg" VerticalOptions="Center"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Held Item:" VerticalOptions="Center"/>
+                        <Picker Grid.Row="2" Grid.Column="1" x:Name="HeldItemPicker" SelectedIndexChanged="OnHeldItemChanged"/>
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Validation and Trainer Info -->
+            <Frame BackgroundColor="LightYellow" Padding="10">
+                <StackLayout>
+                    <Label Text="Tools & Validation" FontSize="16" FontAttributes="Bold"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Button Grid.Row="0" Grid.Column="0" Text="Advanced Stats" x:Name="AdvancedStatsButton" Clicked="OnAdvancedStatsClicked" BackgroundColor="LightPink" Margin="0,0,5,5"/>
+                        <Button Grid.Row="0" Grid.Column="1" Text="Move Editor" x:Name="MoveEditorButton" Clicked="OnMoveEditorClicked" BackgroundColor="LightCyan" Margin="5,0,0,5"/>
+                        <Button Grid.Row="1" Grid.Column="0" Text="Memory/Amie" x:Name="MemoryAmieButton" Clicked="OnMemoryAmieClicked" BackgroundColor="LightSalmon" Margin="0,5,5,5"/>
+                        <Button Grid.Row="1" Grid.Column="1" Text="Trainer ID" x:Name="TrainerIDButton" Clicked="OnTrainerIDClicked" BackgroundColor="LightYellow" Margin="5,5,0,5"/>
+                        <Button Grid.Row="2" Grid.Column="0" Text="SAV Editor" x:Name="SAVEditorButton" Clicked="OnSAVEditorClicked" BackgroundColor="LightSteelBlue" Margin="0,5,5,5"/>
+                        <Button Grid.Row="2" Grid.Column="1" Text="Validate Legality" x:Name="ValidateButton" Clicked="OnValidateClicked" BackgroundColor="LightBlue" Margin="5,5,0,5"/>
+                        <Button Grid.Row="3" Grid.Column="0" Text="Fix Trainer Info" x:Name="FixTrainerButton" Clicked="OnFixTrainerInfoClicked" BackgroundColor="Orange" Margin="0,5,5,0"/>
+                        <Button Grid.Row="3" Grid.Column="1" Text="Heal Pokemon" x:Name="HealButton" Clicked="OnHealClicked" BackgroundColor="LightGreen" Margin="5,5,0,0"/>
+                    </Grid>
+                    <Label Text="⚠️ Use 'Fix Trainer Info' if Pokemon disobey in Scarlet/Violet" FontSize="10" TextColor="Red" Margin="0,5,0,0"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Current Stats Display -->
+            <Frame BackgroundColor="LightGray" Padding="10">
+                <StackLayout>
+                    <Label Text="Current Stats" FontSize="16" FontAttributes="Bold"/>
+                    <Label x:Name="CurrentStatsLabel" Text="Stats will be calculated..." FontSize="12"/>
+                </StackLayout>
+            </Frame>
+
+        </StackLayout>
+    </ScrollView>
+
+</ContentPage>

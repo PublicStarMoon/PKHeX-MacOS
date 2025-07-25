@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build MAUI App",
+			"type": "shell",
+			"command": "dotnet build PKHeX.MAUI/PKHeX.MAUI.csproj",
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}
