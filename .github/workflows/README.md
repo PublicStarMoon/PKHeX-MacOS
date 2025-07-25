@@ -70,3 +70,4 @@ To get the latest PKHeX macOS build:
 - PKHeX.Drawing.Misc was downgraded from .NET 9.0 to .NET 8.0
 - Package dependencies updated to .NET 8.0 compatible versions
 - The workflows use `macos-latest` runner for native macOS builds
+- PKHeX.MAUI includes RuntimeIdentifiers for both Intel (x64) and Apple Silicon (arm64) Macs
