@@ -1,4 +1,8 @@
 using PKHeX.Core;
+using PKHeX.MAUI.Utilities;
+using System;
+using System.Linq;
+using Microsoft.Maui.Graphics;
 
 namespace PKHeX.MAUI.Views;
 
