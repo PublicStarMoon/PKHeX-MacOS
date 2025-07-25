@@ -220,10 +220,10 @@ public partial class SaveValidationPage : ContentPage
 
         try
         {
-            var fixed = await FixTrainerIssues();
-            TrainerStatusLabel.Text = fixed == 0 
+            var fixedCount = await FixTrainerIssues();
+            TrainerStatusLabel.Text = fixedCount == 0 
                 ? "✅ No trainer fixes needed" 
-                : $"✅ Fixed trainer info for {fixed} Pokemon";
+                : $"✅ Fixed trainer info for {fixedCount} Pokemon";
         }
         catch (Exception ex)
         {
@@ -254,10 +254,10 @@ public partial class SaveValidationPage : ContentPage
 
         try
         {
-            var fixed = ItemHelper.FixAllUnsafeItems(_saveFile);
-            ItemStatusLabel.Text = fixed == 0 
+            var fixedCount = ItemHelper.FixAllUnsafeItems(_saveFile);
+            ItemStatusLabel.Text = fixedCount == 0 
                 ? "✅ No item fixes needed" 
-                : $"✅ Removed {fixed} unsafe items";
+                : $"✅ Removed {fixedCount} unsafe items";
         }
         catch (Exception ex)
         {
