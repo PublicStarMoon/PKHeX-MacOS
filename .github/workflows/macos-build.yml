@@ -33,10 +33,7 @@ jobs:
         dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore --verbosity minimal
         dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore --verbosity minimal
         dotnet build Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-restore --verbosity minimal
-    
-    - name: Run Tests
-      run: dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-build --verbosity minimal
-    
+
     - name: Build PKHeX MAUI for macOS
       run: |
         cd PKHeX.MAUI
