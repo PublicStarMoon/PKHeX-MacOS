@@ -115,7 +115,7 @@ public partial class StatEditorPage : ContentPage
 
         var stats = new[]
         {
-            _pokemon.Stat_HP,
+            _pokemon.Stat_HPMax,
             _pokemon.Stat_ATK,
             _pokemon.Stat_DEF,
             _pokemon.Stat_SPA,

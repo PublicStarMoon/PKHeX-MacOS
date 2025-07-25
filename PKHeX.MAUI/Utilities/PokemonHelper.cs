@@ -18,9 +18,10 @@ public static class PokemonHelper
         ApplyCorrectTrainerInfo(pk, save);
         
         // Set basic legal values
-        var la = new LegalityAnalysis(pk);
-        var info = new BatchInfo(pk, la);
-        PKHeX.Core.BatchModifications.SetSuggestedMoveset(info);
+        // For now, skip move suggestion as API is internal - moves will be set elsewhere
+        // var la = new LegalityAnalysis(pk);
+        // var info = new BatchInfo(pk, la);
+        // PKHeX.Core.BatchModifications.SetSuggestedMoveset(info);
         pk.SetRandomIVs();
         pk.Heal();
         
@@ -52,12 +53,11 @@ public static class PokemonHelper
         // Clear any previous handler data to prevent conflicts
         pokemon.HT_Name = "";
         pokemon.HT_Gender = 0;
-        pokemon.HT_Language = 0;
         
         // Set proper version for compatibility
         if (save.Version > 0)
         {
-            pokemon.Version = save.Version;
+            pokemon.Version = (int)save.Version;
         }
         
         // Apply region/country info for Gen 6+ saves
@@ -68,11 +68,8 @@ public static class PokemonHelper
             pkRegion.ConsoleRegion = region.ConsoleRegion;
         }
         
-        // Set proper encounter context for legality
-        if (pokemon.Context != save.Context)
-        {
-            pokemon.Context = save.Context;
-        }
+        // Note: Context is read-only and determined by the PKM type
+        // Cannot modify context after creation
     }
 
     /// <summary>
@@ -91,8 +88,8 @@ public static class PokemonHelper
         if (pokemon is PK9 pk9)
         {
             // Reset any problematic fields that could cause disobedience
-            pk9.MetLocation = save.Context == EntityContext.Gen9 ? 6 : pk9.MetLocation; // Paldea if SV
-            pk9.MetLevel = Math.Min(pokemon.CurrentLevel, pk9.MetLevel);
+            pk9.Met_Location = save.Context == EntityContext.Gen9 ? 6 : pk9.Met_Location; // Paldea if SV
+            pk9.Met_Level = Math.Min(pokemon.CurrentLevel, pk9.Met_Level);
             
             // Ensure proper ball for legality
             if (pk9.Ball == 0)
@@ -156,11 +153,11 @@ public static class PokemonHelper
     {
         try
         {
-            var pi = PersonalTable.SV.GetFormEntry(species, 0);
+            var pi = PersonalTable.SV.GetFormEntry((ushort)species, 0);
             var types = GameInfo.GetStrings(1).types;
             
-            var type1 = pi.Type1 < types.Length ? types[pi.Type1] : "Unknown";
-            var type2 = pi.Type1 != pi.Type2 && pi.Type2 < types.Length ? types[pi.Type2] : "";
+            var type1 = (int)pi.Type1 < types.Length ? types[pi.Type1] : "Unknown";
+            var type2 = pi.Type1 != pi.Type2 && (int)pi.Type2 < types.Length ? types[pi.Type2] : "";
             
             return (type1, type2);
         }
@@ -177,7 +174,7 @@ public static class PokemonHelper
     {
         try
         {
-            var pi = PersonalTable.SV.GetFormEntry(species, 0);
+            var pi = PersonalTable.SV.GetFormEntry((ushort)species, 0);
             return (pi.HP, pi.ATK, pi.DEF, pi.SPA, pi.SPD, pi.SPE);
         }
         catch

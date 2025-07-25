@@ -103,7 +103,7 @@ public partial class MemoryAmieEditorPage : ContentPage
         try
         {
             var memories = GameInfo.Strings.memories;
-            if (memoryId < memories.Count)
+            if (memoryId < memories.Length)
             {
                 var prefix = isOT ? "OT: " : "HT: ";
                 return prefix + memories[memoryId];
