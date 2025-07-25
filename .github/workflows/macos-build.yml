@@ -1,4 +1,4 @@
-name: MacOS Build
+name: Build and Test macOS
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
+  build-and-test-macos:
     runs-on: macos-latest
     
     steps:
@@ -24,14 +24,25 @@ jobs:
         sudo dotnet workload install maui
     
     - name: Restore dependencies
-      run: dotnet restore PKHeX.MAUI/PKHeX.MAUI.csproj
+      run: dotnet restore --ignore-failed-sources
     
-    - name: Build PKHeX for macOS
+    - name: Build Core Projects
+      run: |
+        dotnet build PKHeX.Core/PKHeX.Core.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build PKHeX.Drawing/PKHeX.Drawing.csproj --configuration Release --no-restore --verbosity minimal  
+        dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-restore --verbosity minimal
+    
+    - name: Run Tests
+      run: dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-build --verbosity minimal
+    
+    - name: Build PKHeX MAUI for macOS
       run: |
         cd PKHeX.MAUI
         dotnet build --configuration Release --no-restore
     
-    - name: Test build output
+    - name: Verify build output
       run: |
         cd PKHeX.MAUI
         if [ -d "bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
@@ -44,25 +55,26 @@ jobs:
           find bin -name "PKHeX.MAUI*" || echo "No PKHeX.MAUI outputs found"
         fi
     
-    - name: Upload MacOS App Artifact
+    - name: Upload MacOS Build Artifacts
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: PKHeX-MacOS-App
+        name: PKHeX-MacOS-Build
         path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/
         retention-days: 30
     
     - name: Build status summary
       if: always()
       run: |
-        echo "## 🎮 PKHeX MacOS Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎮 PKHeX MacOS Build & Test Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ ${{ job.status }} == 'success' ]; then
           echo "✅ **Build Status**: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          echo "🧪 **Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
           echo "📱 **MacOS App**: Ready for deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Download Instructions" >> $GITHUB_STEP_SUMMARY
-          echo "1. Download the 'PKHeX-MacOS-App' artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the 'PKHeX-MacOS-Build' artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
           echo "2. Extract the archive and locate the \`.app\` file" >> $GITHUB_STEP_SUMMARY
           echo "3. Drag the \`.app\` file to your Applications folder" >> $GITHUB_STEP_SUMMARY
           echo "4. Launch PKHeX from Applications or Launchpad" >> $GITHUB_STEP_SUMMARY
