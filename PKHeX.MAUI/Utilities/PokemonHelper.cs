@@ -18,7 +18,9 @@ public static class PokemonHelper
         ApplyCorrectTrainerInfo(pk, save);
         
         // Set basic legal values
-        pk.SetSuggestedMoves();
+        var la = new LegalityAnalysis(pk);
+        var info = new BatchInfo(pk, la);
+        PKHeX.Core.BatchModifications.SetSuggestedMoveset(info);
         pk.SetRandomIVs();
         pk.Heal();
         

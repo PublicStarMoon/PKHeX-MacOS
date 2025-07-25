@@ -52,7 +52,7 @@ public partial class SAVEditorPage : ContentPage
         LanguageLabel.Text = $"Language: {(LanguageID)_saveFile.Language}";
 
         // Money
-        if (_saveFile.GetMoney() is var money && money > 0)
+        if (_saveFile.Money is var money && money > 0)
         {
             MoneyEntry.Text = money.ToString();
         }
@@ -224,7 +224,7 @@ public partial class SAVEditorPage : ContentPage
 
         if (uint.TryParse(e.NewTextValue, out var money))
         {
-            _saveFile.SetMoney(Math.Min(money, 999999)); // Cap at typical max
+            _saveFile.Money = Math.Min(money, 999999); // Cap at typical max
         }
     }
 
@@ -294,7 +294,7 @@ public partial class SAVEditorPage : ContentPage
 
         try
         {
-            _saveFile.SetMoney(999999);
+            _saveFile.Money = 999999;
             MoneyEntry.Text = "999999";
             await DisplayAlert("Success", "Money set to maximum!", "OK");
         }

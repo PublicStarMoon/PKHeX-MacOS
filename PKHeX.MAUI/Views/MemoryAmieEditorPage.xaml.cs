@@ -27,16 +27,13 @@ public partial class MemoryAmieEditorPage : ContentPage
         try
         {
             // Load basic affection/happiness data
-            if (_pokemon is IHappiness happiness)
-            {
-                HappinessSlider.Value = happiness.CurrentFriendship;
-                HappinessLabel.Text = happiness.CurrentFriendship.ToString();
-            }
+            HappinessSlider.Value = _pokemon.CurrentFriendship;
+            HappinessLabel.Text = _pokemon.CurrentFriendship.ToString();
 
             if (_pokemon is IAffection affection)
             {
-                AffectionSlider.Value = affection.Affection;
-                AffectionLabel.Text = affection.Affection.ToString();
+                AffectionSlider.Value = affection.OT_Affection;
+                AffectionLabel.Text = affection.OT_Affection.ToString();
             }
 
             // Load memory data for supported generations
@@ -80,13 +77,10 @@ public partial class MemoryAmieEditorPage : ContentPage
         if (_pokemon == null) return;
 
         // Pokémon-Amie specific data (Gen 6)
-        if (_pokemon is IAmie amie)
-        {
-            FullnessSlider.Value = amie.Fullness;
-            EnjoymentSlider.Value = amie.Enjoyment;
-            FullnessLabel.Text = amie.Fullness.ToString();
-            EnjoymentLabel.Text = amie.Enjoyment.ToString();
-        }
+        FullnessSlider.Value = _pokemon.Fullness;
+        EnjoymentSlider.Value = _pokemon.Enjoyment;
+        FullnessLabel.Text = _pokemon.Fullness.ToString();
+        EnjoymentLabel.Text = _pokemon.Enjoyment.ToString();
     }
 
     private void LoadRefreshData()
@@ -164,11 +158,8 @@ public partial class MemoryAmieEditorPage : ContentPage
         if (_pokemon == null || _isUpdating) return;
 
         var value = (byte)e.NewValue;
-        if (_pokemon is IHappiness happiness)
-        {
-            happiness.CurrentFriendship = value;
-            HappinessLabel.Text = value.ToString();
-        }
+        _pokemon.CurrentFriendship = value;
+        HappinessLabel.Text = value.ToString();
     }
 
     private void OnAffectionChanged(object sender, ValueChangedEventArgs e)
@@ -178,7 +169,7 @@ public partial class MemoryAmieEditorPage : ContentPage
         var value = (byte)e.NewValue;
         if (_pokemon is IAffection affection)
         {
-            affection.Affection = value;
+            affection.OT_Affection = value;
             AffectionLabel.Text = value.ToString();
         }
     }
@@ -262,11 +253,8 @@ public partial class MemoryAmieEditorPage : ContentPage
         if (_pokemon == null || _isUpdating) return;
 
         var value = (byte)e.NewValue;
-        if (_pokemon is IAmie amie)
-        {
-            amie.Fullness = value;
-            FullnessLabel.Text = value.ToString();
-        }
+        _pokemon.Fullness = value;
+        FullnessLabel.Text = value.ToString();
     }
 
     private void OnEnjoymentChanged(object sender, ValueChangedEventArgs e)
@@ -274,11 +262,8 @@ public partial class MemoryAmieEditorPage : ContentPage
         if (_pokemon == null || _isUpdating) return;
 
         var value = (byte)e.NewValue;
-        if (_pokemon is IAmie amie)
-        {
-            amie.Enjoyment = value;
-            EnjoymentLabel.Text = value.ToString();
-        }
+        _pokemon.Enjoyment = value;
+        EnjoymentLabel.Text = value.ToString();
     }
 
     private void OnFormArgumentChanged(object sender, ValueChangedEventArgs e)
@@ -302,18 +287,14 @@ public partial class MemoryAmieEditorPage : ContentPage
         try
         {
             // Max out friendship/affection
-            if (_pokemon is IHappiness happiness)
-                happiness.CurrentFriendship = 255;
+            _pokemon.CurrentFriendship = 255;
             
             if (_pokemon is IAffection affection)
-                affection.Affection = 255;
+                affection.OT_Affection = 255;
 
             // Max out Amie stats
-            if (_pokemon is IAmie amie)
-            {
-                amie.Fullness = 255;
-                amie.Enjoyment = 255;
-            }
+            _pokemon.Fullness = 255;
+            _pokemon.Enjoyment = 255;
 
             LoadMemoryData();
             await DisplayAlert("Success", "Bond values maximized!", "OK");

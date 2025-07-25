@@ -50,8 +50,8 @@ public partial class MoveEditorPage : ContentPage
         try
         {
             var moves = _pokemon.Moves;
-            var pps = _pokemon.PP_Ups;
-            var currentPPs = _pokemon.Move_PP;
+            var pps = _pokemon.GetMovePPUps();
+            var currentPPs = _pokemon.GetMovePPs();
 
             for (int i = 0; i < 4; i++)
             {
@@ -150,10 +150,10 @@ public partial class MoveEditorPage : ContentPage
         _pokemon.Moves = moves;
 
         // Reset PP to max
-        var pps = _pokemon.Move_PP;
+        var pps = _pokemon.GetMovePPs();
         var moveData = GetMoveData(moveId, _pokemon.Context);
         pps[moveIndex] = moveData?.PP ?? 0;
-        _pokemon.Move_PP = pps;
+        _pokemon.SetMovePPs(pps);
 
         LoadMoveData();
     }
@@ -199,9 +199,9 @@ public partial class MoveEditorPage : ContentPage
         var moveIndex = int.Parse(stepper.ClassId);
         var newValue = (int)stepper.Value;
 
-        var ppUps = _pokemon.PP_Ups;
+        var ppUps = _pokemon.GetMovePPUps();
         ppUps[moveIndex] = newValue;
-        _pokemon.PP_Ups = ppUps;
+        _pokemon.SetMovePPUps(ppUps);
 
         // Update current PP to max
         var moves = _pokemon.Moves;
@@ -209,9 +209,9 @@ public partial class MoveEditorPage : ContentPage
         if (moveData != null)
         {
             var maxPP = moveData.PP + (moveData.PP / 5 * newValue);
-            var currentPP = _pokemon.Move_PP;
+            var currentPP = _pokemon.GetMovePPs();
             currentPP[moveIndex] = maxPP;
-            _pokemon.Move_PP = currentPP;
+            _pokemon.SetMovePPs(currentPP);
         }
 
         LoadMoveData();
@@ -226,9 +226,9 @@ public partial class MoveEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out var newPP))
         {
-            var currentPP = _pokemon.Move_PP;
+            var currentPP = _pokemon.GetMovePPs();
             currentPP[moveIndex] = Math.Max(0, newPP);
-            _pokemon.Move_PP = currentPP;
+            _pokemon.SetMovePPs(currentPP);
         }
     }
 
@@ -250,7 +250,7 @@ public partial class MoveEditorPage : ContentPage
                     var moveData = GetMoveData(suggestion[i], _pokemon.Context);
                     pps[i] = moveData?.PP ?? 0;
                 }
-                _pokemon.Move_PP = pps;
+                _pokemon.SetMovePPs(pps);
 
                 LoadMoveData();
                 await DisplayAlert("Success", "Moves suggested based on level and legality!", "OK");
@@ -271,7 +271,7 @@ public partial class MoveEditorPage : ContentPage
         if (_pokemon == null) return;
 
         var moves = _pokemon.Moves;
-        var ppUps = _pokemon.PP_Ups;
+        var ppUps = _pokemon.GetMovePPUps();
         var currentPP = new int[4];
 
         for (int i = 0; i < 4; i++)
@@ -283,7 +283,7 @@ public partial class MoveEditorPage : ContentPage
             }
         }
 
-        _pokemon.Move_PP = currentPP;
+        _pokemon.SetMovePPs(currentPP);
         LoadMoveData();
         await DisplayAlert("Success", "All PP restored to maximum!", "OK");
     }
