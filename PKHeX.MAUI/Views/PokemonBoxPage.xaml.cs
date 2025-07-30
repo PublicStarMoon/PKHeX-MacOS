@@ -1,6 +1,7 @@
 using PKHeX.Core;
 using Microsoft.Maui.Graphics;
 using System.Collections.ObjectModel;
+using PKHeX.MAUI.Services;
 
 namespace PKHeX.MAUI.Views;
 
@@ -50,8 +51,9 @@ public partial class PokemonBoxPage : ContentPage
             PokemonGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(80) });
         }
 
-        // Create 30 Pokemon slots
-        for (int i = 0; i < _saveFile.BoxSlotCount; i++)
+        // Create 30 Pokemon slots (standard box size)
+        int slotsPerBox = 30; // Standard Pokemon box size
+        for (int i = 0; i < slotsPerBox; i++)
         {
             int row = i / 6;
             int col = i % 6;
@@ -59,16 +61,20 @@ public partial class PokemonBoxPage : ContentPage
             var button = new Button
             {
                 Text = "Empty",
-                BackgroundColor = Colors.LightGray,
-                BorderColor = Colors.Gray,
+                BackgroundColor = Color.FromArgb("#ECF0F1"),
+                TextColor = Color.FromArgb("#BDC3C7"),
+                BorderColor = Color.FromArgb("#BDC3C7"),
                 BorderWidth = 1,
-                FontSize = 10,
-                Padding = new Thickness(2),
-                HeightRequest = 75,
-                WidthRequest = 80
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                Padding = new Thickness(4),
+                HeightRequest = 80,
+                WidthRequest = 85,
+                CornerRadius = 6
             };
 
-            button.Clicked += (s, e) => OnPokemonSlotClicked(i);
+            int slotIndex = i; // Capture the slot index for the closure
+            button.Clicked += (s, e) => OnPokemonSlotClicked(slotIndex);
             
             Grid.SetRow(button, row);
             Grid.SetColumn(button, col);
@@ -82,15 +88,26 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            // Clear current data
-            _currentBoxPokemon = new PKM[_saveFile.BoxSlotCount];
+            // Use standard box size of 30 slots
+            int slotsPerBox = 30;
+            _currentBoxPokemon = new PKM[slotsPerBox];
             
             // Load Pokemon from current box
-            for (int slot = 0; slot < _saveFile.BoxSlotCount; slot++)
+            for (int slot = 0; slot < slotsPerBox; slot++)
             {
-                var pkm = _saveFile.GetBoxSlotAtIndex(_currentBox, slot);
-                _currentBoxPokemon[slot] = pkm;
-                UpdatePokemonSlot(slot, pkm);
+                try
+                {
+                    var pkm = _saveFile.GetBoxSlotAtIndex(_currentBox, slot);
+                    _currentBoxPokemon[slot] = pkm;
+                    UpdatePokemonSlot(slot, pkm);
+                }
+                catch (Exception ex)
+                {
+                    // If we can't load a specific slot, mark it as empty
+                    _currentBoxPokemon[slot] = null;
+                    UpdatePokemonSlot(slot, null);
+                    StatusLabel.Text = $"Warning: Could not load slot {slot}: {ex.Message}";
+                }
             }
 
             UpdateBoxCountLabel();
@@ -111,40 +128,58 @@ public partial class PokemonBoxPage : ContentPage
         if (pokemon == null || pokemon.Species == 0)
         {
             button.Text = "Empty";
-            button.BackgroundColor = Colors.LightGray;
+            button.BackgroundColor = Color.FromArgb("#ECF0F1");
+            button.TextColor = Color.FromArgb("#BDC3C7");
         }
         else
         {
             button.Text = $"Species {pokemon.Species}\nLv.{pokemon.CurrentLevel}";
+            button.TextColor = Colors.White;
             
             // Color coding based on Pokemon properties
             if (pokemon.IsShiny)
-                button.BackgroundColor = Colors.Gold;
+                button.BackgroundColor = Color.FromArgb("#F39C12"); // Golden orange for shiny
             else if (pokemon.IsEgg)
-                button.BackgroundColor = Colors.LightPink;
+                button.BackgroundColor = Color.FromArgb("#E91E63"); // Pink for eggs
             else
-                button.BackgroundColor = Colors.LightBlue;
+                button.BackgroundColor = Color.FromArgb("#3498DB"); // Blue for normal Pokemon
         }
     }
 
     private void UpdateBoxCountLabel()
     {
         int count = 0;
-        for (int slot = 0; slot < _saveFile.BoxSlotCount; slot++)
+        int slotsPerBox = 30;
+        
+        for (int slot = 0; slot < slotsPerBox && slot < _currentBoxPokemon.Length; slot++)
         {
-            var pkm = _saveFile.GetBoxSlotAtIndex(_currentBox, slot);
-            if (pkm != null && pkm.Species != 0)
+            try
             {
-                count++;
+                var pkm = _currentBoxPokemon[slot];
+                if (pkm != null && pkm.Species != 0)
+                {
+                    count++;
+                }
+            }
+            catch
+            {
+                // Skip invalid slots
             }
         }
-        BoxCountLabel.Text = $"{count}/{_saveFile.BoxSlotCount}";
+        BoxCountLabel.Text = $"{count}/{slotsPerBox}";
     }
 
     private async void OnPokemonSlotClicked(int slot)
     {
         try
         {
+            // Validate slot index
+            if (slot < 0 || slot >= _currentBoxPokemon.Length)
+            {
+                await DisplayAlert("Error", $"Invalid slot index: {slot}", "OK");
+                return;
+            }
+
             var pokemon = _currentBoxPokemon[slot];
             
             if (pokemon == null || pokemon.Species == 0)
@@ -167,7 +202,8 @@ public partial class PokemonBoxPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to process slot: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to process slot {slot}: {ex.Message}\n\nStack trace: {ex.StackTrace}", "OK");
+            StatusLabel.Text = $"Error accessing slot {slot}: {ex.Message}";
         }
     }
 
@@ -270,12 +306,12 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            var editorPage = new PokemonEditorPage(pokemon, _saveFile);
+            var editorPage = new PokemonEditorPage(pokemon, _saveFile, _currentBox, slot);
             await Navigation.PushAsync(editorPage);
             
             // When we return, refresh the slot display
             // Note: The pokemon object is modified by reference in the editor
-            _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
+            // The editor now saves to the slot itself, but we still refresh the display
             UpdatePokemonSlot(slot, pokemon);
         }
         catch (Exception ex)
@@ -347,10 +383,18 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            // The changes are already saved to the SaveFile object
-            // Here we could trigger a save to disk if needed
+            // The changes are already saved to the SaveFile object through individual operations
+            // Mark the save file as edited and track unsaved changes
+            _saveFile.State.Edited = true;
+            PageManager.MarkChangesUnsaved();
+            
             StatusLabel.Text = "Changes saved to memory. Use Export Save from main menu to save to file.";
-            await DisplayAlert("Success", "All changes have been saved to memory!", "OK");
+            await DisplayAlert("Success", 
+                "Box changes saved to memory!\n\n" +
+                "To persist changes permanently:\n" +
+                "• Go back to Main Page\n" +
+                "• Click 'Export Save' button\n" +
+                "• Save the file to disk", "OK");
         }
         catch (Exception ex)
         {
@@ -393,7 +437,7 @@ public partial class PokemonBoxPage : ContentPage
             {
                 var blankPokemon = _saveFile.BlankPKM;
                 
-                for (int slot = 0; slot < _saveFile.BoxSlotCount; slot++)
+                for (int slot = 0; slot < 30; slot++) // Standard box size
                 {
                     _saveFile.SetBoxSlotAtIndex(blankPokemon, _currentBox, slot);
                     _currentBoxPokemon[slot] = null;
@@ -414,7 +458,7 @@ public partial class PokemonBoxPage : ContentPage
     {
         // Find first empty slot
         int emptySlot = -1;
-        for (int i = 0; i < _saveFile.BoxSlotCount; i++)
+        for (int i = 0; i < 30; i++) // Standard box size
         {
             if (_currentBoxPokemon[i] == null || _currentBoxPokemon[i]!.Species == 0)
             {

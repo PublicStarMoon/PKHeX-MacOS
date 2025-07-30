@@ -7,12 +7,16 @@ public partial class PokemonEditorPage : ContentPage
     private PKM? _pokemon;
     private SaveFile? _saveFile;
     private bool _isUpdating = false;
+    private int _boxIndex = -1;
+    private int _slotIndex = -1;
 
-    public PokemonEditorPage(PKM pokemon, SaveFile saveFile)
+    public PokemonEditorPage(PKM pokemon, SaveFile saveFile, int boxIndex = -1, int slotIndex = -1)
     {
         InitializeComponent();
         _pokemon = pokemon;
         _saveFile = saveFile;
+        _boxIndex = boxIndex;
+        _slotIndex = slotIndex;
         LoadPokemonData();
     }
 
@@ -486,9 +490,21 @@ public partial class PokemonEditorPage : ContentPage
     {
         try
         {
-            // Mark save file as edited if available
-            if (_saveFile != null)
+            // Save changes back to the box slot if this Pokemon is from a box
+            if (_saveFile != null && _pokemon != null && _boxIndex >= 0 && _slotIndex >= 0)
             {
+                _saveFile.SetBoxSlotAtIndex(_pokemon, _boxIndex, _slotIndex);
+                _saveFile.State.Edited = true;
+            }
+            // Save changes back to party slot if this Pokemon is from party
+            else if (_saveFile != null && _pokemon != null && _boxIndex == -1 && _slotIndex >= 0)
+            {
+                _saveFile.SetPartySlotAtIndex(_pokemon, _slotIndex);
+                _saveFile.State.Edited = true;
+            }
+            else if (_saveFile != null)
+            {
+                // Mark save file as edited if no specific slot
                 _saveFile.State.Edited = true;
             }
             

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.PartyEditorPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="Party Editor">
+
+    <Grid BackgroundColor="#F8F9FA">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Menu Bar -->
+        <Grid Grid.Row="0" BackgroundColor="#2C3E50" Padding="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked" 
+                    Margin="0,0,15,0" BackgroundColor="#34495E" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="6"/>
+            <Label Grid.Column="1" Text="Party Editor" FontSize="20" FontAttributes="Bold" 
+                   VerticalOptions="Center" TextColor="White"/>
+            <Button Grid.Column="2" x:Name="SaveButton" Text="Save Changes" Clicked="OnSaveClicked" 
+                    Margin="8,0" BackgroundColor="#27AE60" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="6"/>
+            <Button Grid.Column="3" x:Name="HealAllButton" Text="Heal All" Clicked="OnHealAllClicked" 
+                    Margin="8,0" BackgroundColor="#3498DB" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="6"/>
+        </Grid>
+
+        <!-- Party Pokémon List -->
+        <ScrollView Grid.Row="1" Padding="15" BackgroundColor="#F8F9FA">
+            <StackLayout x:Name="PartyContainer" Spacing="12">
+                <!-- Party slots will be added programmatically -->
+            </StackLayout>
+        </ScrollView>
+
+        <!-- Bottom Status Bar -->
+        <Grid Grid.Row="2" BackgroundColor="#34495E" Padding="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Label Grid.Column="0" x:Name="StatusLabel" Text="Your active party (6 Pokémon)" 
+                   VerticalOptions="Center" TextColor="White" FontSize="14"/>
+            <Button Grid.Column="1" x:Name="ClearPartyButton" Text="Clear Party" Clicked="OnClearPartyClicked" 
+                    BackgroundColor="#E74C3C" TextColor="White" Margin="8,0" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="6"/>
+            <Button Grid.Column="2" x:Name="FillPartyButton" Text="Fill Empty Slots" Clicked="OnFillPartyClicked" 
+                    BackgroundColor="#F39C12" TextColor="White" Margin="8,0" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="6"/>
+        </Grid>
+    </Grid>
+
+</ContentPage>

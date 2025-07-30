@@ -9,6 +9,5 @@ echo ""
 echo "Redirecting to unified script..."
 echo ""
 
-# Change back to root directory and redirect to the new unified script
-cd "$(dirname "$0")"
+# Redirect to the new unified script
 ./run.sh release

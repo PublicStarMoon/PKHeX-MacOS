@@ -1,6 +1,7 @@
 using PKHeX.Core;
 using Microsoft.Maui.Storage;
 using System.Reflection;
+using PKHeX.MAUI.Services;
 
 namespace PKHeX.MAUI.Views;
 
@@ -11,6 +12,17 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        
+        // Update UI when page appears
+        if (_currentSave != null)
+        {
+            StatusLabel.Text = $"Save file loaded: {_currentSave.GetType().Name}";
+        }
     }
 
     private async void OnLoadSaveClicked(object sender, EventArgs e)
@@ -43,6 +55,10 @@ public partial class MainPage : ContentPage
             {
                 var data = _currentSave.Write();
                 await File.WriteAllBytesAsync(result.FullPath, data);
+                
+                // Mark changes as saved since they're now on disk
+                PageManager.MarkChangesSaved();
+                
                 StatusLabel.Text = $"Save file exported to: {result.FileName}";
                 await DisplayAlert("Success", "Save file exported successfully!", "OK");
             }
@@ -63,8 +79,23 @@ public partial class MainPage : ContentPage
 
         try
         {
-            // For now, just show a placeholder
-            await DisplayAlert("Info", "Save changes functionality will be implemented in the full editor.", "OK");
+            var result = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select location to save file"
+                // No FileTypes specified = allow all files for saving
+            });
+
+            if (result != null)
+            {
+                var data = _currentSave.Write();
+                await File.WriteAllBytesAsync(result.FullPath, data);
+                
+                // Mark changes as saved since they're now on disk
+                PageManager.MarkChangesSaved();
+                
+                StatusLabel.Text = $"Save file exported to: {result.FileName}";
+                await DisplayAlert("Success", "Save file exported successfully!", "OK");
+            }
         }
         catch (Exception ex)
         {
@@ -84,16 +115,35 @@ public partial class MainPage : ContentPage
 
     private async void OnItemEditorClicked(object sender, EventArgs e)
     {
-        if (_currentSave == null)
-        {
-            await DisplayAlert("Error", "No save file loaded!", "OK");
-            return;
-        }
-
         try
         {
-            var inventoryPage = new InventoryEditorPage(_currentSave);
-            await Navigation.PushAsync(inventoryPage);
+            // If no save file is loaded, create a demo save file
+            if (_currentSave == null)
+            {
+                var result = await DisplayAlert("No Save File", 
+                    "No save file is currently loaded. Would you like to:\n\n" +
+                    "• Load a save file first, or\n" +
+                    "• Continue with demo mode for testing?", 
+                    "Demo Mode", "Load Save File");
+
+                if (result)
+                {
+                    // Create demo save file
+                    await CreateDemoSaveFile();
+                }
+                else
+                {
+                    // User wants to load a save file first
+                    await OpenSaveFile();
+                    return;
+                }
+            }
+
+            if (_currentSave != null)
+            {
+                var inventoryPage = PageManager.GetInventoryEditorPage(_currentSave);
+                await Navigation.PushAsync(inventoryPage);
+            }
         }
         catch (Exception ex)
         {
@@ -101,18 +151,75 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnBoxEditorClicked(object sender, EventArgs e)
+    private async void OnPartyEditorClicked(object sender, EventArgs e)
     {
-        if (_currentSave == null)
-        {
-            await DisplayAlert("Error", "No save file loaded!", "OK");
-            return;
-        }
-
         try
         {
-            var boxPage = new PokemonBoxPage(_currentSave);
-            await Navigation.PushAsync(boxPage);
+            // If no save file is loaded, create a demo save file
+            if (_currentSave == null)
+            {
+                var result = await DisplayAlert("No Save File", 
+                    "No save file is currently loaded. Would you like to:\n\n" +
+                    "• Load a save file first, or\n" +
+                    "• Continue with demo mode for testing?", 
+                    "Demo Mode", "Load Save File");
+
+                if (result)
+                {
+                    // Create demo save file
+                    await CreateDemoSaveFile();
+                }
+                else
+                {
+                    // User wants to load a save file first
+                    await OpenSaveFile();
+                    return;
+                }
+            }
+
+            if (_currentSave != null)
+            {
+                var partyPage = PageManager.GetPartyEditorPage(_currentSave);
+                await Navigation.PushAsync(partyPage);
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to open party editor: {ex.Message}", "OK");
+        }
+    }
+
+    private async void OnBoxEditorClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // If no save file is loaded, create a demo save file
+            if (_currentSave == null)
+            {
+                var result = await DisplayAlert("No Save File", 
+                    "No save file is currently loaded. Would you like to:\n\n" +
+                    "• Load a save file first, or\n" +
+                    "• Continue with demo mode for testing?", 
+                    "Demo Mode", "Load Save File");
+
+                if (result)
+                {
+                    // Create demo save file
+                    await CreateDemoSaveFile();
+                }
+                else
+                {
+                    // User wants to load a save file first
+                    await OpenSaveFile();
+                    return;
+                }
+            }
+
+            if (_currentSave != null)
+            {
+                var boxPage = PageManager.GetPokemonBoxPage(_currentSave);
+                await Navigation.PushAsync(boxPage);
+            }
         }
         catch (Exception ex)
         {
@@ -120,8 +227,78 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async void OnDemoModeClicked(object sender, EventArgs e)
+    {
+        var result = await DisplayAlert("Demo Mode", 
+            "Enable demo mode? This will allow you to access the editors without a save file for testing purposes.\n\n" +
+            "⚠️ Warning: Changes won't be saved and some features may not work properly.", 
+            "Enable", "Cancel");
+
+        if (result)
+        {
+            await CreateDemoSaveFile();
+            await DisplayAlert("Demo Mode", "Demo mode enabled successfully! You can now access the Pokemon Box Editor and Inventory Editor for testing.", "OK");
+        }
+    }
+
+    private async Task CreateDemoSaveFile()
+    {
+        try
+        {
+            // Create a basic SAV8SWSH save file for demo purposes
+            var demoSave = new SAV8SWSH();
+            
+            // Clear page cache when loading new save file
+            PageManager.ClearCache();
+            _currentSave = demoSave;
+            
+            CurrentSaveLabel.Text = "Current Save File: Demo Mode (SAV8SWSH)";
+            GameVersionLabel.Text = "Game: Pokémon Sword/Shield (Generation 8)";
+            TrainerNameLabel.Text = "Trainer: Demo";
+            TrainerIdLabel.Text = "Trainer ID: 000000";
+            PlayTimeLabel.Text = "Play Time: 00:00";
+            
+            // Force UI update on main thread
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                BoxEditorButton.IsEnabled = true;
+                ItemEditorButton.IsEnabled = true;
+                SaveButton.IsEnabled = true;
+                if (DemoModeButton != null)
+                {
+                    DemoModeButton.Text = "✅ Demo Mode Enabled";
+                    DemoModeButton.IsEnabled = false;
+                    DemoModeButton.BackgroundColor = Colors.Green;
+                }
+            });
+            
+            StatusLabel.Text = "Demo mode enabled! Using temporary save file for testing.";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to create demo save file: {ex.Message}", "OK");
+        }
+    }
+
     private async Task OpenSaveFile()
     {
+        // Check for unsaved changes
+        if (PageManager.HasUnsavedChanges)
+        {
+            var shouldContinue = await DisplayAlert("Unsaved Changes", 
+                "You have unsaved changes that will be lost if you load a new save file.\n\n" +
+                "Do you want to:\n" +
+                "• Export your current changes first, or\n" +
+                "• Continue and lose your changes?", 
+                "Continue (Lose Changes)", "Export First");
+                
+            if (!shouldContinue)
+            {
+                // User wants to export first
+                return;
+            }
+        }
+        
         try
         {
             // Try with specific file types first, then fallback to any file
@@ -204,6 +381,8 @@ public partial class MainPage : ContentPage
                     return;
                 }
 
+                // Clear page cache when loading new save file
+                PageManager.ClearCache();
                 _currentSave = sav;
                 CurrentSaveLabel.Text = $"Current Save File: {result.FileName}";
                 
@@ -212,9 +391,9 @@ public partial class MainPage : ContentPage
                 TrainerNameLabel.Text = $"Trainer: {sav.OT}";
                 TrainerIdLabel.Text = $"Trainer ID: {sav.TID16:D6}";
                 
+                // Try to get and display play time
                 if (sav is ITrainerInfo trainer)
                 {
-                    // Try to get play time through reflection since the properties may vary
                     try
                     {
                         var type = sav.GetType();
@@ -237,11 +416,18 @@ public partial class MainPage : ContentPage
                         PlayTimeLabel.Text = "Play Time: Not available";
                     }
                 }
-
-                SaveInfoFrame.IsVisible = true;
-                SaveChangesButton.IsEnabled = true;
-                BoxEditorButton.IsEnabled = true;
-                ItemEditorButton.IsEnabled = true;
+                else
+                {
+                    PlayTimeLabel.Text = "Play Time: Not available";
+                }
+                
+                // Force UI update on main thread
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    BoxEditorButton.IsEnabled = true;
+                    ItemEditorButton.IsEnabled = true;
+                    SaveButton.IsEnabled = true;
+                });
                 
                 StatusLabel.Text = $"Successfully loaded {sav.GetType().Name} save file!";
                 
