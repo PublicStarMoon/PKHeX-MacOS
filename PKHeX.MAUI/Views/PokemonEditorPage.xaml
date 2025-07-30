@@ -179,7 +179,7 @@
                 </StackLayout>
             </Frame>
 
-            <!-- Origin & Met Information -->
+            <!-- Origin &amp; Met Information -->
             <Frame BackgroundColor="LightCyan" Padding="10">
                 <StackLayout>
                     <Label Text="Origin &amp; Met Information" FontSize="16" FontAttributes="Bold"/>
@@ -219,7 +219,7 @@
                 </StackLayout>
             </Frame>
 
-            <!-- Friendship & Language -->
+            <!-- Friendship &amp; Language -->
             <Frame BackgroundColor="LightSalmon" Padding="10">
                 <StackLayout>
                     <Label Text="Friendship &amp; Language" FontSize="16" FontAttributes="Bold"/>
@@ -251,7 +251,7 @@
                 </StackLayout>
             </Frame>
 
-            <!-- Tools & Generation Info -->
+            <!-- Tools &amp; Generation Info -->
             <Frame BackgroundColor="LightGray" Padding="10">
                 <StackLayout>
                     <Label Text="Tools &amp; Generation Info" FontSize="16" FontAttributes="Bold"/>

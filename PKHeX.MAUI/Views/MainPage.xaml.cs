@@ -84,21 +84,7 @@ public partial class MainPage : ContentPage
 
     private async void OnItemEditorClicked(object sender, EventArgs e)
     {
-        if (_currentSave == null)
-        {
-            await DisplayAlert("Error", "No save file loaded!", "OK");
-            return;
-        }
-
-        try
-        {
-            var itemPage = new InventoryEditorPage(_currentSave);
-            await Navigation.PushAsync(itemPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open item editor: {ex.Message}", "OK");
-        }
+        await DisplayAlert("Not Available", "Item editor is not implemented in this version. Focus is on Pokemon editing only.", "OK");
     }
 
     private async void OnBoxEditorClicked(object sender, EventArgs e)

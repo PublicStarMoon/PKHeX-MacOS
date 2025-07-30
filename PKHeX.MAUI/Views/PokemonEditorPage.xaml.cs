@@ -439,7 +439,7 @@ public partial class PokemonEditorPage : ContentPage
                 if (shinyVal >= 16)
                 {
                     // Adjust PID to make it shiny
-                    _pokemon.PID = (pid & 0xFFFF0000) | ((pid & 0xFFFF) ^ (_pokemon.TID16 ^ _pokemon.SID16));
+                    _pokemon.PID = (uint)((pid & 0xFFFF0000) | ((pid & 0xFFFF) ^ (_pokemon.TID16 ^ _pokemon.SID16)));
                 }
             }
         }
