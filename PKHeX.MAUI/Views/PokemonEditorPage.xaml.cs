@@ -4,8 +4,8 @@ namespace PKHeX.MAUI.Views;
 
 public partial class PokemonEditorPage : ContentPage
 {
-    private PKM _pokemon;
-    private SaveFile _saveFile;
+    private PKM? _pokemon;
+    private SaveFile? _saveFile;
     private bool _isUpdating = false;
 
     public PokemonEditorPage(PKM pokemon, SaveFile saveFile)
@@ -13,352 +13,471 @@ public partial class PokemonEditorPage : ContentPage
         InitializeComponent();
         _pokemon = pokemon;
         _saveFile = saveFile;
-        
-        SetupUI();
         LoadPokemonData();
-    }
-
-    private void SetupUI()
-    {
-        try
-        {
-            // Setup species picker
-            SpeciesPicker.Items.Clear();
-            var speciesList = GameInfo.GetStrings(1).specieslist;
-            for (int i = 1; i < Math.Min(speciesList.Length, 1011); i++)
-            {
-                if (!string.IsNullOrEmpty(speciesList[i]))
-                {
-                    SpeciesPicker.Items.Add($"{i:000} - {speciesList[i]}");
-                }
-            }
-
-            // Setup nature picker
-            NaturePicker.Items.Clear();
-            var natureNames = Enum.GetNames(typeof(Nature));
-            for (int i = 0; i < natureNames.Length && i < 25; i++)
-            {
-                NaturePicker.Items.Add(natureNames[i]);
-            }
-
-            // Setup move pickers
-            SetupMovePickers();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to setup UI: {ex.Message}", "OK");
-        }
-    }
-
-    private void SetupMovePickers()
-    {
-        try
-        {
-            var moveList = GameInfo.GetStrings(1).movelist;
-            var pickers = new[] { Move1Picker, Move2Picker, Move3Picker, Move4Picker };
-
-            foreach (var picker in pickers)
-            {
-                picker.Items.Clear();
-                picker.Items.Add("000 - (None)");
-                
-                for (int i = 1; i < Math.Min(moveList.Length, 800); i++)
-                {
-                    if (!string.IsNullOrEmpty(moveList[i]))
-                    {
-                        picker.Items.Add($"{i:000} - {moveList[i]}");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to setup move pickers: {ex.Message}", "OK");
-        }
     }
 
     private void LoadPokemonData()
     {
+        if (_pokemon == null) return;
+
         try
         {
             _isUpdating = true;
 
-            // Basic information
-            HeaderLabel.Text = $"Editing: {GameInfo.GetStrings(1).specieslist[_pokemon.Species]}";
-            
-            // Set species
-            SpeciesPicker.SelectedIndex = Math.Max(0, _pokemon.Species - 1);
-            
-            // Set nickname
+            // Basic information  
+            var generationInfo = GetGenerationInfo(_pokemon);
+            HeaderLabel.Text = $"Editing: Species {_pokemon.Species} (Gen {_pokemon.Format})";
+            GenerationLabel.Text = generationInfo;
+            SpeciesEntry.Text = _pokemon.Species.ToString();
             NicknameEntry.Text = _pokemon.Nickname;
-            
-            // Set level
-            LevelSlider.Value = _pokemon.CurrentLevel;
-            
-            // Set nature
-            if (_pokemon.Nature < NaturePicker.Items.Count)
-                NaturePicker.SelectedIndex = _pokemon.Nature;
+            LevelEntry.Text = _pokemon.CurrentLevel.ToString();
+            NatureEntry.Text = _pokemon.Nature.ToString();
 
-            // Set IVs
-            HPSlider.Value = _pokemon.IV_HP;
-            AttackSlider.Value = _pokemon.IV_ATK;
-            DefenseSlider.Value = _pokemon.IV_DEF;
-            SpAttackSlider.Value = _pokemon.IV_SPA;
-            SpDefenseSlider.Value = _pokemon.IV_SPD;
-            SpeedSlider.Value = _pokemon.IV_SPE;
+            // IVs
+            HPIVEntry.Text = _pokemon.IV_HP.ToString();
+            AttackIVEntry.Text = _pokemon.IV_ATK.ToString();
+            DefenseIVEntry.Text = _pokemon.IV_DEF.ToString();
+            SpAttackIVEntry.Text = _pokemon.IV_SPA.ToString();
+            SpDefenseIVEntry.Text = _pokemon.IV_SPD.ToString();
+            SpeedIVEntry.Text = _pokemon.IV_SPE.ToString();
 
-            // Set moves
-            Move1Picker.SelectedIndex = Math.Max(0, _pokemon.Move1);
-            Move2Picker.SelectedIndex = Math.Max(0, _pokemon.Move2);
-            Move3Picker.SelectedIndex = Math.Max(0, _pokemon.Move3);
-            Move4Picker.SelectedIndex = Math.Max(0, _pokemon.Move4);
+            // EVs
+            HPEVEntry.Text = _pokemon.EV_HP.ToString();
+            AttackEVEntry.Text = _pokemon.EV_ATK.ToString();
+            DefenseEVEntry.Text = _pokemon.EV_DEF.ToString();
+            SpAttackEVEntry.Text = _pokemon.EV_SPA.ToString();
+            SpDefenseEVEntry.Text = _pokemon.EV_SPD.ToString();
+            SpeedEVEntry.Text = _pokemon.EV_SPE.ToString();
 
-            // Set special properties
+            // Moves
+            Move1Entry.Text = _pokemon.Move1.ToString();
+            Move2Entry.Text = _pokemon.Move2.ToString();
+            Move3Entry.Text = _pokemon.Move3.ToString();
+            Move4Entry.Text = _pokemon.Move4.ToString();
+
+            // Physical Properties
+            GenderEntry.Text = _pokemon.Gender.ToString();
+            AbilityEntry.Text = _pokemon.Ability.ToString();
+            FormEntry.Text = _pokemon.Form.ToString();
+            BallEntry.Text = _pokemon.Ball.ToString();
             ShinyCheckBox.IsChecked = _pokemon.IsShiny;
             EggCheckBox.IsChecked = _pokemon.IsEgg;
+            HeldItemEntry.Text = _pokemon.HeldItem.ToString();
 
-            // Load held items with safety validation
-            LoadHeldItemPicker();
-            SetHeldItemSelection(_pokemon.HeldItem);
+            // Origin & Met Information
+            OTNameEntry.Text = _pokemon.OT_Name;
+            OTGenderEntry.Text = _pokemon.OT_Gender.ToString();
+            TIDEntry.Text = _pokemon.TID16.ToString();
+            SIDEntry.Text = _pokemon.SID16.ToString();
+            MetLocationEntry.Text = _pokemon.Met_Location.ToString();
+            MetLevelEntry.Text = _pokemon.Met_Level.ToString();
 
-            UpdateStatLabels();
-            UpdateCurrentStats();
+            // Friendship & Language
+            FriendshipEntry.Text = _pokemon.CurrentFriendship.ToString();
+            LanguageEntry.Text = _pokemon.Language.ToString();
+            VersionEntry.Text = _pokemon.Version.ToString();
+            FatefulCheckBox.IsChecked = _pokemon.FatefulEncounter;
 
             _isUpdating = false;
         }
         catch (Exception ex)
         {
             _isUpdating = false;
-            DisplayAlert("Error", $"Failed to load Pokemon data: {ex.Message}", "OK");
+            StatusLabel.Text = $"Error loading data: {ex.Message}";
         }
     }
 
-    private void UpdateStatLabels()
+    private void OnSpeciesChanged(object sender, TextChangedEventArgs e)
     {
-        HPLabel.Text = ((int)HPSlider.Value).ToString();
-        AttackLabel.Text = ((int)AttackSlider.Value).ToString();
-        DefenseLabel.Text = ((int)DefenseSlider.Value).ToString();
-        SpAttackLabel.Text = ((int)SpAttackSlider.Value).ToString();
-        SpDefenseLabel.Text = ((int)SpDefenseSlider.Value).ToString();
-        SpeedLabel.Text = ((int)SpeedSlider.Value).ToString();
-    }
+        if (_isUpdating || _pokemon == null) return;
 
-    private void UpdateCurrentStats()
-    {
-        try
+        if (ushort.TryParse(e.NewTextValue, out ushort species))
         {
-            // Recalculate stats to show current values
-            _pokemon.RefreshAbility(_pokemon.AbilityNumber);
-            
-            var stats = $"Current Battle Stats:\n" +
-                       $"HP: {_pokemon.Stat_HP}\n" +
-                       $"Attack: {_pokemon.Stat_ATK}\n" +
-                       $"Defense: {_pokemon.Stat_DEF}\n" +
-                       $"Sp. Attack: {_pokemon.Stat_SPA}\n" +
-                       $"Sp. Defense: {_pokemon.Stat_SPD}\n" +
-                       $"Speed: {_pokemon.Stat_SPE}";
-
-            CurrentStatsLabel.Text = stats;
-        }
-        catch (Exception ex)
-        {
-            CurrentStatsLabel.Text = $"Stats calculation error: {ex.Message}";
-        }
-    }
-
-    private void OnSpeciesChanged(object sender, EventArgs e)
-    {
-        if (_isUpdating) return;
-
-        try
-        {
-            var selectedIndex = SpeciesPicker.SelectedIndex;
-            if (selectedIndex >= 0)
-            {
-                _pokemon.Species = (ushort)(selectedIndex + 1);
-                HeaderLabel.Text = $"Editing: {GameInfo.GetStrings(1).specieslist[_pokemon.Species]}";
-                UpdateCurrentStats();
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to change species: {ex.Message}", "OK");
+            _pokemon.Species = species;
+            HeaderLabel.Text = $"Editing: Species {species}";
         }
     }
 
     private void OnNicknameChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
+        if (_isUpdating || _pokemon == null) return;
         _pokemon.Nickname = e.NewTextValue ?? "";
     }
 
-    private void OnLevelChanged(object sender, ValueChangedEventArgs e)
+    private void OnLevelChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
+        if (_isUpdating || _pokemon == null) return;
 
-        try
+        if (int.TryParse(e.NewTextValue, out int level) && level >= 1 && level <= 100)
         {
-            _pokemon.CurrentLevel = (int)e.NewValue;
-            UpdateCurrentStats();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to change level: {ex.Message}", "OK");
+            _pokemon.CurrentLevel = level;
         }
     }
 
-    private void OnNatureChanged(object sender, EventArgs e)
+    private void OnNatureChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
+        if (_isUpdating || _pokemon == null) return;
 
-        try
+        if (int.TryParse(e.NewTextValue, out int nature) && nature >= 0 && nature <= 24)
         {
-            var selectedIndex = NaturePicker.SelectedIndex;
-            if (selectedIndex >= 0)
-            {
-                _pokemon.Nature = selectedIndex;
-                UpdateCurrentStats();
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to change nature: {ex.Message}", "OK");
+            _pokemon.Nature = nature;
         }
     }
 
-    private void OnHPChanged(object sender, ValueChangedEventArgs e)
+    private void OnHPIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_HP = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_HP = iv;
+        }
     }
 
-    private void OnAttackChanged(object sender, ValueChangedEventArgs e)
+    private void OnAttackIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_ATK = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_ATK = iv;
+        }
     }
 
-    private void OnDefenseChanged(object sender, ValueChangedEventArgs e)
+    private void OnDefenseIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_DEF = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_DEF = iv;
+        }
     }
 
-    private void OnSpAttackChanged(object sender, ValueChangedEventArgs e)
+    private void OnSpAttackIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_SPA = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_SPA = iv;
+        }
     }
 
-    private void OnSpDefenseChanged(object sender, ValueChangedEventArgs e)
+    private void OnSpDefenseIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_SPD = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_SPD = iv;
+        }
     }
 
-    private void OnSpeedChanged(object sender, ValueChangedEventArgs e)
+    private void OnSpeedIVChanged(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.IV_SPE = (int)e.NewValue;
-        UpdateStatLabels();
-        UpdateCurrentStats();
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
+        {
+            _pokemon.IV_SPE = iv;
+        }
     }
 
-    private void OnMove1Changed(object sender, EventArgs e)
+    private void OnMove1Changed(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.Move1 = (ushort)Move1Picker.SelectedIndex;
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        {
+            _pokemon.Move1 = move;
+        }
     }
 
-    private void OnMove2Changed(object sender, EventArgs e)
+    private void OnMove2Changed(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.Move2 = (ushort)Move2Picker.SelectedIndex;
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        {
+            _pokemon.Move2 = move;
+        }
     }
 
-    private void OnMove3Changed(object sender, EventArgs e)
+    private void OnMove3Changed(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.Move3 = (ushort)Move3Picker.SelectedIndex;
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        {
+            _pokemon.Move3 = move;
+        }
     }
 
-    private void OnMove4Changed(object sender, EventArgs e)
+    private void OnMove4Changed(object sender, TextChangedEventArgs e)
     {
-        if (_isUpdating) return;
-        _pokemon.Move4 = (ushort)Move4Picker.SelectedIndex;
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        {
+            _pokemon.Move4 = move;
+        }
+    }
+
+    // EV Handlers
+    private void OnHPEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_HP = ev;
+        }
+    }
+
+    private void OnAttackEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_ATK = ev;
+        }
+    }
+
+    private void OnDefenseEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_DEF = ev;
+        }
+    }
+
+    private void OnSpAttackEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_SPA = ev;
+        }
+    }
+
+    private void OnSpDefenseEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_SPD = ev;
+        }
+    }
+
+    private void OnSpeedEVChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
+        {
+            _pokemon.EV_SPE = ev;
+        }
+    }
+
+    // Physical Properties Handlers
+    private void OnGenderChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int gender) && gender >= 0 && gender <= 2)
+        {
+            _pokemon.Gender = gender;
+        }
+    }
+
+    private void OnAbilityChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ability) && ability >= 0)
+        {
+            _pokemon.Ability = ability;
+        }
+    }
+
+    private void OnFormChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (byte.TryParse(e.NewTextValue, out byte form))
+        {
+            _pokemon.Form = form;
+            HeaderLabel.Text = $"Editing: Species {_pokemon.Species} Form {form} (Gen {_pokemon.Format})";
+        }
+    }
+
+    private void OnBallChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int ball) && ball >= 0)
+        {
+            _pokemon.Ball = ball;
+        }
+    }
+
+    // Origin & Met Information Handlers
+    private void OnOTNameChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+        _pokemon.OT_Name = e.NewTextValue ?? "";
+    }
+
+    private void OnOTGenderChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int gender) && gender >= 0 && gender <= 1)
+        {
+            _pokemon.OT_Gender = gender;
+        }
+    }
+
+    private void OnTIDChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort tid))
+        {
+            _pokemon.TID16 = tid;
+        }
+    }
+
+    private void OnSIDChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (ushort.TryParse(e.NewTextValue, out ushort sid))
+        {
+            _pokemon.SID16 = sid;
+        }
+    }
+
+    private void OnMetLocationChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int location) && location >= 0)
+        {
+            _pokemon.Met_Location = location;
+        }
+    }
+
+    private void OnMetLevelChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int level) && level >= 0 && level <= 100)
+        {
+            _pokemon.Met_Level = level;
+        }
+    }
+
+    // Friendship & Language Handlers
+    private void OnFriendshipChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int friendship) && friendship >= 0 && friendship <= 255)
+        {
+            _pokemon.CurrentFriendship = friendship;
+        }
+    }
+
+    private void OnLanguageChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int language) && language >= 0)
+        {
+            _pokemon.Language = language;
+        }
+    }
+
+    private void OnVersionChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (int.TryParse(e.NewTextValue, out int version) && version >= 0)
+        {
+            _pokemon.Version = version;
+        }
+    }
+
+    private void OnFatefulChanged(object sender, CheckedChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+        _pokemon.FatefulEncounter = e.Value;
     }
 
     private void OnShinyChanged(object sender, CheckedChangedEventArgs e)
     {
-        if (_isUpdating) return;
+        if (_isUpdating || _pokemon == null) return;
 
         try
         {
             if (e.Value)
-                _pokemon.SetShiny();
-            else
-                _pokemon.SetUnshiny();
+            {
+                // Make it shiny by setting a shiny PID
+                var random = new Random();
+                uint pid = (uint)random.Next();
+                _pokemon.PID = pid;
+                
+                // Simple shiny calculation for demonstration
+                var shinyVal = ((_pokemon.TID16 ^ _pokemon.SID16) ^ (pid >> 16) ^ (pid & 0xFFFF));
+                if (shinyVal >= 16)
+                {
+                    // Adjust PID to make it shiny
+                    _pokemon.PID = (uint)((pid & 0xFFFF0000) | ((pid & 0xFFFF) ^ (_pokemon.TID16 ^ _pokemon.SID16)));
+                }
+            }
         }
         catch (Exception ex)
         {
-            DisplayAlert("Error", $"Failed to change shiny status: {ex.Message}", "OK");
+            StatusLabel.Text = $"Error setting shiny: {ex.Message}";
         }
     }
 
     private void OnEggChanged(object sender, CheckedChangedEventArgs e)
     {
-        if (_isUpdating) return;
+        if (_isUpdating || _pokemon == null) return;
         _pokemon.IsEgg = e.Value;
     }
 
-    private async void OnRandomizeIVsClicked(object sender, EventArgs e)
+    private void OnHeldItemChanged(object sender, TextChangedEventArgs e)
     {
-        try
-        {
-            _pokemon.SetRandomIVs();
-            LoadPokemonData(); // Reload to update sliders
-            await DisplayAlert("Success", "IVs have been randomized!", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to randomize IVs: {ex.Message}", "OK");
-        }
-    }
+        if (_isUpdating || _pokemon == null) return;
 
-    private async void OnSuggestMovesClicked(object sender, EventArgs e)
-    {
-        try
+        if (int.TryParse(e.NewTextValue, out int item) && item >= 0)
         {
-            _pokemon.SetSuggestedMoves();
-            LoadPokemonData(); // Reload to update move pickers
-            await DisplayAlert("Success", "Legal moves have been suggested!", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to suggest moves: {ex.Message}", "OK");
+            _pokemon.HeldItem = item;
         }
     }
 
     private async void OnHealClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+
         try
         {
             _pokemon.Heal();
-            UpdateCurrentStats();
-            await DisplayAlert("Success", "Pokemon has been healed!", "OK");
+            StatusLabel.Text = "Pokemon healed successfully!";
+            await DisplayAlert("Success", "Pokemon has been fully healed!", "OK");
         }
         catch (Exception ex)
         {
+            StatusLabel.Text = $"Error healing: {ex.Message}";
             await DisplayAlert("Error", $"Failed to heal Pokemon: {ex.Message}", "OK");
         }
     }
@@ -367,234 +486,116 @@ public partial class PokemonEditorPage : ContentPage
     {
         try
         {
-            // Pokemon is already updated by reference
+            // Mark save file as edited if available
+            if (_saveFile != null)
+            {
+                _saveFile.State.Edited = true;
+            }
+            
+            StatusLabel.Text = "Pokemon saved successfully!";
             await DisplayAlert("Success", "Pokemon changes have been saved!", "OK");
             await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
+            StatusLabel.Text = $"Error saving: {ex.Message}";
             await DisplayAlert("Error", $"Failed to save Pokemon: {ex.Message}", "OK");
         }
     }
 
-    private async void OnValidateClicked(object sender, EventArgs e)
+    private string GetGenerationInfo(PKM pokemon)
     {
-        if (_pokemon == null || _saveFile == null) return;
+        var info = $"Generation {pokemon.Format} Pokemon";
         
-        try
+        // Add generation-specific information
+        switch (pokemon.Format)
         {
-            // Check basic legality
-            var summary = PokemonHelper.GetLegalitySummary(_pokemon, _saveFile);
-            
-            // Additional trainer info validation for SV
-            var isTrainerValid = PokemonHelper.ValidateTrainerInfo(_pokemon, _saveFile);
-            var warningMessage = "";
-            
-            if (!isTrainerValid && _saveFile.Generation >= 9)
-            {
-                warningMessage = "\n\n⚠️ WARNING: Trainer info mismatch detected! This Pokemon may disobey you in Scarlet/Violet. Use 'Fix Trainer Info' to resolve.";
-            }
-            
-            await DisplayAlert("Legality Check", summary + warningMessage, "OK");
+            case 7:
+                info += " (Gen 7: Sun/Moon/Ultra Sun/Ultra Moon)";
+                if (pokemon is PK7 pk7)
+                {
+                    // Add any Gen 7 specific properties if needed
+                    info += $" | Z-Crystal support available";
+                }
+                break;
+            case 8:
+                info += " (Gen 8: Sword/Shield/BDSP/Legends Arceus)";
+                if (pokemon is PK8 pk8)
+                {
+                    // Add any Gen 8 specific properties if needed
+                    info += $" | Dynamax/Gigantamax support";
+                }
+                break;
+            case 9:
+                info += " (Gen 9: Scarlet/Violet)";
+                if (pokemon is PK9 pk9)
+                {
+                    // Add any Gen 9 specific properties if needed
+                    info += $" | Tera Type support available";
+                }
+                break;
+            default:
+                info += $" | Format: {pokemon.Format}";
+                break;
         }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Validation failed: {ex.Message}", "OK");
-        }
+        
+        return info;
     }
 
-    private async void OnFixTrainerInfoClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null || _saveFile == null) return;
-        
-        try
-        {
-            PokemonHelper.FixTrainerInfo(_pokemon, _saveFile);
-            LoadPokemonData(_pokemon);
-            await DisplayAlert("Success", "Trainer info has been fixed to prevent disobedience issues.", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to fix trainer info: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnAdvancedStatsClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null || _saveFile == null) return;
-        
-        try
-        {
-            var statEditorPage = new StatEditorPage(_pokemon, _saveFile);
-            await Navigation.PushAsync(statEditorPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open advanced stat editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnMoveEditorClicked(object sender, EventArgs e)
+    private async void OnMaxIVsClicked(object sender, EventArgs e)
     {
         if (_pokemon == null) return;
 
         try
         {
-            var moveEditorPage = new MoveEditorPage(_pokemon);
-            await Navigation.PushAsync(moveEditorPage);
+            _pokemon.IV_HP = 31;
+            _pokemon.IV_ATK = 31;
+            _pokemon.IV_DEF = 31;
+            _pokemon.IV_SPA = 31;
+            _pokemon.IV_SPD = 31;
+            _pokemon.IV_SPE = 31;
+            
+            // Update the UI
+            LoadPokemonData();
+            
+            StatusLabel.Text = "All IVs set to maximum (31)!";
+            await DisplayAlert("Success", "All IVs have been set to maximum (31)!", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to open move editor: {ex.Message}", "OK");
+            StatusLabel.Text = $"Error setting max IVs: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to set max IVs: {ex.Message}", "OK");
         }
     }
 
-    private async void OnTrainerIDClicked(object sender, EventArgs e)
-    {
-        if (_saveFile == null) return;
-
-        try
-        {
-            var trainerIdPage = new TrainerIDEditorPage(_saveFile);
-            await Navigation.PushAsync(trainerIdPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open trainer ID editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnMemoryAmieClicked(object sender, EventArgs e)
+    private async void OnClearEVsClicked(object sender, EventArgs e)
     {
         if (_pokemon == null) return;
 
         try
         {
-            var memoryAmiePage = new MemoryAmieEditorPage(_pokemon);
-            await Navigation.PushAsync(memoryAmiePage);
+            _pokemon.EV_HP = 0;
+            _pokemon.EV_ATK = 0;
+            _pokemon.EV_DEF = 0;
+            _pokemon.EV_SPA = 0;
+            _pokemon.EV_SPD = 0;
+            _pokemon.EV_SPE = 0;
+            
+            // Update the UI
+            LoadPokemonData();
+            
+            StatusLabel.Text = "All EVs cleared!";
+            await DisplayAlert("Success", "All EVs have been cleared (set to 0)!", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to open memory/amie editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnSAVEditorClicked(object sender, EventArgs e)
-    {
-        if (_saveFile == null) return;
-
-        try
-        {
-            var savEditorPage = new SAVEditorPage(_saveFile);
-            await Navigation.PushAsync(savEditorPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open save editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnHealClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null) return;
-
-        try
-        {
-            _pokemon.Heal();
-            await DisplayAlert("Success", "Pokémon has been fully healed!", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to heal Pokémon: {ex.Message}", "OK");
+            StatusLabel.Text = $"Error clearing EVs: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to clear EVs: {ex.Message}", "OK");
         }
     }
 
     private async void OnBackClicked(object sender, EventArgs e)
     {
         await Navigation.PopAsync();
-    }
-
-    private void LoadHeldItemPicker()
-    {
-        try
-        {
-            HeldItemPicker.Items.Clear();
-            
-            if (_saveFile != null)
-            {
-                var safeItems = ItemHelper.GetSafeHeldItems(_saveFile);
-                foreach (var item in safeItems)
-                {
-                    HeldItemPicker.Items.Add(item.Name);
-                }
-            }
-            else
-            {
-                HeldItemPicker.Items.Add("None");
-            }
-        }
-        catch (Exception ex)
-        {
-            HeldItemPicker.Items.Clear();
-            HeldItemPicker.Items.Add("None");
-            Console.WriteLine($"Failed to load held items: {ex.Message}");
-        }
-    }
-
-    private void SetHeldItemSelection(int itemId)
-    {
-        if (_saveFile == null) return;
-        
-        try
-        {
-            var safeItems = ItemHelper.GetSafeHeldItems(_saveFile);
-            var itemIndex = safeItems.FindIndex(x => x.Id == itemId);
-            if (itemIndex >= 0)
-            {
-                HeldItemPicker.SelectedIndex = itemIndex;
-            }
-            else
-            {
-                HeldItemPicker.SelectedIndex = 0; // Default to "None"
-            }
-        }
-        catch
-        {
-            HeldItemPicker.SelectedIndex = 0;
-        }
-    }
-
-    private void OnHeldItemChanged(object sender, EventArgs e)
-    {
-        if (_isUpdating || _pokemon == null || _saveFile == null) return;
-
-        try
-        {
-            var selectedIndex = HeldItemPicker.SelectedIndex;
-            if (selectedIndex >= 0)
-            {
-                var safeItems = ItemHelper.GetSafeHeldItems(_saveFile);
-                if (selectedIndex < safeItems.Count)
-                {
-                    var selectedItem = safeItems[selectedIndex];
-                    var success = ItemHelper.SafelyApplyHeldItem(_pokemon, _saveFile, selectedItem.Id);
-                    
-                    if (!success && selectedItem.Id != 0)
-                    {
-                        DisplayAlert("Warning", 
-                            $"Item '{selectedItem.Name}' could not be safely applied. It may cause issues in {_saveFile.Version}.", 
-                            "OK");
-                        
-                        // Reset to "None"
-                        HeldItemPicker.SelectedIndex = 0;
-                        _pokemon.HeldItem = 0;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to change held item: {ex.Message}", "OK");
-        }
     }
 }

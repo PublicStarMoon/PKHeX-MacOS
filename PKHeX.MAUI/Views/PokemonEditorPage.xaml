@@ -15,9 +15,9 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
-                <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked"/>
+                <Button Grid.Column="0" Text="← Back" Clicked="OnBackClicked"/>
                 <Label Grid.Column="1" x:Name="HeaderLabel" Text="Pokemon Editor" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
-                <Button Grid.Column="2" x:Name="SaveButton" Text="Save" Clicked="OnSaveClicked" BackgroundColor="LightGreen"/>
+                <Button Grid.Column="2" Text="Save" Clicked="OnSaveClicked" BackgroundColor="LightGreen"/>
             </Grid>
 
             <!-- Basic Information -->
@@ -37,31 +37,31 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <Label Grid.Row="0" Grid.Column="0" Text="Species:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="0" Grid.Column="1" x:Name="SpeciesPicker" SelectedIndexChanged="OnSpeciesChanged"/>
+                        <Label Grid.Row="0" Grid.Column="0" Text="Species ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="SpeciesEntry" Keyboard="Numeric" TextChanged="OnSpeciesChanged"/>
                         
                         <Label Grid.Row="1" Grid.Column="0" Text="Nickname:" VerticalOptions="Center"/>
                         <Entry Grid.Row="1" Grid.Column="1" x:Name="NicknameEntry" TextChanged="OnNicknameChanged"/>
                         
                         <Label Grid.Row="2" Grid.Column="0" Text="Level:" VerticalOptions="Center"/>
-                        <Slider Grid.Row="2" Grid.Column="1" x:Name="LevelSlider" Minimum="1" Maximum="100" ValueChanged="OnLevelChanged"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="LevelEntry" Keyboard="Numeric" TextChanged="OnLevelChanged"/>
                         
-                        <Label Grid.Row="3" Grid.Column="0" Text="Nature:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="3" Grid.Column="1" x:Name="NaturePicker" SelectedIndexChanged="OnNatureChanged"/>
-                    </StackLayout>
+                        <Label Grid.Row="3" Grid.Column="0" Text="Nature ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="3" Grid.Column="1" x:Name="NatureEntry" Keyboard="Numeric" TextChanged="OnNatureChanged"/>
+                    </Grid>
                 </StackLayout>
             </Frame>
 
-            <!-- Stats -->
+            <!-- IVs and EVs -->
             <Frame BackgroundColor="LightGreen" Padding="10">
                 <StackLayout>
-                    <Label Text="Stats" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Individual Values (IVs) &amp; Effort Values (EVs)" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -70,47 +70,43 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <!-- HP -->
-                        <Label Grid.Row="0" Grid.Column="0" Text="HP:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="0" Grid.Column="1" x:Name="HPSlider" Minimum="0" Maximum="31" ValueChanged="OnHPChanged"/>
-                        <Label Grid.Row="0" Grid.Column="2" x:Name="HPLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="0" Grid.Column="1" Text="IVs (0-31)" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Grid.Row="0" Grid.Column="2" Text="EVs (0-252)" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center"/>
                         
-                        <!-- Attack -->
-                        <Label Grid.Row="1" Grid.Column="0" Text="Attack:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="1" Grid.Column="1" x:Name="AttackSlider" Minimum="0" Maximum="31" ValueChanged="OnAttackChanged"/>
-                        <Label Grid.Row="1" Grid.Column="2" x:Name="AttackLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="1" Grid.Column="0" Text="HP:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="HPIVEntry" Keyboard="Numeric" TextChanged="OnHPIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="1" Grid.Column="2" x:Name="HPEVEntry" Keyboard="Numeric" TextChanged="OnHPEVChanged" MaxLength="3"/>
                         
-                        <!-- Defense -->
-                        <Label Grid.Row="2" Grid.Column="0" Text="Defense:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="2" Grid.Column="1" x:Name="DefenseSlider" Minimum="0" Maximum="31" ValueChanged="OnDefenseChanged"/>
-                        <Label Grid.Row="2" Grid.Column="2" x:Name="DefenseLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="2" Grid.Column="0" Text="ATK:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="AttackIVEntry" Keyboard="Numeric" TextChanged="OnAttackIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="2" Grid.Column="2" x:Name="AttackEVEntry" Keyboard="Numeric" TextChanged="OnAttackEVChanged" MaxLength="3"/>
                         
-                        <!-- Sp. Attack -->
-                        <Label Grid.Row="3" Grid.Column="0" Text="Sp. Atk:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="3" Grid.Column="1" x:Name="SpAttackSlider" Minimum="0" Maximum="31" ValueChanged="OnSpAttackChanged"/>
-                        <Label Grid.Row="3" Grid.Column="2" x:Name="SpAttackLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="3" Grid.Column="0" Text="DEF:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="3" Grid.Column="1" x:Name="DefenseIVEntry" Keyboard="Numeric" TextChanged="OnDefenseIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="3" Grid.Column="2" x:Name="DefenseEVEntry" Keyboard="Numeric" TextChanged="OnDefenseEVChanged" MaxLength="3"/>
                         
-                        <!-- Sp. Defense -->
-                        <Label Grid.Row="4" Grid.Column="0" Text="Sp. Def:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="4" Grid.Column="1" x:Name="SpDefenseSlider" Minimum="0" Maximum="31" ValueChanged="OnSpDefenseChanged"/>
-                        <Label Grid.Row="4" Grid.Column="2" x:Name="SpDefenseLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="4" Grid.Column="0" Text="SpA:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="4" Grid.Column="1" x:Name="SpAttackIVEntry" Keyboard="Numeric" TextChanged="OnSpAttackIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="4" Grid.Column="2" x:Name="SpAttackEVEntry" Keyboard="Numeric" TextChanged="OnSpAttackEVChanged" MaxLength="3"/>
                         
-                        <!-- Speed -->
-                        <Label Grid.Row="5" Grid.Column="0" Text="Speed:" VerticalOptions="Center" Margin="0,0,10,0"/>
-                        <Slider Grid.Row="5" Grid.Column="1" x:Name="SpeedSlider" Minimum="0" Maximum="31" ValueChanged="OnSpeedChanged"/>
-                        <Label Grid.Row="5" Grid.Column="2" x:Name="SpeedLabel" Text="0" VerticalOptions="Center" Margin="10,0,0,0"/>
+                        <Label Grid.Row="5" Grid.Column="0" Text="SpD:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="5" Grid.Column="1" x:Name="SpDefenseIVEntry" Keyboard="Numeric" TextChanged="OnSpDefenseIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="5" Grid.Column="2" x:Name="SpDefenseEVEntry" Keyboard="Numeric" TextChanged="OnSpDefenseEVChanged" MaxLength="3"/>
+                        
+                        <Label Grid.Row="6" Grid.Column="0" Text="SPE:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="6" Grid.Column="1" x:Name="SpeedIVEntry" Keyboard="Numeric" TextChanged="OnSpeedIVChanged" MaxLength="2"/>
+                        <Entry Grid.Row="6" Grid.Column="2" x:Name="SpeedEVEntry" Keyboard="Numeric" TextChanged="OnSpeedEVChanged" MaxLength="3"/>
                     </Grid>
-                    
-                    <Button Text="Randomize IVs" x:Name="RandomizeIVsButton" Clicked="OnRandomizeIVsClicked" Margin="0,10,0,0"/>
                 </StackLayout>
             </Frame>
 
             <!-- Moves -->
             <Frame BackgroundColor="LightCoral" Padding="10">
                 <StackLayout>
-                    <Label Text="Moves" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Moves (IDs)" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -124,27 +120,109 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <Label Grid.Row="0" Grid.Column="0" Text="Move 1:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="0" Grid.Column="1" x:Name="Move1Picker" SelectedIndexChanged="OnMove1Changed"/>
+                        <Label Grid.Row="0" Grid.Column="0" Text="Move 1 ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="Move1Entry" Keyboard="Numeric" TextChanged="OnMove1Changed"/>
                         
-                        <Label Grid.Row="1" Grid.Column="0" Text="Move 2:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="1" Grid.Column="1" x:Name="Move2Picker" SelectedIndexChanged="OnMove2Changed"/>
+                        <Label Grid.Row="1" Grid.Column="0" Text="Move 2 ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="Move2Entry" Keyboard="Numeric" TextChanged="OnMove2Changed"/>
                         
-                        <Label Grid.Row="2" Grid.Column="0" Text="Move 3:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="2" Grid.Column="1" x:Name="Move3Picker" SelectedIndexChanged="OnMove3Changed"/>
+                        <Label Grid.Row="2" Grid.Column="0" Text="Move 3 ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="Move3Entry" Keyboard="Numeric" TextChanged="OnMove3Changed"/>
                         
-                        <Label Grid.Row="3" Grid.Column="0" Text="Move 4:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="3" Grid.Column="1" x:Name="Move4Picker" SelectedIndexChanged="OnMove4Changed"/>
+                        <Label Grid.Row="3" Grid.Column="0" Text="Move 4 ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="3" Grid.Column="1" x:Name="Move4Entry" Keyboard="Numeric" TextChanged="OnMove4Changed"/>
                     </Grid>
-                    
-                    <Button Text="Suggest Legal Moves" x:Name="SuggestMovesButton" Clicked="OnSuggestMovesClicked" Margin="0,10,0,0"/>
                 </StackLayout>
             </Frame>
 
-            <!-- Special Properties -->
+            <!-- Physical Properties -->
             <Frame BackgroundColor="LightPink" Padding="10">
                 <StackLayout>
-                    <Label Text="Special Properties" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Physical &amp; Special Properties" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Label Grid.Row="0" Grid.Column="0" Text="Gender (0=M, 1=F, 2=-):" VerticalOptions="Center"/>
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="GenderEntry" Keyboard="Numeric" TextChanged="OnGenderChanged" MaxLength="1"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Ability ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="AbilityEntry" Keyboard="Numeric" TextChanged="OnAbilityChanged"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Form ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="FormEntry" Keyboard="Numeric" TextChanged="OnFormChanged"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Ball ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="3" Grid.Column="1" x:Name="BallEntry" Keyboard="Numeric" TextChanged="OnBallChanged"/>
+                        
+                        <Label Grid.Row="4" Grid.Column="0" Text="Shiny:" VerticalOptions="Center"/>
+                        <CheckBox Grid.Row="4" Grid.Column="1" x:Name="ShinyCheckBox" CheckedChanged="OnShinyChanged"/>
+                        
+                        <Label Grid.Row="5" Grid.Column="0" Text="Egg:" VerticalOptions="Center"/>
+                        <CheckBox Grid.Row="5" Grid.Column="1" x:Name="EggCheckBox" CheckedChanged="OnEggChanged"/>
+                        
+                        <Label Grid.Row="6" Grid.Column="0" Text="Held Item ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="6" Grid.Column="1" x:Name="HeldItemEntry" Keyboard="Numeric" TextChanged="OnHeldItemChanged"/>
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Origin &amp; Met Information -->
+            <Frame BackgroundColor="LightCyan" Padding="10">
+                <StackLayout>
+                    <Label Text="Origin &amp; Met Information" FontSize="16" FontAttributes="Bold"/>
+                    
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Label Grid.Row="0" Grid.Column="0" Text="OT Name:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="OTNameEntry" TextChanged="OnOTNameChanged"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="OT Gender (0=M, 1=F):" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="OTGenderEntry" Keyboard="Numeric" TextChanged="OnOTGenderChanged" MaxLength="1"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="TID16:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="TIDEntry" Keyboard="Numeric" TextChanged="OnTIDChanged"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="SID16:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="3" Grid.Column="1" x:Name="SIDEntry" Keyboard="Numeric" TextChanged="OnSIDChanged"/>
+                        
+                        <Label Grid.Row="4" Grid.Column="0" Text="Met Location ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="4" Grid.Column="1" x:Name="MetLocationEntry" Keyboard="Numeric" TextChanged="OnMetLocationChanged"/>
+                        
+                        <Label Grid.Row="5" Grid.Column="0" Text="Met Level:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="5" Grid.Column="1" x:Name="MetLevelEntry" Keyboard="Numeric" TextChanged="OnMetLevelChanged"/>
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Friendship &amp; Language -->
+            <Frame BackgroundColor="LightSalmon" Padding="10">
+                <StackLayout>
+                    <Label Text="Friendship &amp; Language" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -158,52 +236,30 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <CheckBox Grid.Row="0" Grid.Column="0" x:Name="ShinyCheckBox" CheckedChanged="OnShinyChanged"/>
-                        <Label Grid.Row="0" Grid.Column="1" Text="Shiny" VerticalOptions="Center"/>
+                        <Label Grid.Row="0" Grid.Column="0" Text="Friendship (0-255):" VerticalOptions="Center"/>
+                        <Entry Grid.Row="0" Grid.Column="1" x:Name="FriendshipEntry" Keyboard="Numeric" TextChanged="OnFriendshipChanged"/>
                         
-                        <CheckBox Grid.Row="1" Grid.Column="0" x:Name="EggCheckBox" CheckedChanged="OnEggChanged"/>
-                        <Label Grid.Row="1" Grid.Column="1" Text="Egg" VerticalOptions="Center"/>
+                        <Label Grid.Row="1" Grid.Column="0" Text="Language ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="1" Grid.Column="1" x:Name="LanguageEntry" Keyboard="Numeric" TextChanged="OnLanguageChanged"/>
                         
-                        <Label Grid.Row="2" Grid.Column="0" Text="Held Item:" VerticalOptions="Center"/>
-                        <Picker Grid.Row="2" Grid.Column="1" x:Name="HeldItemPicker" SelectedIndexChanged="OnHeldItemChanged"/>
+                        <Label Grid.Row="2" Grid.Column="0" Text="Version ID:" VerticalOptions="Center"/>
+                        <Entry Grid.Row="2" Grid.Column="1" x:Name="VersionEntry" Keyboard="Numeric" TextChanged="OnVersionChanged"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Fateful Encounter:" VerticalOptions="Center"/>
+                        <CheckBox Grid.Row="3" Grid.Column="1" x:Name="FatefulCheckBox" CheckedChanged="OnFatefulChanged"/>
                     </Grid>
                 </StackLayout>
             </Frame>
 
-            <!-- Validation and Trainer Info -->
-            <Frame BackgroundColor="LightYellow" Padding="10">
-                <StackLayout>
-                    <Label Text="Tools & Validation" FontSize="16" FontAttributes="Bold"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        
-                        <Button Grid.Row="0" Grid.Column="0" Text="Advanced Stats" x:Name="AdvancedStatsButton" Clicked="OnAdvancedStatsClicked" BackgroundColor="LightPink" Margin="0,0,5,5"/>
-                        <Button Grid.Row="0" Grid.Column="1" Text="Move Editor" x:Name="MoveEditorButton" Clicked="OnMoveEditorClicked" BackgroundColor="LightCyan" Margin="5,0,0,5"/>
-                        <Button Grid.Row="1" Grid.Column="0" Text="Memory/Amie" x:Name="MemoryAmieButton" Clicked="OnMemoryAmieClicked" BackgroundColor="LightSalmon" Margin="0,5,5,5"/>
-                        <Button Grid.Row="1" Grid.Column="1" Text="Trainer ID" x:Name="TrainerIDButton" Clicked="OnTrainerIDClicked" BackgroundColor="LightYellow" Margin="5,5,0,5"/>
-                        <Button Grid.Row="2" Grid.Column="0" Text="SAV Editor" x:Name="SAVEditorButton" Clicked="OnSAVEditorClicked" BackgroundColor="LightSteelBlue" Margin="0,5,5,5"/>
-                        <Button Grid.Row="2" Grid.Column="1" Text="Validate Legality" x:Name="ValidateButton" Clicked="OnValidateClicked" BackgroundColor="LightBlue" Margin="5,5,0,5"/>
-                        <Button Grid.Row="3" Grid.Column="0" Text="Fix Trainer Info" x:Name="FixTrainerButton" Clicked="OnFixTrainerInfoClicked" BackgroundColor="Orange" Margin="0,5,5,0"/>
-                        <Button Grid.Row="3" Grid.Column="1" Text="Heal Pokemon" x:Name="HealButton" Clicked="OnHealClicked" BackgroundColor="LightGreen" Margin="5,5,0,0"/>
-                    </Grid>
-                    <Label Text="⚠️ Use 'Fix Trainer Info' if Pokemon disobey in Scarlet/Violet" FontSize="10" TextColor="Red" Margin="0,5,0,0"/>
-                </StackLayout>
-            </Frame>
-
-            <!-- Current Stats Display -->
+            <!-- Tools &amp; Generation Info -->
             <Frame BackgroundColor="LightGray" Padding="10">
                 <StackLayout>
-                    <Label Text="Current Stats" FontSize="16" FontAttributes="Bold"/>
-                    <Label x:Name="CurrentStatsLabel" Text="Stats will be calculated..." FontSize="12"/>
+                    <Label Text="Tools &amp; Generation Info" FontSize="16" FontAttributes="Bold"/>
+                    <Label x:Name="GenerationLabel" Text="" FontSize="12" TextColor="Blue"/>
+                    <Button Text="Heal Pokemon" Clicked="OnHealClicked" BackgroundColor="LightGreen"/>
+                    <Button Text="Max IVs" Clicked="OnMaxIVsClicked" BackgroundColor="Orange"/>
+                    <Button Text="Clear EVs" Clicked="OnClearEVsClicked" BackgroundColor="Red"/>
+                    <Label x:Name="StatusLabel" Text="" FontSize="12" TextColor="Green"/>
                 </StackLayout>
             </Frame>
 

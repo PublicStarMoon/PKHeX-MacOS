@@ -2,39 +2,73 @@
 <ContentPage x:Class="PKHeX.MAUI.Views.InventoryEditorPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             Title="Inventory Editor"
-             BackgroundColor="{DynamicResource PageBackgroundColor}">
+             Title="Inventory Editor">
 
-    <Grid Padding="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <ScrollView Padding="10">
+        <StackLayout>
+            <!-- Header -->
+            <Frame BackgroundColor="LightBlue" Padding="15" Margin="0,0,0,10">
+                <StackLayout>
+                    <Label x:Name="HeaderLabel" Text="Inventory Editor" FontSize="20" FontAttributes="Bold"/>
+                    <Label x:Name="GenerationLabel" Text="Generation: Unknown" FontSize="14"/>
+                </StackLayout>
+            </Frame>
 
-        <!-- Header -->
-        <Label Grid.Row="0" 
-               Text="Inventory Editor" 
-               FontSize="24" 
-               FontAttributes="Bold" 
-               HorizontalOptions="Center"/>
+            <!-- Pouch Selection -->
+            <Frame BackgroundColor="LightGreen" Padding="15" Margin="0,0,0,10">
+                <StackLayout>
+                    <Label Text="Select Pouch" FontSize="16" FontAttributes="Bold"/>
+                    <Picker x:Name="PouchPicker" SelectedIndexChanged="OnPouchChanged" Title="Choose a pouch type"/>
+                </StackLayout>
+            </Frame>
 
-        <!-- Content -->
-        <StackLayout Grid.Row="1" Spacing="20" VerticalOptions="Center">
-            <Label x:Name="StatusLabel" Text="Inventory Editor" HorizontalOptions="Center"/>
-            <Label x:Name="ItemCountLabel" Text="Items: 0" HorizontalOptions="Center"/>
-            <Label Text="⚠️ Full inventory editor implementation coming soon" 
-                   HorizontalOptions="Center" 
-                   TextColor="Orange"/>
+            <!-- Current Pouch Info -->
+            <Frame BackgroundColor="LightYellow" Padding="15" Margin="0,0,0,10" x:Name="PouchInfoFrame" IsVisible="False">
+                <StackLayout>
+                    <Label x:Name="PouchNameLabel" Text="Pouch: None" FontSize="16" FontAttributes="Bold"/>
+                    <Label x:Name="PouchStatsLabel" Text="Items: 0/0" FontSize="14"/>
+                </StackLayout>
+            </Frame>
+
+            <!-- Tools -->
+            <Frame BackgroundColor="Orange" Padding="15" Margin="0,0,0,10" x:Name="ToolsFrame" IsVisible="False">
+                <StackLayout>
+                    <Label Text="Tools" FontSize="16" FontAttributes="Bold"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Button Grid.Row="0" Grid.Column="0" Text="Max All" Clicked="OnMaxAllClicked" Margin="0,0,5,5"/>
+                        <Button Grid.Row="0" Grid.Column="1" Text="Clear All" Clicked="OnClearAllClicked" Margin="5,0,0,5"/>
+                        <Button Grid.Row="1" Grid.Column="0" Text="Give All Legal" Clicked="OnGiveAllLegalClicked" Margin="0,5,5,0"/>
+                        <Button Grid.Row="1" Grid.Column="1" Text="Sort by ID" Clicked="OnSortByIndexClicked" Margin="5,5,0,0"/>
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
+            <!-- Items List -->
+            <Frame BackgroundColor="LightCyan" Padding="15" Margin="0,0,0,10" x:Name="ItemsFrame" IsVisible="False">
+                <StackLayout>
+                    <Label Text="Items" FontSize="16" FontAttributes="Bold"/>
+                    <ScrollView x:Name="ItemsScrollView" HeightRequest="400">
+                        <StackLayout x:Name="ItemsContainer"/>
+                    </ScrollView>
+                </StackLayout>
+            </Frame>
+
+            <!-- Save Controls -->
+            <Frame BackgroundColor="LightCoral" Padding="15" Margin="0,0,0,10">
+                <StackLayout>
+                    <Label Text="Save Changes" FontSize="16" FontAttributes="Bold"/>
+                    <Button Text="Save Inventory Changes" Clicked="OnSaveClicked" BackgroundColor="Green" TextColor="White"/>
+                </StackLayout>
+            </Frame>
         </StackLayout>
-
-        <!-- Footer -->
-        <Button Grid.Row="2"
-                Text="Back"
-                BackgroundColor="{DynamicResource PrimaryColor}"
-                TextColor="White"
-                CornerRadius="10"
-                HeightRequest="50"
-                Clicked="OnBackClicked"/>
-    </Grid>
+    </ScrollView>
 </ContentPage>
