@@ -1,6 +1,7 @@
 using PKHeX.Core;
 using System;
 using System.Linq;
+using Microsoft.Maui.Controls;
 
 namespace PKHeX.MAUI.Views;
 
@@ -8,7 +9,7 @@ public partial class InventoryEditorPage : ContentPage
 {
     private SaveFile? _saveFile;
     private InventoryPouch? _currentPouch;
-    private readonly List<Entry> _itemEntries = new();
+    private readonly List<ItemEntry> _itemEntries = new();
 
     public InventoryEditorPage(SaveFile saveFile)
     {
@@ -138,7 +139,7 @@ public partial class InventoryEditorPage : ContentPage
                 var item = _currentPouch.Items[i];
                 
                 // Create item entry UI
-                var frame = new Frame
+                var frame = new Microsoft.Maui.Controls.Frame
                 {
                     BackgroundColor = Colors.White,
                     Padding = 10,
@@ -157,7 +158,7 @@ public partial class InventoryEditorPage : ContentPage
                 };
                 Grid.SetColumn(itemLabel, 0);
 
-                var countEntry = new Entry
+                var countEntry = new Microsoft.Maui.Controls.Entry
                 {
                     Text = item.Count.ToString(),
                     Keyboard = Keyboard.Numeric,
@@ -173,7 +174,7 @@ public partial class InventoryEditorPage : ContentPage
                 Grid.SetColumn(clearButton, 2);
 
                 // Store reference for later updates
-                var entry = new Entry { ItemIndex = i, CountEntry = countEntry };
+                var entry = new ItemEntry { ItemIndex = i, CountEntry = countEntry };
                 _itemEntries.Add(entry);
 
                 // Event handlers
@@ -194,7 +195,7 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
-    private void OnItemCountChanged(Entry entry, string newValue)
+    private void OnItemCountChanged(ItemEntry entry, string newValue)
     {
         if (_currentPouch == null || entry.ItemIndex >= _currentPouch.Items.Length) return;
 
@@ -212,7 +213,7 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
-    private void OnClearItemClicked(Entry entry)
+    private void OnClearItemClicked(ItemEntry entry)
     {
         if (_currentPouch == null || entry.ItemIndex >= _currentPouch.Items.Length) return;
 
@@ -306,7 +307,7 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
-    private class Entry
+    private class ItemEntry
     {
         public int ItemIndex { get; set; }
         public Microsoft.Maui.Controls.Entry CountEntry { get; set; } = null!;
