@@ -72,7 +72,7 @@
                         
                         <Button Text="Pokémon Box Editor" x:Name="BoxEditorButton" 
                                 Clicked="OnBoxEditorClicked" Margin="0,10" IsEnabled="False" BackgroundColor="LightBlue"/>
-                        <Button Text="Item Editor" x:Name="ItemEditorButton" 
+                        <Button Text="Inventory Editor" x:Name="ItemEditorButton" 
                                 Clicked="OnItemEditorClicked" Margin="0,5" IsEnabled="False" BackgroundColor="LightGreen"/>
                     </StackLayout>
                 </Frame>
