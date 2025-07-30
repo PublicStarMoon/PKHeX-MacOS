@@ -48,7 +48,7 @@
                         
                         <Label Grid.Row="3" Grid.Column="0" Text="Nature:" VerticalOptions="Center"/>
                         <Picker Grid.Row="3" Grid.Column="1" x:Name="NaturePicker" SelectedIndexChanged="OnNatureChanged"/>
-                    </StackLayout>
+                    </Grid>
                 </StackLayout>
             </Frame>
 

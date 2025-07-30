@@ -450,20 +450,7 @@ public partial class PokemonEditorPage : ContentPage
         }
     }
 
-    private async void OnHealClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null) return;
 
-        try
-        {
-            _pokemon.Heal();
-            await DisplayAlert("Success", "Pokémon has been fully healed!", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to heal Pokémon: {ex.Message}", "OK");
-        }
-    }
 
     private async void OnBackClicked(object sender, EventArgs e)
     {
