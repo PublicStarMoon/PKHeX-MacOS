@@ -2,39 +2,75 @@
 <ContentPage x:Class="PKHeX.MAUI.Views.InventoryEditorPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             Title="Inventory Editor"
-             BackgroundColor="{DynamicResource PageBackgroundColor}">
+             Title="Item Editor">
 
-    <Grid Padding="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <ScrollView>
+        <StackLayout Padding="10" Spacing="10">
+            
+            <!-- Header -->
+            <Grid BackgroundColor="LightGreen" Padding="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <Button Grid.Column="0" x:Name="BackButton" Text="← Back" Clicked="OnBackClicked"/>
+                <Label Grid.Column="1" x:Name="HeaderLabel" Text="Item Editor" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Button Grid.Column="2" x:Name="SaveButton" Text="Save" Clicked="OnSaveClicked" BackgroundColor="LightBlue"/>
+            </Grid>
 
-        <!-- Header -->
-        <Label Grid.Row="0" 
-               Text="Inventory Editor" 
-               FontSize="24" 
-               FontAttributes="Bold" 
-               HorizontalOptions="Center"/>
+            <!-- Item Categories -->
+            <Frame BackgroundColor="LightYellow" Padding="10">
+                <StackLayout>
+                    <Label Text="Item Categories" FontSize="16" FontAttributes="Bold"/>
+                    <Picker x:Name="CategoryPicker" Title="Select Category" SelectedIndexChanged="OnCategoryChanged"/>
+                </StackLayout>
+            </Frame>
 
-        <!-- Content -->
-        <StackLayout Grid.Row="1" Spacing="20" VerticalOptions="Center">
-            <Label x:Name="StatusLabel" Text="Inventory Editor" HorizontalOptions="Center"/>
-            <Label x:Name="ItemCountLabel" Text="Items: 0" HorizontalOptions="Center"/>
-            <Label Text="⚠️ Full inventory editor implementation coming soon" 
-                   HorizontalOptions="Center" 
-                   TextColor="Orange"/>
+            <!-- Item List -->
+            <Frame BackgroundColor="LightBlue" Padding="10">
+                <StackLayout>
+                    <Label Text="Items" FontSize="16" FontAttributes="Bold"/>
+                    <CollectionView x:Name="ItemsCollectionView" ItemsSource="{Binding Items}" HeightRequest="400">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <Label Grid.Column="0" Text="{Binding Name}" VerticalOptions="Center"/>
+                                    <Entry Grid.Column="1" Text="{Binding Count}" Keyboard="Numeric" VerticalOptions="Center"/>
+                                    <Button Grid.Column="2" Text="+" CommandParameter="{Binding .}" Clicked="OnIncrementItem" Margin="5,0"/>
+                                    <Button Grid.Column="3" Text="-" CommandParameter="{Binding .}" Clicked="OnDecrementItem" Margin="5,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </StackLayout>
+            </Frame>
+
+            <!-- Quick Actions -->
+            <Frame BackgroundColor="LightCoral" Padding="10">
+                <StackLayout>
+                    <Label Text="Quick Actions" FontSize="16" FontAttributes="Bold"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <Button Grid.Column="0" Text="Max All Items" x:Name="MaxAllButton" Clicked="OnMaxAllClicked" BackgroundColor="Orange" Margin="0,0,5,0"/>
+                        <Button Grid.Column="1" Text="Clear All Items" x:Name="ClearAllButton" Clicked="OnClearAllClicked" BackgroundColor="Red" TextColor="White" Margin="5,0,0,0"/>
+                    </Grid>
+                </StackLayout>
+            </Frame>
+
         </StackLayout>
+    </ScrollView>
 
-        <!-- Footer -->
-        <Button Grid.Row="2"
-                Text="Back"
-                BackgroundColor="{DynamicResource PrimaryColor}"
-                TextColor="White"
-                CornerRadius="10"
-                HeightRequest="50"
-                Clicked="OnBackClicked"/>
-    </Grid>
 </ContentPage>

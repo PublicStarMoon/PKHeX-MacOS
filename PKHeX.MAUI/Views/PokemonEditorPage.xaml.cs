@@ -419,78 +419,34 @@ public partial class PokemonEditorPage : ContentPage
         }
     }
 
-    private async void OnAdvancedStatsClicked(object sender, EventArgs e)
+    private async void OnRandomizeAllClicked(object sender, EventArgs e)
     {
-        if (_pokemon == null || _saveFile == null) return;
+        if (_pokemon == null) return;
         
         try
         {
-            var statEditorPage = new StatEditorPage(_pokemon, _saveFile);
-            await Navigation.PushAsync(statEditorPage);
+            // Randomize basic stats
+            var random = new Random();
+            
+            // Randomize IVs
+            _pokemon.IV_HP = random.Next(32);
+            _pokemon.IV_ATK = random.Next(32);
+            _pokemon.IV_DEF = random.Next(32);
+            _pokemon.IV_SPA = random.Next(32);
+            _pokemon.IV_SPD = random.Next(32);
+            _pokemon.IV_SPE = random.Next(32);
+            
+            // Randomize nature
+            _pokemon.Nature = random.Next(25);
+            
+            // Reload the UI
+            LoadPokemonData(_pokemon);
+            
+            await DisplayAlert("Success", "Pokemon stats randomized!", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to open advanced stat editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnMoveEditorClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null) return;
-
-        try
-        {
-            var moveEditorPage = new MoveEditorPage(_pokemon);
-            await Navigation.PushAsync(moveEditorPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open move editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnTrainerIDClicked(object sender, EventArgs e)
-    {
-        if (_saveFile == null) return;
-
-        try
-        {
-            var trainerIdPage = new TrainerIDEditorPage(_saveFile);
-            await Navigation.PushAsync(trainerIdPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open trainer ID editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnMemoryAmieClicked(object sender, EventArgs e)
-    {
-        if (_pokemon == null) return;
-
-        try
-        {
-            var memoryAmiePage = new MemoryAmieEditorPage(_pokemon);
-            await Navigation.PushAsync(memoryAmiePage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open memory/amie editor: {ex.Message}", "OK");
-        }
-    }
-
-    private async void OnSAVEditorClicked(object sender, EventArgs e)
-    {
-        if (_saveFile == null) return;
-
-        try
-        {
-            var savEditorPage = new SAVEditorPage(_saveFile);
-            await Navigation.PushAsync(savEditorPage);
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to open save editor: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to randomize: {ex.Message}", "OK");
         }
     }
 

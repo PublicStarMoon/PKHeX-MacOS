@@ -170,7 +170,7 @@
                 </StackLayout>
             </Frame>
 
-            <!-- Validation and Trainer Info -->
+            <!-- Validation and Tools -->
             <Frame BackgroundColor="LightYellow" Padding="10">
                 <StackLayout>
                     <Label Text="Tools & Validation" FontSize="16" FontAttributes="Bold"/>
@@ -182,18 +182,12 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <Button Grid.Row="0" Grid.Column="0" Text="Advanced Stats" x:Name="AdvancedStatsButton" Clicked="OnAdvancedStatsClicked" BackgroundColor="LightPink" Margin="0,0,5,5"/>
-                        <Button Grid.Row="0" Grid.Column="1" Text="Move Editor" x:Name="MoveEditorButton" Clicked="OnMoveEditorClicked" BackgroundColor="LightCyan" Margin="5,0,0,5"/>
-                        <Button Grid.Row="1" Grid.Column="0" Text="Memory/Amie" x:Name="MemoryAmieButton" Clicked="OnMemoryAmieClicked" BackgroundColor="LightSalmon" Margin="0,5,5,5"/>
-                        <Button Grid.Row="1" Grid.Column="1" Text="Trainer ID" x:Name="TrainerIDButton" Clicked="OnTrainerIDClicked" BackgroundColor="LightYellow" Margin="5,5,0,5"/>
-                        <Button Grid.Row="2" Grid.Column="0" Text="SAV Editor" x:Name="SAVEditorButton" Clicked="OnSAVEditorClicked" BackgroundColor="LightSteelBlue" Margin="0,5,5,5"/>
-                        <Button Grid.Row="2" Grid.Column="1" Text="Validate Legality" x:Name="ValidateButton" Clicked="OnValidateClicked" BackgroundColor="LightBlue" Margin="5,5,0,5"/>
-                        <Button Grid.Row="3" Grid.Column="0" Text="Fix Trainer Info" x:Name="FixTrainerButton" Clicked="OnFixTrainerInfoClicked" BackgroundColor="Orange" Margin="0,5,5,0"/>
-                        <Button Grid.Row="3" Grid.Column="1" Text="Heal Pokemon" x:Name="HealButton" Clicked="OnHealClicked" BackgroundColor="LightGreen" Margin="5,5,0,0"/>
+                        <Button Grid.Row="0" Grid.Column="0" Text="Validate Legality" x:Name="ValidateButton" Clicked="OnValidateClicked" BackgroundColor="LightBlue" Margin="0,0,5,5"/>
+                        <Button Grid.Row="0" Grid.Column="1" Text="Fix Trainer Info" x:Name="FixTrainerButton" Clicked="OnFixTrainerInfoClicked" BackgroundColor="Orange" Margin="5,0,0,5"/>
+                        <Button Grid.Row="1" Grid.Column="0" Text="Heal Pokemon" x:Name="HealButton" Clicked="OnHealClicked" BackgroundColor="LightGreen" Margin="0,5,5,0"/>
+                        <Button Grid.Row="1" Grid.Column="1" Text="Randomize All" x:Name="RandomizeButton" Clicked="OnRandomizeAllClicked" BackgroundColor="LightPink" Margin="5,5,0,0"/>
                     </Grid>
                     <Label Text="⚠️ Use 'Fix Trainer Info' if Pokemon disobey in Scarlet/Violet" FontSize="10" TextColor="Red" Margin="0,5,0,0"/>
                 </StackLayout>
