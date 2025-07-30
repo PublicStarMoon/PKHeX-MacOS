@@ -138,7 +138,7 @@
             <!-- Physical Properties -->
             <Frame BackgroundColor="LightPink" Padding="10">
                 <StackLayout>
-                    <Label Text="Physical & Special Properties" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Physical &amp; Special Properties" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -182,7 +182,7 @@
             <!-- Origin & Met Information -->
             <Frame BackgroundColor="LightCyan" Padding="10">
                 <StackLayout>
-                    <Label Text="Origin & Met Information" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Origin &amp; Met Information" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -222,7 +222,7 @@
             <!-- Friendship & Language -->
             <Frame BackgroundColor="LightSalmon" Padding="10">
                 <StackLayout>
-                    <Label Text="Friendship & Language" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Friendship &amp; Language" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -254,7 +254,7 @@
             <!-- Tools & Generation Info -->
             <Frame BackgroundColor="LightGray" Padding="10">
                 <StackLayout>
-                    <Label Text="Tools & Generation Info" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Tools &amp; Generation Info" FontSize="16" FontAttributes="Bold"/>
                     <Label x:Name="GenerationLabel" Text="" FontSize="12" TextColor="Blue"/>
                     <Button Text="Heal Pokemon" Clicked="OnHealClicked" BackgroundColor="LightGreen"/>
                     <Button Text="Max IVs" Clicked="OnMaxIVsClicked" BackgroundColor="Orange"/>
