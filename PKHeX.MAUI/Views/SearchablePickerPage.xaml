@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.SearchablePickerPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="{Binding Title}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Label Grid.Row="0" 
+               Text="{Binding Title}" 
+               FontSize="20" 
+               FontAttributes="Bold" 
+               HorizontalOptions="Center" 
+               Margin="10" />
+        
+        <!-- Search Box -->
+        <SearchBar Grid.Row="1" 
+                   x:Name="SearchBar"
+                   Placeholder="Search..." 
+                   TextChanged="OnSearchTextChanged"
+                   BackgroundColor="#F8F9FA" 
+                   Margin="10,0" />
+        
+        <!-- List View -->
+        <CollectionView Grid.Row="2" 
+                        x:Name="ItemsCollectionView"
+                        ItemsSource="{Binding FilteredItems}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnSelectionChanged"
+                        BackgroundColor="White">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="15,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- ID -->
+                        <Label Grid.Column="0" 
+                               Text="{Binding Id}" 
+                               FontSize="12" 
+                               TextColor="#666" 
+                               VerticalOptions="Center" 
+                               WidthRequest="50" />
+                        
+                        <!-- Display Name -->
+                        <Label Grid.Column="1" 
+                               Text="{Binding DisplayName}" 
+                               FontSize="16" 
+                               VerticalOptions="Center" 
+                               Margin="10,0,0,0" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        
+        <!-- Action Buttons -->
+        <StackLayout Grid.Row="3" 
+                     Orientation="Horizontal" 
+                     HorizontalOptions="Center" 
+                     Margin="10">
+            <Button Text="Cancel" 
+                    Clicked="OnCancelClicked" 
+                    BackgroundColor="#6C757D" 
+                    TextColor="White" 
+                    WidthRequest="120" 
+                    Margin="5" />
+            <Button Text="OK" 
+                    Clicked="OnOkClicked" 
+                    BackgroundColor="#007BFF" 
+                    TextColor="White" 
+                    WidthRequest="120" 
+                    Margin="5" />
+        </StackLayout>
+    </Grid>
+</ContentPage>

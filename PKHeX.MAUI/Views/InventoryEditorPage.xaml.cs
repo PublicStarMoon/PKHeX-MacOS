@@ -930,12 +930,38 @@ public partial class InventoryEditorPage : ContentPage
         
         try
         {
-            // Try to get the item name from the save file's string tables
-            var strings = GameInfo.GetStrings(_saveFile.Language);
-            if (strings?.itemlist != null && itemIndex < strings.itemlist.Length)
+            // Get English name
+            var englishStrings = GameInfo.GetStrings("en");
+            string englishName = "Unknown";
+            if (englishStrings?.itemlist != null && itemIndex < englishStrings.itemlist.Length)
             {
-                return strings.itemlist[itemIndex];
+                englishName = englishStrings.itemlist[itemIndex];
             }
+
+            // Get Chinese name (try simplified first, then traditional)
+            var chineseStrings = GameInfo.GetStrings("zh");
+            string chineseName = "";
+            if (chineseStrings?.itemlist != null && itemIndex < chineseStrings.itemlist.Length)
+            {
+                chineseName = chineseStrings.itemlist[itemIndex];
+            }
+            else
+            {
+                // Try traditional Chinese if simplified not available
+                var traditionalStrings = GameInfo.GetStrings("zh2");
+                if (traditionalStrings?.itemlist != null && itemIndex < traditionalStrings.itemlist.Length)
+                {
+                    chineseName = traditionalStrings.itemlist[itemIndex];
+                }
+            }
+
+            // Format the display name with both languages
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+            {
+                return $"{englishName} ({chineseName})";
+            }
+            
+            return englishName;
         }
         catch
         {

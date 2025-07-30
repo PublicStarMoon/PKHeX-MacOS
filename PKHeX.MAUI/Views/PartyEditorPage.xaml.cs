@@ -62,7 +62,7 @@ public partial class PartyEditorPage : ContentPage
         {
             var nameLabel = new Label 
             { 
-                Text = $"Slot {slotIndex + 1}: {pokemon.Nickname} ({SpeciesName.GetSpeciesName(pokemon.Species, 2)})",
+                Text = $"Slot {slotIndex + 1}: {pokemon.Nickname} ({GetSpeciesName(pokemon.Species)})",
                 FontSize = 16,
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#2C3E50")
@@ -151,7 +151,7 @@ public partial class PartyEditorPage : ContentPage
             {
                 pokemon = _save.BlankPKM;
                 pokemon.Species = 1; // Default to Bulbasaur
-                pokemon.Nickname = SpeciesName.GetSpeciesName(pokemon.Species, 2);
+                pokemon.Nickname = GetSpeciesName(pokemon.Species).Split(' ')[0]; // Use just the English name for nickname
                 pokemon.CurrentLevel = 50;
                 pokemon.Move1 = 1; // Pound
                 pokemon.RefreshChecksum();
@@ -277,7 +277,7 @@ public partial class PartyEditorPage : ContentPage
                     // Create a basic Pokemon for empty slots
                     var newPokemon = _save.BlankPKM;
                     newPokemon.Species = (ushort)(1 + (i * 3)); // Different species for variety
-                    newPokemon.Nickname = SpeciesName.GetSpeciesName(newPokemon.Species, 2);
+                    newPokemon.Nickname = GetSpeciesName(newPokemon.Species).Split(' ')[0]; // Use just the English name for nickname
                     newPokemon.CurrentLevel = 50;
                     newPokemon.Move1 = 1; // Pound
                     newPokemon.RefreshChecksum();
@@ -312,5 +312,34 @@ public partial class PartyEditorPage : ContentPage
         // Only refresh UI without reloading data to preserve state
         // Data is loaded once in constructor and maintained in memory
         CreatePartyUI();
+    }
+
+    /// <summary>
+    /// Gets the multilingual species name in both English and Chinese
+    /// </summary>
+    private string GetSpeciesName(ushort species)
+    {
+        try
+        {
+            if (species == 0) return "Empty";
+
+            // Get English name (language ID 2)
+            var englishName = SpeciesName.GetSpeciesName(species, 2);
+
+            // Get Chinese Traditional name (language ID 10) or Simplified (language ID 9) as fallback
+            var chineseName = SpeciesName.GetSpeciesName(species, 10);
+            if (string.IsNullOrEmpty(chineseName))
+                chineseName = SpeciesName.GetSpeciesName(species, 9);
+
+            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                return $"{englishName} ({chineseName})";
+            else
+                return englishName;
+        }
+        catch
+        {
+            return $"Species {species}";
+        }
     }
 }

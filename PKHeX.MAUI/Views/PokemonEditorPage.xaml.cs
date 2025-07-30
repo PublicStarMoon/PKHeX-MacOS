@@ -10,6 +10,14 @@ public partial class PokemonEditorPage : ContentPage
     private int _boxIndex = -1;
     private int _slotIndex = -1;
 
+    // Data sources for pickers
+    private List<MoveItem> _moveItems = new();
+    private List<AbilityItem> _abilityItems = new();
+    private List<NatureItem> _natureItems = new();
+    private List<ItemItem> _itemItems = new();
+    private List<BallItem> _ballItems = new();
+    private List<FormItem> _formItems = new();
+
     public PokemonEditorPage(PKM pokemon, SaveFile saveFile, int boxIndex = -1, int slotIndex = -1)
     {
         InitializeComponent();
@@ -17,6 +25,7 @@ public partial class PokemonEditorPage : ContentPage
         _saveFile = saveFile;
         _boxIndex = boxIndex;
         _slotIndex = slotIndex;
+        InitializePickerData();
         LoadPokemonData();
     }
 
@@ -30,12 +39,15 @@ public partial class PokemonEditorPage : ContentPage
 
             // Basic information  
             var generationInfo = GetGenerationInfo(_pokemon);
-            HeaderLabel.Text = $"Editing: Species {_pokemon.Species} (Gen {_pokemon.Format})";
+            HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} (Gen {_pokemon.Format})";
             GenerationLabel.Text = generationInfo;
             SpeciesEntry.Text = _pokemon.Species.ToString();
             NicknameEntry.Text = _pokemon.Nickname;
             LevelEntry.Text = _pokemon.CurrentLevel.ToString();
-            NatureEntry.Text = _pokemon.Nature.ToString();
+            
+            // Set nature button text
+            var selectedNature = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
+            NatureButton.Text = selectedNature?.DisplayName ?? "Select Nature...";
 
             // IVs
             HPIVEntry.Text = _pokemon.IV_HP.ToString();
@@ -53,20 +65,40 @@ public partial class PokemonEditorPage : ContentPage
             SpDefenseEVEntry.Text = _pokemon.EV_SPD.ToString();
             SpeedEVEntry.Text = _pokemon.EV_SPE.ToString();
 
-            // Moves
-            Move1Entry.Text = _pokemon.Move1.ToString();
-            Move2Entry.Text = _pokemon.Move2.ToString();
-            Move3Entry.Text = _pokemon.Move3.ToString();
-            Move4Entry.Text = _pokemon.Move4.ToString();
+            // Moves - set button texts
+            var selectedMove1 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
+            Move1Button.Text = selectedMove1?.DisplayName ?? "Select Move...";
+            
+            var selectedMove2 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
+            Move2Button.Text = selectedMove2?.DisplayName ?? "Select Move...";
+            
+            var selectedMove3 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
+            Move3Button.Text = selectedMove3?.DisplayName ?? "Select Move...";
+            
+            var selectedMove4 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
+            Move4Button.Text = selectedMove4?.DisplayName ?? "Select Move...";
 
             // Physical Properties
             GenderEntry.Text = _pokemon.Gender.ToString();
-            AbilityEntry.Text = _pokemon.Ability.ToString();
-            FormEntry.Text = _pokemon.Form.ToString();
-            BallEntry.Text = _pokemon.Ball.ToString();
+            
+            // Set ability button text
+            var selectedAbility = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
+            AbilityButton.Text = selectedAbility?.DisplayName ?? "Select Ability...";
+            
+            // Set form button text
+            var selectedForm = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
+            FormButton.Text = selectedForm?.DisplayName ?? "Select Form...";
+            
+            // Set ball button text
+            var selectedBall = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
+            BallButton.Text = selectedBall?.DisplayName ?? "Select Ball...";
+            
             ShinyCheckBox.IsChecked = _pokemon.IsShiny;
             EggCheckBox.IsChecked = _pokemon.IsEgg;
-            HeldItemEntry.Text = _pokemon.HeldItem.ToString();
+            
+            // Set held item button text
+            var selectedHeldItem = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
+            HeldItemButton.Text = selectedHeldItem?.DisplayName ?? "Select Item...";
 
             // Origin & Met Information
             OTNameEntry.Text = _pokemon.OT_Name;
@@ -115,16 +147,6 @@ public partial class PokemonEditorPage : ContentPage
         if (int.TryParse(e.NewTextValue, out int level) && level >= 1 && level <= 100)
         {
             _pokemon.CurrentLevel = level;
-        }
-    }
-
-    private void OnNatureChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (int.TryParse(e.NewTextValue, out int nature) && nature >= 0 && nature <= 24)
-        {
-            _pokemon.Nature = nature;
         }
     }
 
@@ -188,43 +210,178 @@ public partial class PokemonEditorPage : ContentPage
         }
     }
 
-    private void OnMove1Changed(object sender, TextChangedEventArgs e)
-    {
-        if (_isUpdating || _pokemon == null) return;
 
-        if (ushort.TryParse(e.NewTextValue, out ushort move))
+
+    // New Button click handlers for searchable pickers
+    private async void OnMove1ButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 1", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
         {
-            _pokemon.Move1 = move;
+            _pokemon.Move1 = (ushort)result.Id;
+            Move1Button.Text = result.DisplayName;
         }
     }
 
-    private void OnMove2Changed(object sender, TextChangedEventArgs e)
+    private async void OnMove2ButtonClicked(object sender, EventArgs e)
     {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 2", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
         {
-            _pokemon.Move2 = move;
+            _pokemon.Move2 = (ushort)result.Id;
+            Move2Button.Text = result.DisplayName;
         }
     }
 
-    private void OnMove3Changed(object sender, TextChangedEventArgs e)
+    private async void OnMove3ButtonClicked(object sender, EventArgs e)
     {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 3", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
         {
-            _pokemon.Move3 = move;
+            _pokemon.Move3 = (ushort)result.Id;
+            Move3Button.Text = result.DisplayName;
         }
     }
 
-    private void OnMove4Changed(object sender, TextChangedEventArgs e)
+    private async void OnMove4ButtonClicked(object sender, EventArgs e)
     {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (ushort.TryParse(e.NewTextValue, out ushort move))
+        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 4", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
         {
-            _pokemon.Move4 = move;
+            _pokemon.Move4 = (ushort)result.Id;
+            Move4Button.Text = result.DisplayName;
+        }
+    }
+
+    private async void OnAbilityButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_abilityItems.Cast<IPickerItem>().ToList(), "Select Ability", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
+        {
+            _pokemon.Ability = result.Id;
+            AbilityButton.Text = result.DisplayName;
+        }
+    }
+
+    private async void OnNatureButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_natureItems.Cast<IPickerItem>().ToList(), "Select Nature", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
+        {
+            _pokemon.Nature = result.Id;
+            NatureButton.Text = result.DisplayName;
+        }
+    }
+
+    private async void OnFormButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_formItems.Cast<IPickerItem>().ToList(), "Select Form", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
+        {
+            _pokemon.Form = (byte)result.Id;
+            FormButton.Text = result.DisplayName;
+            HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} {GetFormName(_pokemon.Species, (byte)result.Id)} (Gen {_pokemon.Format})";
+        }
+    }
+
+    private async void OnBallButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_ballItems.Cast<IPickerItem>().ToList(), "Select Ball", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
+        {
+            _pokemon.Ball = result.Id;
+            BallButton.Text = result.DisplayName;
+        }
+    }
+
+    private async void OnHeldItemButtonClicked(object sender, EventArgs e)
+    {
+        var currentSelection = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
+        var pickerPage = new SearchablePickerPage();
+        pickerPage.SetItems(_itemItems.Cast<IPickerItem>().ToList(), "Select Held Item", currentSelection);
+        
+        var completionSource = new TaskCompletionSource<IPickerItem?>();
+        pickerPage.CompletionSource = completionSource;
+        
+        await Navigation.PushModalAsync(pickerPage);
+        var result = await completionSource.Task;
+        
+        if (result != null && _pokemon != null)
+        {
+            _pokemon.HeldItem = result.Id;
+            HeldItemButton.Text = result.DisplayName;
         }
     }
 
@@ -297,27 +454,6 @@ public partial class PokemonEditorPage : ContentPage
         if (int.TryParse(e.NewTextValue, out int gender) && gender >= 0 && gender <= 2)
         {
             _pokemon.Gender = gender;
-        }
-    }
-
-    private void OnAbilityChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (int.TryParse(e.NewTextValue, out int ability) && ability >= 0)
-        {
-            _pokemon.Ability = ability;
-        }
-    }
-
-    private void OnFormChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_isUpdating || _pokemon == null) return;
-
-        if (byte.TryParse(e.NewTextValue, out byte form))
-        {
-            _pokemon.Form = form;
-            HeaderLabel.Text = $"Editing: Species {_pokemon.Species} Form {form} (Gen {_pokemon.Format})";
         }
     }
 
@@ -614,4 +750,263 @@ public partial class PokemonEditorPage : ContentPage
     {
         await Navigation.PopAsync();
     }
+
+    /// <summary>
+    /// Gets the multilingual species name in both English and Chinese
+    /// </summary>
+    private string GetSpeciesName(ushort species)
+    {
+        try
+        {
+            if (species == 0) return "None";
+
+            // Get English name (language ID 2)
+            var englishName = SpeciesName.GetSpeciesName(species, 2);
+
+            // Get Chinese Traditional name (language ID 10) or Simplified (language ID 9) as fallback
+            var chineseName = SpeciesName.GetSpeciesName(species, 10);
+            if (string.IsNullOrEmpty(chineseName))
+                chineseName = SpeciesName.GetSpeciesName(species, 9);
+
+            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                return $"{englishName} ({chineseName})";
+            else
+                return englishName;
+        }
+        catch
+        {
+            return $"Species {species}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the multilingual move name in both English and Chinese
+    /// </summary>
+    private string GetMoveName(ushort moveId)
+    {
+        try
+        {
+            if (moveId == 0) return "None";
+
+            // Get move names using GameInfo.GetStrings
+            var englishMoves = GameInfo.GetStrings("en").movelist;
+            var chineseMoves = GameInfo.GetStrings("zh2").movelist ?? GameInfo.GetStrings("zh").movelist;
+
+            var englishName = moveId < englishMoves.Length ? englishMoves[moveId] : $"Move {moveId}";
+            var chineseName = "";
+
+            if (chineseMoves != null && moveId < chineseMoves.Length)
+                chineseName = chineseMoves[moveId];
+
+            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                return $"{englishName} ({chineseName})";
+            else
+                return englishName;
+        }
+        catch
+        {
+            return $"Move {moveId}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the multilingual ability name in both English and Chinese
+    /// </summary>
+    private string GetAbilityName(int abilityId)
+    {
+        try
+        {
+            if (abilityId == 0) return "None";
+
+            // Get ability names using GameInfo.GetStrings
+            var englishAbilities = GameInfo.GetStrings("en").abilitylist;
+            var chineseAbilities = GameInfo.GetStrings("zh2").abilitylist ?? GameInfo.GetStrings("zh").abilitylist;
+
+            var englishName = abilityId < englishAbilities.Length ? englishAbilities[abilityId] : $"Ability {abilityId}";
+            var chineseName = "";
+
+            if (chineseAbilities != null && abilityId < chineseAbilities.Length)
+                chineseName = chineseAbilities[abilityId];
+
+            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                return $"{englishName} ({chineseName})";
+            else
+                return englishName;
+        }
+        catch
+        {
+            return $"Ability {abilityId}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the form name for a species with multilingual support
+    /// </summary>
+    private string GetFormName(ushort species, byte form)
+    {
+        try
+        {
+            if (form == 0) return "Normal Form";
+
+            // Get form names using PKHeX's FormConverter
+            var englishStrings = GameInfo.GetStrings("en");
+            var chineseStrings = GameInfo.GetStrings("zh2") ?? GameInfo.GetStrings("zh");
+            
+            // Use the pokemon's context if available, otherwise default to Gen 9
+            var context = _pokemon?.Context ?? EntityContext.Gen9;
+            
+            var forms = FormConverter.GetFormList(species, englishStrings.types, englishStrings.forms, GameInfo.GenderSymbolUnicode, context);
+            var formsChinese = FormConverter.GetFormList(species, chineseStrings?.types ?? englishStrings.types, 
+                chineseStrings?.forms ?? englishStrings.forms, GameInfo.GenderSymbolUnicode, context);
+
+            if (forms != null && form < forms.Length)
+            {
+                var englishName = forms[form];
+                var chineseName = "";
+                
+                if (formsChinese != null && form < formsChinese.Length)
+                    chineseName = formsChinese[form];
+
+                // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+                if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                    return $"{englishName} ({chineseName})";
+                else
+                    return englishName;
+            }
+
+            return $"Form {form}";
+        }
+        catch
+        {
+            return $"Form {form}";
+        }
+    }
+
+    /// <summary>
+    /// Initialize picker data sources
+    /// </summary>
+    private void InitializePickerData()
+    {
+        try
+        {
+            // Initialize move list
+            _moveItems.Clear();
+            var englishMoves = GameInfo.GetStrings("en").movelist;
+            var chineseMoves = GameInfo.GetStrings("zh2").movelist ?? GameInfo.GetStrings("zh").movelist;
+            
+            _moveItems.Add(new MoveItem { Id = 0, DisplayName = "None" });
+            for (int i = 1; i < englishMoves.Length && i < 1000; i++)
+            {
+                var englishName = englishMoves[i];
+                var chineseName = chineseMoves != null && i < chineseMoves.Length ? chineseMoves[i] : "";
+                
+                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
+                    ? $"{englishName} ({chineseName})" 
+                    : englishName;
+                    
+                _moveItems.Add(new MoveItem { Id = i, DisplayName = displayName });
+            }
+
+            // Initialize ability list
+            _abilityItems.Clear();
+            var englishAbilities = GameInfo.GetStrings("en").abilitylist;
+            var chineseAbilities = GameInfo.GetStrings("zh2").abilitylist ?? GameInfo.GetStrings("zh").abilitylist;
+            
+            _abilityItems.Add(new AbilityItem { Id = 0, DisplayName = "None" });
+            for (int i = 1; i < englishAbilities.Length && i < 300; i++)
+            {
+                var englishName = englishAbilities[i];
+                var chineseName = chineseAbilities != null && i < chineseAbilities.Length ? chineseAbilities[i] : "";
+                
+                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
+                    ? $"{englishName} ({chineseName})" 
+                    : englishName;
+                    
+                _abilityItems.Add(new AbilityItem { Id = i, DisplayName = displayName });
+            }
+
+            // Initialize nature list
+            _natureItems.Clear();
+            var englishNatures = GameInfo.GetStrings("en").natures;
+            var chineseNatures = GameInfo.GetStrings("zh2").natures ?? GameInfo.GetStrings("zh").natures;
+            
+            for (int i = 0; i < englishNatures.Length && i < 25; i++)
+            {
+                var englishName = englishNatures[i];
+                var chineseName = chineseNatures != null && i < chineseNatures.Length ? chineseNatures[i] : "";
+                
+                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
+                    ? $"{englishName} ({chineseName})" 
+                    : englishName;
+                    
+                _natureItems.Add(new NatureItem { Id = i, DisplayName = displayName });
+            }
+
+            // Initialize item list (for held items)
+            _itemItems.Clear();
+            var englishItems = GameInfo.GetStrings("en").itemlist;
+            var chineseItems = GameInfo.GetStrings("zh2").itemlist ?? GameInfo.GetStrings("zh").itemlist;
+            
+            _itemItems.Add(new ItemItem { Id = 0, DisplayName = "None" });
+            for (int i = 1; i < englishItems.Length && i < 2000; i++)
+            {
+                var englishName = englishItems[i];
+                var chineseName = chineseItems != null && i < chineseItems.Length ? chineseItems[i] : "";
+                
+                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
+                    ? $"{englishName} ({chineseName})" 
+                    : englishName;
+                    
+                _itemItems.Add(new ItemItem { Id = i, DisplayName = displayName });
+            }
+
+            // Initialize ball list (simplified - just basic balls)
+            _ballItems.Clear();
+            _ballItems.Add(new BallItem { Id = 0, DisplayName = "None" });
+            _ballItems.Add(new BallItem { Id = 1, DisplayName = "Master Ball (大师球)" });
+            _ballItems.Add(new BallItem { Id = 2, DisplayName = "Ultra Ball (高级球)" });
+            _ballItems.Add(new BallItem { Id = 3, DisplayName = "Great Ball (超级球)" });
+            _ballItems.Add(new BallItem { Id = 4, DisplayName = "Poké Ball (精灵球)" });
+            _ballItems.Add(new BallItem { Id = 5, DisplayName = "Safari Ball (狩猎球)" });
+            _ballItems.Add(new BallItem { Id = 6, DisplayName = "Net Ball (捕网球)" });
+            _ballItems.Add(new BallItem { Id = 7, DisplayName = "Dive Ball (潜水球)" });
+            _ballItems.Add(new BallItem { Id = 8, DisplayName = "Nest Ball (巢穴球)" });
+            _ballItems.Add(new BallItem { Id = 9, DisplayName = "Repeat Ball (重复球)" });
+            _ballItems.Add(new BallItem { Id = 10, DisplayName = "Timer Ball (计时球)" });
+            _ballItems.Add(new BallItem { Id = 11, DisplayName = "Luxury Ball (豪华球)" });
+            _ballItems.Add(new BallItem { Id = 12, DisplayName = "Premier Ball (纪念球)" });
+
+            // Initialize form list
+            _formItems.Clear();
+            if (_pokemon != null)
+            {
+                // Get the number of forms for this species
+                var englishStrings = GameInfo.GetStrings("en");
+                var formCount = PKHeX.Core.FormConverter.GetFormList(_pokemon.Species, englishStrings.types, englishStrings.forms, GameInfo.GenderSymbolUnicode, _pokemon.Context).Length;
+                
+                for (int i = 0; i < formCount; i++)
+                {
+                    var formName = GetFormName(_pokemon.Species, (byte)i);
+                    _formItems.Add(new FormItem { Id = i, DisplayName = formName });
+                }
+            }
+            else
+            {
+                // Default forms when no Pokemon loaded
+                _formItems.Add(new FormItem { Id = 0, DisplayName = "Normal Form" });
+            }
+
+            // Form and picker data initialization complete
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash
+            System.Diagnostics.Debug.WriteLine($"Error initializing picker data: {ex.Message}");
+        }
+    }
 }
+
+// Data model classes for pickers are now defined in SearchablePickerPage.xaml.cs

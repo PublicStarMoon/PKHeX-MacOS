@@ -133,7 +133,7 @@ public partial class PokemonBoxPage : ContentPage
         }
         else
         {
-            button.Text = $"Species {pokemon.Species}\nLv.{pokemon.CurrentLevel}";
+            button.Text = $"{GetSpeciesName(pokemon.Species)}\nLv.{pokemon.CurrentLevel}";
             button.TextColor = Colors.White;
             
             // Color coding based on Pokemon properties
@@ -236,7 +236,7 @@ public partial class PokemonBoxPage : ContentPage
                 
                 UpdatePokemonSlot(slot, newPokemon);
                 UpdateBoxCountLabel();
-                StatusLabel.Text = $"Added Species {species} to slot {slot + 1}";
+                StatusLabel.Text = $"Added {GetSpeciesName((ushort)species)} to slot {slot + 1}";
             }
         }
         catch (Exception ex)
@@ -259,7 +259,7 @@ public partial class PokemonBoxPage : ContentPage
                 "Cancel"
             };
 
-            var choice = await DisplayActionSheet($"Species {pokemon.Species} (Slot {slot + 1})", 
+            var choice = await DisplayActionSheet($"{GetSpeciesName(pokemon.Species)} (Slot {slot + 1})", 
                 "Cancel", null, options);
 
             switch (choice)
@@ -291,7 +291,7 @@ public partial class PokemonBoxPage : ContentPage
 
     private async Task ShowPokemonDetails(PKM pokemon)
     {
-        var details = $"Species: {pokemon.Species}\n" +
+        var details = $"Species: {GetSpeciesName(pokemon.Species)}\n" +
                      $"Level: {pokemon.CurrentLevel}\n" +
                      $"Nature: {pokemon.Nature}\n" +
                      $"Ability: {pokemon.Ability}\n" +
@@ -299,7 +299,7 @@ public partial class PokemonBoxPage : ContentPage
                      $"OT: {pokemon.OT_Name}\n" +
                      $"TID: {pokemon.TID16}";
 
-        await DisplayAlert($"Species {pokemon.Species} Details", details, "OK");
+        await DisplayAlert($"{GetSpeciesName(pokemon.Species)} Details", details, "OK");
     }
 
     private async Task OpenDetailedEditor(int slot, PKM pokemon)
@@ -323,7 +323,7 @@ public partial class PokemonBoxPage : ContentPage
     private async Task EditPokemonLevel(int slot, PKM pokemon)
     {
         var result = await DisplayPromptAsync("Edit Level", 
-            $"Enter new level for Species {pokemon.Species}:", 
+            $"Enter new level for {GetSpeciesName(pokemon.Species)}:", 
             initialValue: pokemon.CurrentLevel.ToString());
 
         if (result != null && int.TryParse(result, out int newLevel))
@@ -474,5 +474,34 @@ public partial class PokemonBoxPage : ContentPage
         }
 
         await AddPokemonToSlot(emptySlot);
+    }
+
+    /// <summary>
+    /// Gets the multilingual species name in both English and Chinese
+    /// </summary>
+    private string GetSpeciesName(ushort species)
+    {
+        try
+        {
+            if (species == 0) return "Empty";
+
+            // Get English name (language ID 2)
+            var englishName = SpeciesName.GetSpeciesName(species, 2);
+
+            // Get Chinese Traditional name (language ID 10) or Simplified (language ID 9) as fallback
+            var chineseName = SpeciesName.GetSpeciesName(species, 10);
+            if (string.IsNullOrEmpty(chineseName))
+                chineseName = SpeciesName.GetSpeciesName(species, 9);
+
+            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
+            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
+                return $"{englishName} ({chineseName})";
+            else
+                return englishName;
+        }
+        catch
+        {
+            return $"Species {species}";
+        }
     }
 }
