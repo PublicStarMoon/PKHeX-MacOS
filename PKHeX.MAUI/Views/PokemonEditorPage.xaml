@@ -55,7 +55,7 @@
             <!-- IVs and EVs -->
             <Frame BackgroundColor="LightGreen" Padding="10">
                 <StackLayout>
-                    <Label Text="Individual Values (IVs) & Effort Values (EVs)" FontSize="16" FontAttributes="Bold"/>
+                    <Label Text="Individual Values (IVs) &amp; Effort Values (EVs)" FontSize="16" FontAttributes="Bold"/>
                     
                     <Grid>
                         <Grid.ColumnDefinitions>

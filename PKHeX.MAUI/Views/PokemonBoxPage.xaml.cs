@@ -1,6 +1,4 @@
 using PKHeX.Core;
-using PKHeX.Drawing.PokeSprite;
-using PKHeX.MAUI.Utilities;
 using Microsoft.Maui.Graphics;
 using System.Collections.ObjectModel;
 
@@ -117,8 +115,7 @@ public partial class PokemonBoxPage : ContentPage
         }
         else
         {
-            var speciesName = GameInfo.GetStrings(1).specieslist[pokemon.Species];
-            button.Text = $"{speciesName}\nLv.{pokemon.CurrentLevel}";
+            button.Text = $"Species {pokemon.Species}\nLv.{pokemon.CurrentLevel}";
             
             // Color coding based on Pokemon properties
             if (pokemon.IsShiny)
@@ -132,7 +129,15 @@ public partial class PokemonBoxPage : ContentPage
 
     private void UpdateBoxCountLabel()
     {
-        int count = PokemonHelper.CountBoxPokemon(_saveFile, _currentBox);
+        int count = 0;
+        for (int slot = 0; slot < _saveFile.BoxSlotCount; slot++)
+        {
+            var pkm = _saveFile.GetBoxSlotAtIndex(_currentBox, slot);
+            if (pkm != null && pkm.Species != 0)
+            {
+                count++;
+            }
+        }
         BoxCountLabel.Text = $"{count}/{_saveFile.BoxSlotCount}";
     }
 
@@ -184,7 +189,10 @@ public partial class PokemonBoxPage : ContentPage
                 }
 
                 // Create a new Pokemon based on the save file's format
-                var newPokemon = PokemonHelper.CreateLegalPokemon(_saveFile, species, 5);
+                var newPokemon = _saveFile.BlankPKM;
+                newPokemon.Species = (ushort)species;
+                newPokemon.CurrentLevel = 5;
+                newPokemon.Heal();
                 
                 // Place in box
                 _saveFile.SetBoxSlotAtIndex(newPokemon, _currentBox, slot);
@@ -192,7 +200,7 @@ public partial class PokemonBoxPage : ContentPage
                 
                 UpdatePokemonSlot(slot, newPokemon);
                 UpdateBoxCountLabel();
-                StatusLabel.Text = $"Added {GameInfo.GetStrings(1).specieslist[species]} to slot {slot + 1}";
+                StatusLabel.Text = $"Added Species {species} to slot {slot + 1}";
             }
         }
         catch (Exception ex)
@@ -205,19 +213,17 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            var speciesName = GameInfo.GetStrings(1).specieslist[pokemon.Species];
             var options = new string[]
             {
                 "View Details",
                 "Edit in Detail Editor",
                 "Edit Level",
-                "Make Shiny",
                 "Heal Pokemon", 
                 "Delete Pokemon",
                 "Cancel"
             };
 
-            var choice = await DisplayActionSheet($"{speciesName} (Slot {slot + 1})", 
+            var choice = await DisplayActionSheet($"Species {pokemon.Species} (Slot {slot + 1})", 
                 "Cancel", null, options);
 
             switch (choice)
@@ -231,13 +237,10 @@ public partial class PokemonBoxPage : ContentPage
                 case "Edit Level":
                     await EditPokemonLevel(slot, pokemon);
                     break;
-                case "Make Shiny":
-                    await ToggleShiny(slot, pokemon);
-                    break;
                 case "Heal Pokemon":
                     pokemon.Heal();
                     _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
-                    StatusLabel.Text = $"{speciesName} has been healed!";
+                    StatusLabel.Text = $"Pokemon has been healed!";
                     break;
                 case "Delete Pokemon":
                     await DeletePokemon(slot);
@@ -252,22 +255,15 @@ public partial class PokemonBoxPage : ContentPage
 
     private async Task ShowPokemonDetails(PKM pokemon)
     {
-        var speciesName = GameInfo.GetStrings(1).specieslist[pokemon.Species];
-        var details = $"Species: {speciesName}\n" +
+        var details = $"Species: {pokemon.Species}\n" +
                      $"Level: {pokemon.CurrentLevel}\n" +
-                     $"Nature: {(Nature)pokemon.Nature}\n" +
+                     $"Nature: {pokemon.Nature}\n" +
                      $"Ability: {pokemon.Ability}\n" +
-                     $"HP: {pokemon.HP_Current}/{pokemon.Stat_HP}\n" +
-                     $"Attack: {pokemon.Stat_ATK}\n" +
-                     $"Defense: {pokemon.Stat_DEF}\n" +
-                     $"Sp.Atk: {pokemon.Stat_SPA}\n" +
-                     $"Sp.Def: {pokemon.Stat_SPD}\n" +
-                     $"Speed: {pokemon.Stat_SPE}\n" +
                      $"Shiny: {(pokemon.IsShiny ? "Yes" : "No")}\n" +
                      $"OT: {pokemon.OT_Name}\n" +
                      $"TID: {pokemon.TID16}";
 
-        await DisplayAlert($"{speciesName} Details", details, "OK");
+        await DisplayAlert($"Species {pokemon.Species} Details", details, "OK");
     }
 
     private async Task OpenDetailedEditor(int slot, PKM pokemon)
@@ -291,7 +287,7 @@ public partial class PokemonBoxPage : ContentPage
     private async Task EditPokemonLevel(int slot, PKM pokemon)
     {
         var result = await DisplayPromptAsync("Edit Level", 
-            $"Enter new level for {GameInfo.GetStrings(1).specieslist[pokemon.Species]}:", 
+            $"Enter new level for Species {pokemon.Species}:", 
             initialValue: pokemon.CurrentLevel.ToString());
 
         if (result != null && int.TryParse(result, out int newLevel))
@@ -311,23 +307,14 @@ public partial class PokemonBoxPage : ContentPage
         }
     }
 
-    private async Task ToggleShiny(int slot, PKM pokemon)
-    {
-        pokemon.SetShiny();
-        _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
-        UpdatePokemonSlot(slot, pokemon);
-        
-        var speciesName = GameInfo.GetStrings(1).specieslist[pokemon.Species];
-        StatusLabel.Text = $"{speciesName} is now {(pokemon.IsShiny ? "shiny" : "not shiny")}!";
-    }
+
 
     private async Task DeletePokemon(int slot)
     {
         var pokemon = _currentBoxPokemon[slot];
-        var speciesName = GameInfo.GetStrings(1).specieslist[pokemon!.Species];
         
         bool confirm = await DisplayAlert("Delete Pokemon", 
-            $"Are you sure you want to delete {speciesName}? This cannot be undone!", 
+            $"Are you sure you want to delete Species {pokemon!.Species}? This cannot be undone!", 
             "Delete", "Cancel");
 
         if (confirm)
@@ -338,7 +325,7 @@ public partial class PokemonBoxPage : ContentPage
             
             UpdatePokemonSlot(slot, null);
             UpdateBoxCountLabel();
-            StatusLabel.Text = $"{speciesName} has been deleted.";
+            StatusLabel.Text = $"Pokemon has been deleted.";
         }
     }
 
