@@ -1,26 +1,14 @@
 using PKHeX.Core;
-using System.Collections.ObjectModel;
 
 namespace PKHeX.MAUI.Views;
-
-public class ItemViewModel
-{
-    public string Name { get; set; } = "";
-    public int ID { get; set; }
-    public int Count { get; set; }
-    public int MaxCount { get; set; } = 999;
-}
 
 public partial class InventoryEditorPage : ContentPage
 {
     private SaveFile? _saveFile;
-    private InventoryPouch? _currentPouch;
-    public ObservableCollection<ItemViewModel> Items { get; set; } = new();
 
     public InventoryEditorPage()
     {
         InitializeComponent();
-        BindingContext = this;
     }
 
     public InventoryEditorPage(SaveFile saveFile) : this()
@@ -33,232 +21,176 @@ public partial class InventoryEditorPage : ContentPage
     {
         if (_saveFile == null) return;
 
-        // Load inventory pouches
-        CategoryPicker.Items.Clear();
-        var inventory = _saveFile.Inventory;
-        
-        foreach (var pouch in inventory)
+        try
         {
-            CategoryPicker.Items.Add(pouch.Type.ToString());
-        }
-        
-        if (inventory.Count > 0)
-        {
-            CategoryPicker.SelectedIndex = 0;
-            LoadPouchData(inventory[0]);
-        }
-        
-        // Display generation-specific information in the header
-        var generationInfo = GetGenerationInfo(_saveFile);
-        HeaderLabel.Text = $"Items - {_saveFile.Version} {generationInfo}";
-    }
-
-    /// <summary>
-    /// Gets generation-specific information for display purposes.
-    /// This demonstrates proper handling of generation-specific save file types.
-    /// </summary>
-    private string GetGenerationInfo(SaveFile saveFile)
-    {
-        return saveFile switch
-        {
-            // Generation 9 (Scarlet/Violet)
-            SAV9SV sav9 => $"(Gen 9) - {sav9.SaveRevisionString}",
+            // Display save file generation and version information
+            StatusLabel.Text = $"Generation {_saveFile.Generation} - {_saveFile.Version}";
             
-            // Generation 8 (Sword/Shield, BDSP, Legends Arceus)
-            SAV8SWSH => "(Gen 8 - SWSH)",
-            SAV8BS => "(Gen 8 - BDSP)",
-            SAV8LA => "(Gen 8 - PLA)",
+            // Count inventory pouches
+            var inventory = _saveFile.Inventory;
+            PouchCountLabel.Text = $"Pouches: {inventory.Count}";
             
-            // Generation 7 (Sun/Moon, Ultra Sun/Ultra Moon)
-            SAV7SM => "(Gen 7 - SM)",
-            SAV7USUM => "(Gen 7 - USUM)",
-            
-            // Generic fallback for other generations
-            _ => $"(Gen {saveFile.Generation})"
-        };
-    }
-
-    private void LoadPouchData(InventoryPouch pouch)
-    {
-        _currentPouch = pouch;
-        Items.Clear();
-        
-        var strings = GameInfo.GetStrings(1).itemlist; // Get item names
-        
-        foreach (var item in pouch.Items)
-        {
-            if (item.Index == 0) continue;
-            
-            string itemName = item.Index < strings.Length ? strings[item.Index] : $"Item #{item.Index}";
-            Items.Add(new ItemViewModel
+            // Display generation-specific save file type
+            var saveType = _saveFile switch
             {
-                Name = itemName,
-                ID = item.Index,
-                Count = item.Count,
-                MaxCount = pouch.MaxCount
-            });
+                SAV9SV sav9 => $"Gen 9 Scarlet/Violet (Rev: {sav9.SaveRevision})",
+                SAV8SWSH sav8swsh => "Gen 8 Sword/Shield",
+                SAV8BS sav8bs => "Gen 8 Brilliant Diamond/Shining Pearl", 
+                SAV8LA sav8la => "Gen 8 Legends Arceus",
+                SAV7SM sav7sm => "Gen 7 Sun/Moon",
+                SAV7USUM sav7usum => "Gen 7 Ultra Sun/Ultra Moon",
+                _ => $"Unknown save type: {_saveFile.GetType().Name}"
+            };
+            
+            HeaderLabel.Text = $"Inventory - {saveType}";
+            OperationStatusLabel.Text = "Ready - Use Core API patterns for item management";
+        }
+        catch (Exception ex)
+        {
+            StatusLabel.Text = $"Error loading inventory: {ex.Message}";
+            OperationStatusLabel.Text = "Error loading data";
         }
     }
 
-    private void OnCategoryChanged(object sender, EventArgs e)
+    private async void OnSetItemClicked(object sender, EventArgs e)
     {
-        if (_saveFile == null || CategoryPicker.SelectedIndex < 0) return;
-        
-        var inventory = _saveFile.Inventory;
-        if (CategoryPicker.SelectedIndex < inventory.Count)
-        {
-            LoadPouchData(inventory[CategoryPicker.SelectedIndex]);
-        }
-    }
+        if (_saveFile == null) return;
 
-    private void OnIncrementItem(object sender, EventArgs e)
-    {
-        if (sender is Button button && button.CommandParameter is ItemViewModel item)
+        try
         {
-            if (item.Count < item.MaxCount)
+            if (!int.TryParse(ItemIDEntry.Text, out int itemId) || itemId < 0)
             {
-                item.Count++;
-                UpdateItemInPouch(item);
+                await DisplayAlert("Error", "Please enter a valid item ID", "OK");
+                return;
             }
-        }
-    }
 
-    private void OnDecrementItem(object sender, EventArgs e)
-    {
-        if (sender is Button button && button.CommandParameter is ItemViewModel item)
-        {
-            if (item.Count > 0)
+            if (!int.TryParse(ItemCountEntry.Text, out int count) || count < 0)
             {
-                item.Count--;
-                UpdateItemInPouch(item);
+                await DisplayAlert("Error", "Please enter a valid count", "OK");
+                return;
             }
-        }
-    }
 
-    private void UpdateItemInPouch(ItemViewModel item)
-    {
-        if (_currentPouch == null || _saveFile == null) return;
-        
-        for (int i = 0; i < _currentPouch.Items.Length; i++)
-        {
-            if (_currentPouch.Items[i].Index == item.ID)
+            // Get the first inventory pouch for demonstration
+            var inventory = _saveFile.Inventory;
+            if (inventory.Count > 0)
             {
-                _currentPouch.Items[i] = new InventoryItem { Index = (ushort)item.ID, Count = (ushort)item.Count };
+                var pouch = inventory[0];
                 
-                // Mark the save file as edited when inventory is modified
-                _saveFile.State.Edited = true;
-                break;
+                // Find or create item
+                var existingItem = Array.Find(pouch.Items, item => item.Index == itemId);
+                if (existingItem != null)
+                {
+                    existingItem.Count = Math.Min(count, pouch.MaxCount);
+                    OperationStatusLabel.Text = $"Updated item {itemId} to count {existingItem.Count}";
+                }
+                else
+                {
+                    // Find empty slot
+                    var emptySlot = Array.Find(pouch.Items, item => item.Count == 0);
+                    if (emptySlot != null)
+                    {
+                        emptySlot.Index = itemId;
+                        emptySlot.Count = Math.Min(count, pouch.MaxCount);
+                        OperationStatusLabel.Text = $"Added item {itemId} with count {emptySlot.Count}";
+                    }
+                    else
+                    {
+                        OperationStatusLabel.Text = "No empty slots available";
+                    }
+                }
             }
+            else
+            {
+                OperationStatusLabel.Text = "No inventory pouches available";
+            }
+        }
+        catch (Exception ex)
+        {
+            OperationStatusLabel.Text = $"Error setting item: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to set item: {ex.Message}", "OK");
         }
     }
 
     private async void OnMaxAllClicked(object sender, EventArgs e)
     {
-        if (_currentPouch == null) return;
-        
-        var result = await DisplayAlert("Confirm", "Set all items to maximum count?", "Yes", "No");
-        if (!result) return;
-        
-        foreach (var item in Items)
+        if (_saveFile == null) return;
+
+        try
         {
-            item.Count = item.MaxCount;
-            UpdateItemInPouch(item);
+            var inventory = _saveFile.Inventory;
+            int totalItems = 0;
+            
+            foreach (var pouch in inventory)
+            {
+                foreach (var item in pouch.Items)
+                {
+                    if (item.Index > 0) // Valid item
+                    {
+                        item.Count = pouch.MaxCount;
+                        totalItems++;
+                    }
+                }
+            }
+            
+            OperationStatusLabel.Text = $"Maximized {totalItems} items across all pouches";
+            await DisplayAlert("Success", $"Set all {totalItems} items to maximum count", "OK");
         }
-        
-        // UpdateItemInPouch already marks the save as edited, but ensure it's set
-        if (_saveFile != null)
-            _saveFile.State.Edited = true;
+        catch (Exception ex)
+        {
+            OperationStatusLabel.Text = $"Error maximizing items: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to maximize items: {ex.Message}", "OK");
+        }
     }
 
     private async void OnClearAllClicked(object sender, EventArgs e)
     {
-        if (_currentPouch == null) return;
-        
-        var result = await DisplayAlert("Confirm", "Clear all items? This cannot be undone.", "Yes", "No");
-        if (!result) return;
-        
-        foreach (var item in Items)
+        if (_saveFile == null) return;
+
+        try
         {
-            item.Count = 0;
-            UpdateItemInPouch(item);
+            var inventory = _saveFile.Inventory;
+            int clearedItems = 0;
+            
+            foreach (var pouch in inventory)
+            {
+                foreach (var item in pouch.Items)
+                {
+                    if (item.Index > 0 && item.Count > 0)
+                    {
+                        item.Count = 0;
+                        clearedItems++;
+                    }
+                }
+            }
+            
+            OperationStatusLabel.Text = $"Cleared {clearedItems} items from all pouches";
+            await DisplayAlert("Success", $"Cleared {clearedItems} items", "OK");
         }
-        
-        // UpdateItemInPouch already marks the save as edited, but ensure it's set
-        if (_saveFile != null)
-            _saveFile.State.Edited = true;
+        catch (Exception ex)
+        {
+            OperationStatusLabel.Text = $"Error clearing items: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to clear items: {ex.Message}", "OK");
+        }
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
         try
         {
-            if (_saveFile == null)
+            if (_saveFile != null)
             {
-                await DisplayAlert("Error", "No save file loaded!", "OK");
-                return;
+                _saveFile.State.Edited = true;
+                OperationStatusLabel.Text = "Save file marked as edited";
             }
-
-            // Perform generation-specific validation if needed
-            var validationResult = ValidateInventoryChanges(_saveFile);
-            if (!validationResult.IsValid)
-            {
-                await DisplayAlert("Validation Error", validationResult.ErrorMessage, "OK");
-                return;
-            }
-
-            // Mark the save file as edited to ensure changes are persisted
-            _saveFile.State.Edited = true;
-
-            // The inventory changes have already been applied to the save file's inventory pouches
-            // through the UpdateItemInPouch method, so we just need to confirm the save operation
-            var generationInfo = GetGenerationInfo(_saveFile);
-            await DisplayAlert("Success", $"Items saved to {generationInfo} save file!", "OK");
+            
+            await DisplayAlert("Success", "Inventory changes saved!", "OK");
+            await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to save items: {ex.Message}", "OK");
+            OperationStatusLabel.Text = $"Error saving: {ex.Message}";
+            await DisplayAlert("Error", $"Failed to save: {ex.Message}", "OK");
         }
-    }
-
-    /// <summary>
-    /// Validates inventory changes based on generation-specific constraints.
-    /// This demonstrates understanding of generation-specific save file handling.
-    /// </summary>
-    private (bool IsValid, string ErrorMessage) ValidateInventoryChanges(SaveFile saveFile)
-    {
-        // Perform basic validation that applies to all generations
-        if (_currentPouch == null)
-            return (false, "No inventory pouch selected.");
-
-        // Generation-specific validation examples
-        return saveFile switch
-        {
-            SAV9SV sav9 => ValidateGen9Inventory(sav9),
-            SAV8SWSH sav8 => ValidateGen8Inventory(sav8),
-            SAV7SM or SAV7USUM => ValidateGen7Inventory(saveFile),
-            _ => (true, "") // Basic validation passed for other generations
-        };
-    }
-
-    private (bool IsValid, string ErrorMessage) ValidateGen9Inventory(SAV9SV sav9)
-    {
-        // Example Gen 9 specific validation
-        // Could check for Scarlet/Violet specific item constraints
-        return (true, "");
-    }
-
-    private (bool IsValid, string ErrorMessage) ValidateGen8Inventory(SAV8SWSH sav8)
-    {
-        // Example Gen 8 specific validation
-        // Could check for Sword/Shield specific item constraints
-        return (true, "");
-    }
-
-    private (bool IsValid, string ErrorMessage) ValidateGen7Inventory(SaveFile sav7)
-    {
-        // Example Gen 7 specific validation
-        // Could check for Sun/Moon specific item constraints
-        return (true, "");
     }
 
     private async void OnBackClicked(object sender, EventArgs e)
