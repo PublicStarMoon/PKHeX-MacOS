@@ -1,43 +1,59 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using Microsoft.Maui.Controls;
 using PKHeX.MAUI.Services;
 using PKHeX.MAUI.Models;
 
 namespace PKHeX.MAUI.Views;
 
-public partial class SearchablePickerPage : ContentPage, INotifyPropertyChanged
+public partial class SearchablePickerPage : ContentPage
 {
-    private string _title = "";
+    private string _pageTitle = "";
     private List<IPickerItem> _allItems = new();
     private ObservableCollection<IPickerItem> _filteredItems = new();
     private IPickerItem? _selectedItem;
     private string _searchText = "";
-    private System.Timers.Timer? _searchTimer;
 
     public SearchablePickerPage()
     {
-        InitializeComponent();
-        BindingContext = this;
-        
-        // Initialize search timer for better performance
-        _searchTimer = new System.Timers.Timer(300); // 300ms delay
-        _searchTimer.AutoReset = false;
-        _searchTimer.Elapsed += OnSearchTimerElapsed;
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("SearchablePickerPage: 开始初始化");
+            
+            // 初始化所有属性 - 在InitializeComponent之前
+            _pageTitle = "Select Item"; // 确保有默认值
+            _filteredItems = new ObservableCollection<IPickerItem>();
+            _allItems = new List<IPickerItem>();
+            _searchText = "";
+            
+            InitializeComponent();
+            
+            // 设置绑定上下文
+            BindingContext = this;
+            
+            System.Diagnostics.Debug.WriteLine("SearchablePickerPage: 初始化完成");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SearchablePickerPage 构造函数异常: {ex}");
+            
+            // 确保即使出错也有基本的初始化
+            _pageTitle ??= "Select Item";
+            _filteredItems ??= new ObservableCollection<IPickerItem>();
+            _allItems ??= new List<IPickerItem>();
+            _searchText ??= "";
+            
+            // 重新抛出异常，让调用者知道有问题
+            throw new InvalidOperationException($"SearchablePickerPage 初始化失败: {ex.Message}", ex);
+        }
     }
 
-    /// <summary>
-    /// Public access to the loading spinner for external components
-    /// </summary>
-    public Views.Components.LoadingSpinner LoadingSpinnerControl => LoadingSpinner;
-
-    public new string Title
+    public string PageTitle
     {
-        get => _title;
+        get => _pageTitle;
         set
         {
-            _title = value;
-            OnPropertyChanged();
+            _pageTitle = value;
+            NotifyPropertyChanged();
         }
     }
 
@@ -47,7 +63,7 @@ public partial class SearchablePickerPage : ContentPage, INotifyPropertyChanged
         set
         {
             _filteredItems = value;
-            OnPropertyChanged();
+            NotifyPropertyChanged();
         }
     }
 
@@ -57,7 +73,7 @@ public partial class SearchablePickerPage : ContentPage, INotifyPropertyChanged
         set
         {
             _selectedItem = value;
-            OnPropertyChanged();
+            NotifyPropertyChanged();
         }
     }
 
@@ -65,181 +81,221 @@ public partial class SearchablePickerPage : ContentPage, INotifyPropertyChanged
 
     public void SetItems(List<IPickerItem> items, string title, IPickerItem? currentSelection = null)
     {
-        _allItems = new List<IPickerItem>(items);
-        Title = title;
-        SelectedItem = currentSelection;
-        FilterItems("");
-        
-        // Auto-scroll to current selection if it exists
-        if (currentSelection != null)
+        try
         {
-            var index = FilteredItems.ToList().FindIndex(x => x.Id == currentSelection.Id);
-            if (index >= 0)
+            System.Diagnostics.Debug.WriteLine($"SetItems: 设置 {items?.Count ?? 0} 个道具，标题: {title}");
+            
+            // 确保在主线程上执行所有UI相关操作
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                Application.Current?.Dispatcher.Dispatch(async () =>
+                try
                 {
-                    await Task.Delay(100); // Small delay to ensure UI is loaded
-                    ItemsCollectionView.ScrollTo(index, position: ScrollToPosition.Center, animate: true);
-                    ItemsCollectionView.SelectedItem = FilteredItems[index];
-                });
+                    PageTitle = title ?? "Select Item";
+                    SelectedItem = currentSelection;
+                    
+                    // 安全地设置道具列表
+                    _allItems = items != null ? new List<IPickerItem>(items) : new List<IPickerItem>();
+                    
+                    FilterItems("");
+                    System.Diagnostics.Debug.WriteLine($"SetItems: UI更新完成，显示 {FilteredItems.Count} 个道具");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SetItems UI更新异常: {ex}");
+                    throw;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SetItems 异常: {ex}");
+            throw;
+        }
+    }
+
+    private void ScrollToCurrentSelection()
+    {
+        try
+        {
+            if (SelectedItem != null && FilteredItems.Any())
+            {
+                var selectedInFiltered = FilteredItems.FirstOrDefault(x => x.Id == SelectedItem.Id);
+                if (selectedInFiltered != null)
+                {
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        try
+                        {
+                            await Task.Delay(100); // 等待UI加载
+                            ItemsCollectionView.SelectedItem = selectedInFiltered;
+                            ItemsCollectionView.ScrollTo(selectedInFiltered, position: ScrollToPosition.Center, animate: false);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"ScrollToCurrentSelection 异常: {ex}");
+                        }
+                    });
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ScrollToCurrentSelection 外部异常: {ex}");
         }
     }
 
     private void FilterItems(string searchText)
     {
-        List<IPickerItem> filtered;
-        string searchInfo = "";
-        
-        if (string.IsNullOrWhiteSpace(searchText))
+        try
         {
-            // Show ALL items when no search filter is applied
-            filtered = _allItems;
-            searchInfo = $"Showing all {_allItems.Count} items";
-        }
-        else
-        {
-            // Optimized search with multiple criteria and scoring
-            var searchLower = searchText.ToLowerInvariant();
-            var searchTerms = searchLower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
-            // Use parallel processing for large datasets
-            var searchResults = _allItems.AsParallel()
-                .Select(item => new { Item = item, Score = CalculateSearchScore(item, searchTerms, searchLower) })
-                .Where(x => x.Score > 0)
-                .OrderByDescending(x => x.Score)
-                .ToList();
-            
-            var totalMatches = searchResults.Count;
-            var limitedResults = searchResults.Take(500).Select(x => x.Item).ToList();
-            
-            filtered = limitedResults;
-            
-            if (totalMatches > 500)
+            if (_allItems == null)
             {
-                searchInfo = $"Showing top 500 of {totalMatches} matches. Refine search for more specific results.";
+                System.Diagnostics.Debug.WriteLine("FilterItems: _allItems 为空");
+                return;
             }
-            else if (totalMatches > 0)
+
+            List<IPickerItem> filtered;
+
+            if (string.IsNullOrWhiteSpace(searchText))
             {
-                searchInfo = $"Found {totalMatches} matching items";
+                // 显示前100个道具以提高性能
+                filtered = _allItems.Take(100).ToList();
             }
             else
             {
-                searchInfo = "No items found matching your search";
+                var searchLower = searchText.ToLowerInvariant();
+                filtered = _allItems
+                    .Where(item => 
+                        item.DisplayName.ToLowerInvariant().Contains(searchLower) ||
+                        item.Id.ToString().Contains(searchText))
+                    .Take(100)
+                    .ToList();
             }
-        }
 
-        Application.Current?.Dispatcher.Dispatch(() =>
-        {
+            // 安全地更新UI
             FilteredItems.Clear();
             foreach (var item in filtered)
             {
                 FilteredItems.Add(item);
             }
             
-            // Update search info
-            SearchInfoLabel.Text = searchInfo;
-            SearchInfoLabel.IsVisible = !string.IsNullOrWhiteSpace(searchText);
-        });
-    }
-
-    private int CalculateSearchScore(IPickerItem item, string[] searchTerms, string fullSearchText)
-    {
-        var displayLower = item.DisplayName.ToLowerInvariant();
-        var idStr = item.Id.ToString();
-        var score = 0;
-
-        // Exact ID match gets highest priority
-        if (idStr == fullSearchText)
-            return 1000;
-
-        // ID starts with search text
-        if (idStr.StartsWith(fullSearchText))
-            score += 500;
-
-        // Display name starts with search text
-        if (displayLower.StartsWith(fullSearchText))
-            score += 400;
-
-        // All search terms must be found
-        var foundTerms = 0;
-        foreach (var term in searchTerms)
-        {
-            if (displayLower.Contains(term))
+            System.Diagnostics.Debug.WriteLine($"FilterItems: 显示 {filtered.Count} 个道具");
+            
+            // 更新信息标签
+            if (SearchInfoLabel != null)
             {
-                foundTerms++;
-                score += 100;
-            }
-            else if (idStr.Contains(term))
-            {
-                foundTerms++;
-                score += 50;
+                if (string.IsNullOrWhiteSpace(searchText))
+                {
+                    SearchInfoLabel.Text = _allItems.Count > 100 
+                        ? $"显示前 100 个道具，共 {_allItems.Count} 个。输入文字搜索更多..."
+                        : $"显示全部 {_allItems.Count} 个道具";
+                }
+                else
+                {
+                    SearchInfoLabel.Text = filtered.Count == 0 
+                        ? "未找到匹配的道具" 
+                        : $"找到 {filtered.Count} 个道具";
+                }
+                SearchInfoLabel.IsVisible = true;
             }
         }
-
-        // Return 0 if not all terms were found
-        return foundTerms == searchTerms.Length ? score : 0;
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"FilterItems 异常: {ex}");
+        }
     }
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        _searchText = e.NewTextValue ?? "";
-        
-        // Stop the previous timer
-        _searchTimer?.Stop();
-        
-        // Start a new timer to delay the search
-        _searchTimer?.Start();
-    }
-    
-    private void OnSearchTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
-    {
-        FilterItems(_searchText);
+        try
+        {
+            _searchText = e.NewTextValue ?? "";
+            FilterItems(_searchText);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnSearchTextChanged 异常: {ex}");
+        }
     }
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is IPickerItem selectedItem)
+        try
         {
-            SelectedItem = selectedItem;
+            if (e.CurrentSelection.FirstOrDefault() is IPickerItem selectedItem)
+            {
+                SelectedItem = selectedItem;
+                System.Diagnostics.Debug.WriteLine($"选择了道具: {selectedItem.DisplayName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnSelectionChanged 异常: {ex}");
         }
     }
 
     private async void OnOkClicked(object sender, EventArgs e)
     {
-        CompletionSource?.SetResult(SelectedItem);
-        await Navigation.PopModalAsync();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"确定按钮点击，选择的道具: {SelectedItem?.DisplayName ?? "无"}");
+            CompletionSource?.SetResult(SelectedItem);
+            await Navigation.PopModalAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnOkClicked 异常: {ex}");
+            CompletionSource?.SetException(ex);
+        }
     }
 
     private async void OnCancelClicked(object sender, EventArgs e)
     {
-        CompletionSource?.SetResult(null);
-        await Navigation.PopModalAsync();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("取消按钮点击");
+            CompletionSource?.SetResult(null);
+            await Navigation.PopModalAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnCancelClicked 异常: {ex}");
+            CompletionSource?.SetException(ex);
+        }
     }
 
     protected override void OnDisappearing()
     {
-        base.OnDisappearing();
-        _searchTimer?.Stop();
-        _searchTimer?.Dispose();
+        try
+        {
+            base.OnDisappearing();
+            System.Diagnostics.Debug.WriteLine("SearchablePickerPage OnDisappearing");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnDisappearing 异常: {ex}");
+        }
     }
 
-    /// <summary>
-    /// Refresh the items list with new data (useful for reactive data loading)
-    /// </summary>
     public void RefreshItems(List<IPickerItem> newItems)
     {
-        Application.Current?.Dispatcher.Dispatch(() =>
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            _allItems = newItems;
-            FilterItems(_searchText); // Re-apply current filter to new data
+            try
+            {
+                _allItems = newItems;
+                FilterItems(_searchText);
+                ScrollToCurrentSelection();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshItems 异常: {ex}");
+            }
         });
     }
 
-    public new event PropertyChangedEventHandler? PropertyChanged;
-
-    protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+    protected void NotifyPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        OnPropertyChanged(propertyName);
     }
 }

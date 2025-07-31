@@ -212,35 +212,12 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            // Get species data immediately - no blocking!
-            var speciesList = await CachedDataService.GetSpeciesAsync();
+            // Load species data
+            var speciesItems = CachedDataService.GetSpecies();
             
             // Create picker page
             var pickerPage = new SearchablePickerPage();
-            
-            // If data is empty (still loading), show loading spinner and wait briefly
-            if (!speciesList.Any())
-            {
-                pickerPage.LoadingSpinnerControl.Show("Loading species...");
-                
-                // Wait a bit for data to load, but don't block forever
-                for (int i = 0; i < 20 && !speciesList.Any(); i++) // Max 2 seconds
-                {
-                    await Task.Delay(100);
-                    speciesList = await CachedDataService.GetSpeciesAsync();
-                }
-                
-                pickerPage.LoadingSpinnerControl.Hide();
-            }
-            
-            // If we still have no data, show error
-            if (!speciesList.Any())
-            {
-                await DisplayAlert("Error", "Species data is still loading. Please try again in a moment.", "OK");
-                return;
-            }
-            
-            pickerPage.SetItems(speciesList.Cast<IPickerItem>().ToList(), "Select Pokémon Species");
+            pickerPage.SetItems(speciesItems, "Select Pokémon Species");
             
             var completionSource = new TaskCompletionSource<IPickerItem?>();
             pickerPage.CompletionSource = completionSource;

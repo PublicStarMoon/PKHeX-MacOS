@@ -268,16 +268,8 @@ public partial class InventoryEditorPage : ContentPage
                 ItemsContainer.Children.Add(frame);
             }
 
-            // Show preview message for demo mode
-            if (demoItems.Length > itemsToShow)
-            {
-                ItemsPreviewLabel.Text = $"Showing first {itemsToShow} demo items. Total demo items: {demoItems.Length}. Click 'Full View' to see all items.";
-                ItemsPreviewLabel.IsVisible = true;
-            }
-            else
-            {
-                ItemsPreviewLabel.IsVisible = false;
-            }
+            // Remove ItemsPreviewLabel references since we don't have it in the new design
+            // Demo items are now shown directly in the container
         }
         catch (Exception ex)
         {
@@ -382,56 +374,33 @@ public partial class InventoryEditorPage : ContentPage
             ItemsContainer.Children.Clear();
             _itemEntries.Clear();
 
-            // Add header with "Add New Item" button
-            var headerFrame = new Microsoft.Maui.Controls.Frame
-            {
-                BackgroundColor = Color.FromArgb("#3498DB"),
-                Padding = 15,
-                Margin = new Thickness(0, 4),
-                CornerRadius = 8,
-                HasShadow = true
-            };
-
-            var addButton = new Button
-            {
-                Text = "Add New Item",
-                FontSize = 16,
-                BackgroundColor = Color.FromArgb("#27AE60"),
-                TextColor = Colors.White,
-                CornerRadius = 6,
-                FontAttributes = FontAttributes.Bold
-            };
-            addButton.Clicked += OnAddNewItemClicked;
-            headerFrame.Content = addButton;
-            ItemsContainer.Children.Add(headerFrame);
-
             // Add column header
             var columnHeaderFrame = new Microsoft.Maui.Controls.Frame
             {
                 BackgroundColor = Color.FromArgb("#34495E"),
-                Padding = 10,
-                Margin = new Thickness(0, 2),
-                CornerRadius = 6,
+                Padding = new Thickness(15, 12),
+                Margin = new Thickness(0, 0, 0, 8),
+                CornerRadius = 8,
                 HasShadow = false
             };
 
             var headerGrid = new Grid();
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
-            var idLabel = new Label { Text = "Item ID", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center };
-            var countLabel = new Label { Text = "Count", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center };
-            var newLabel = new Label { Text = "New", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center };
-            var actionLabel = new Label { Text = "Action", FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center };
+            var nameLabel = new Label { Text = "道具名称", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Start };
+            var countLabel = new Label { Text = "数量", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            var newLabel = new Label { Text = "新", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            var actionLabel = new Label { Text = "操作", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
 
-            Grid.SetColumn(idLabel, 0);
+            Grid.SetColumn(nameLabel, 0);
             Grid.SetColumn(countLabel, 1);
             Grid.SetColumn(newLabel, 2);
             Grid.SetColumn(actionLabel, 3);
 
-            headerGrid.Children.Add(idLabel);
+            headerGrid.Children.Add(nameLabel);
             headerGrid.Children.Add(countLabel);
             headerGrid.Children.Add(newLabel);
             headerGrid.Children.Add(actionLabel);
@@ -439,146 +408,493 @@ public partial class InventoryEditorPage : ContentPage
             columnHeaderFrame.Content = headerGrid;
             ItemsContainer.Children.Add(columnHeaderFrame);
 
-            // Show only first 5 items as preview, count total items
-            var totalItems = _currentPouch.Items.Count(item => item.Index != 0 || item.Count != 0);
-            var itemsToShow = Math.Min(5, _currentPouch.Items.Length);
-            var itemsShown = 0;
-
-            for (int i = 0; i < _currentPouch.Items.Length && itemsShown < itemsToShow; i++)
+            // Only show items that have a count > 0 and index > 0 (non-empty items)
+            for (int i = 0; i < _currentPouch.Items.Length; i++)
             {
                 var item = _currentPouch.Items[i];
-                
-                // Skip empty items in preview unless we haven't shown any items yet
-                if (item.Index == 0 && item.Count == 0 && itemsShown > 0)
-                    continue;
-
-                // Create item entry UI
-                var frame = new Microsoft.Maui.Controls.Frame
+                if (item.Index > 0 && item.Count > 0) // Only show actual items
                 {
-                    BackgroundColor = Colors.White,
-                    Padding = 15,
-                    Margin = new Thickness(0, 4),
-                    CornerRadius = 8,
-                    HasShadow = true
-                };
-
-                var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-
-                // Item ID entry - show actual ID or placeholder for empty slots
-                var itemIdEntry = new Microsoft.Maui.Controls.Entry
-                {
-                    Text = item.Index == 0 ? "" : item.Index.ToString(),
-                    Keyboard = Keyboard.Numeric,
-                    Placeholder = item.Index == 0 ? "Item ID (e.g. 15)" : "Item ID",
-                    BackgroundColor = Color.FromArgb("#ECF0F1"),
-                    TextColor = Color.FromArgb("#2C3E50"),
-                    FontSize = 14
-                };
-                Grid.SetColumn(itemIdEntry, 0);
-
-                var countEntry = new Microsoft.Maui.Controls.Entry
-                {
-                    Text = item.Count == 0 ? "" : item.Count.ToString(),
-                    Keyboard = Keyboard.Numeric,
-                    Placeholder = "Count",
-                    BackgroundColor = Color.FromArgb("#ECF0F1"),
-                    TextColor = Color.FromArgb("#2C3E50"),
-                    FontSize = 14
-                };
-                Grid.SetColumn(countEntry, 1);
-
-                // New checkbox - check if the item supports IsNew property
-                CheckBox? newCheckBox = null;
-                if (item is IItemNewFlag newFlagItem)
-                {
-                    newCheckBox = new CheckBox
-                    {
-                        IsChecked = newFlagItem.IsNew,
-                        Color = Color.FromArgb("#27AE60"),
-                        VerticalOptions = LayoutOptions.Center,
-                        HorizontalOptions = LayoutOptions.Center
-                    };
-                    Grid.SetColumn(newCheckBox, 2);
+                    CreateItemUI(item.Index, item.Count, i, isDemo: false);
                 }
-                else
-                {
-                    // For items that don't support IsNew, add a label to show it's not available
-                    var naLabel = new Label
-                    {
-                        Text = "N/A",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#BDC3C7"),
-                        VerticalOptions = LayoutOptions.Center,
-                        HorizontalOptions = LayoutOptions.Center
-                    };
-                    Grid.SetColumn(naLabel, 2);
-                }
-
-                var clearButton = new Button
-                {
-                    Text = "Clear",
-                    FontSize = 12,
-                    BackgroundColor = Color.FromArgb("#E74C3C"),
-                    TextColor = Colors.White,
-                    CornerRadius = 4
-                };
-                Grid.SetColumn(clearButton, 3);
-
-                // Store reference for later updates
-                var entry = new ItemEntry { ItemIndex = i, CountEntry = countEntry, ItemIdEntry = itemIdEntry, NewCheckBox = newCheckBox };
-                _itemEntries.Add(entry);
-
-                // Event handlers
-                itemIdEntry.TextChanged += (s, e) => OnItemIdChanged(entry, e.NewTextValue);
-                countEntry.TextChanged += (s, e) => OnItemCountChanged(entry, e.NewTextValue);
-                clearButton.Clicked += (s, e) => OnClearItemClicked(entry);
-                if (newCheckBox != null)
-                {
-                    newCheckBox.CheckedChanged += (s, e) => OnNewFlagChanged(entry, e.Value);
-                }
-
-                grid.Children.Add(itemIdEntry);
-                grid.Children.Add(countEntry);
-                if (newCheckBox != null)
-                {
-                    grid.Children.Add(newCheckBox);
-                }
-                else
-                {
-                    grid.Children.Add(new Label
-                    {
-                        Text = "N/A",
-                        FontSize = 12,
-                        TextColor = Color.FromArgb("#BDC3C7"),
-                        VerticalOptions = LayoutOptions.Center,
-                        HorizontalOptions = LayoutOptions.Center
-                    });
-                }
-                grid.Children.Add(clearButton);
-                frame.Content = grid;
-                
-                ItemsContainer.Children.Add(frame);
-                itemsShown++;
             }
 
-            // Show preview message if there are more items
-            if (totalItems > itemsToShow || _currentPouch.Items.Length > itemsToShow)
-            {
-                ItemsPreviewLabel.Text = $"Showing first {itemsShown} items. Total items in pouch: {totalItems}. Click 'Full View' to see all items.";
-                ItemsPreviewLabel.IsVisible = true;
-            }
-            else
-            {
-                ItemsPreviewLabel.IsVisible = false;
-            }
+            // Update pouch stats to show only active items
+            var activeItems = _currentPouch.Items.Count(item => item.Index > 0 && item.Count > 0);
+            PouchStatsLabel.Text = $"Items: {activeItems}/{_currentPouch.Items.Length}";
         }
         catch (Exception ex)
         {
             DisplayAlert("Error", $"Failed to load items: {ex.Message}", "OK");
+        }
+    }
+
+    private void CreateItemUI(int itemIndex, int count, int arrayIndex, bool isDemo)
+    {
+        // Use simple Frame instead of Border with RoundRectangle to avoid compilation issues
+        var frame = new Microsoft.Maui.Controls.Frame
+        {
+            BackgroundColor = Colors.White,
+            Padding = new Thickness(16, 12),
+            Margin = new Thickness(0, 2),
+            CornerRadius = 10,
+            HasShadow = false,
+            BorderColor = Color.FromArgb("#E2E8F0")
+        };
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+
+        // Item name and ID display
+        var nameStackLayout = new StackLayout
+        {
+            VerticalOptions = LayoutOptions.Center,
+            Spacing = 2
+        };
+
+        var itemNameLabel = new Label
+        {
+            Text = GetItemName(itemIndex),
+            FontSize = 14,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Color.FromArgb("#0F172A"),
+            LineBreakMode = LineBreakMode.TailTruncation
+        };
+
+        var itemSubLabel = new Label
+        {
+            Text = itemIndex == 0 ? "空槽位" : $"ID: {itemIndex}",
+            FontSize = 11,
+            TextColor = Color.FromArgb("#64748B")
+        };
+
+        nameStackLayout.Children.Add(itemNameLabel);
+        nameStackLayout.Children.Add(itemSubLabel);
+        Grid.SetColumn(nameStackLayout, 0);
+
+        // Count Entry
+        var countEntry = new Microsoft.Maui.Controls.Entry
+        {
+            Text = count == 0 ? "" : count.ToString(),
+            Keyboard = Keyboard.Numeric,
+            Placeholder = "0",
+            FontSize = 14,
+            IsReadOnly = isDemo,
+            BackgroundColor = isDemo ? Color.FromArgb("#F8FAFC") : Color.FromArgb("#F1F5F9"),
+            TextColor = Color.FromArgb("#1E293B"),
+            HorizontalTextAlignment = TextAlignment.Center,
+            HeightRequest = 40
+        };
+        Grid.SetColumn(countEntry, 1);
+
+        // New flag indicator
+        View newFlagView;
+        CheckBox? newCheckBox = null;
+        
+        if (_saveFile != null && _saveFile.Generation >= 8 && !isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
+        {
+            var item = _currentPouch.Items[arrayIndex];
+            if (item is IItemNewFlag newFlagItem)
+            {
+                newCheckBox = new CheckBox
+                {
+                    IsChecked = newFlagItem.IsNew,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Color = Color.FromArgb("#10B981")
+                };
+                newFlagView = newCheckBox;
+            }
+            else
+            {
+                newFlagView = new Label { Text = "N/A", FontSize = 10, TextColor = Color.FromArgb("#94A3B8"), HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
+            }
+        }
+        else
+        {
+            var badge = new Microsoft.Maui.Controls.Frame
+            {
+                BackgroundColor = isDemo ? Color.FromArgb("#3B82F6") : Color.FromArgb("#94A3B8"),
+                Padding = new Thickness(6, 4),
+                CornerRadius = 6,
+                HasShadow = false,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            var badgeLabel = new Label { Text = isDemo ? "DEMO" : "N/A", FontSize = 9, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            badge.Content = badgeLabel;
+            newFlagView = badge;
+        }
+        Grid.SetColumn(newFlagView, 2);
+
+        // Action buttons
+        var actionStack = new StackLayout
+        {
+            Orientation = StackOrientation.Horizontal,
+            Spacing = 4,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        var editButton = new Button
+        {
+            Text = "✏️",
+            FontSize = 10,
+            BackgroundColor = Color.FromArgb("#3B82F6"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            WidthRequest = 32,
+            HeightRequest = 32,
+            Padding = 0,
+            IsEnabled = !isDemo
+        };
+
+        var deleteButton = new Button
+        {
+            Text = "🗑️",
+            FontSize = 10,
+            BackgroundColor = isDemo ? Color.FromArgb("#CBD5E1") : Color.FromArgb("#EF4444"),
+            TextColor = Colors.White,
+            CornerRadius = 6,
+            WidthRequest = 32,
+            HeightRequest = 32,
+            Padding = 0,
+            IsEnabled = !isDemo
+        };
+
+        actionStack.Children.Add(editButton);
+        actionStack.Children.Add(deleteButton);
+        Grid.SetColumn(actionStack, 3);
+
+        // Event handlers for real items
+        if (!isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
+        {
+            var itemEntry = new ItemEntry 
+            { 
+                ItemIndex = arrayIndex, 
+                CountEntry = countEntry, 
+                ItemIdEntry = new Microsoft.Maui.Controls.Entry { Text = itemIndex.ToString() }, 
+                NewCheckBox = newCheckBox 
+            };
+
+            countEntry.TextChanged += (s, e) => {
+                OnItemCountChanged(itemEntry, e.NewTextValue);
+                // Update display
+                itemNameLabel.Text = GetItemName(_currentPouch.Items[arrayIndex].Index);
+                itemSubLabel.Text = _currentPouch.Items[arrayIndex].Index == 0 ? "空槽位" : $"ID: {_currentPouch.Items[arrayIndex].Index}";
+            };
+            
+            if (newCheckBox != null)
+            {
+                newCheckBox.CheckedChanged += (s, e) => OnNewFlagChanged(itemEntry, e.Value);
+            }
+
+            editButton.Clicked += async (s, e) => await OnEditItemClicked(arrayIndex);
+            deleteButton.Clicked += (s, e) => OnClearItemClicked(itemEntry);
+
+            _itemEntries.Add(itemEntry);
+        }
+
+        grid.Children.Add(nameStackLayout);
+        grid.Children.Add(countEntry);
+        grid.Children.Add(newFlagView);
+        grid.Children.Add(actionStack);
+
+        frame.Content = grid;
+        ItemsContainer.Children.Add(frame);
+    }
+
+    private async Task OnEditItemClicked(int arrayIndex)
+    {
+        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
+
+        try
+        {
+            var item = _currentPouch.Items[arrayIndex];
+            
+            var itemIdResult = await DisplayPromptAsync("编辑道具", 
+                $"当前道具ID: {item.Index}\n输入新的道具ID:", 
+                placeholder: $"{item.Index}", 
+                initialValue: item.Index.ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (itemIdResult == null) return;
+
+            if (!int.TryParse(itemIdResult, out var newItemId))
+            {
+                await DisplayAlert("错误", "无效的道具ID，请输入数字。", "确定");
+                return;
+            }
+
+            var countResult = await DisplayPromptAsync("编辑道具", 
+                $"当前数量: {item.Count}\n输入新的数量:", 
+                placeholder: $"{item.Count}", 
+                initialValue: item.Count.ToString(),
+                keyboard: Keyboard.Numeric);
+
+            if (countResult == null) return;
+
+            if (!int.TryParse(countResult, out var newCount))
+            {
+                await DisplayAlert("错误", "无效的数量，请输入数字。", "确定");
+                return;
+            }
+
+            // Update the item
+            newCount = Math.Max(0, Math.Min(newCount, _currentPouch.MaxCount));
+            item.Index = newItemId;
+            item.Count = newCount;
+
+            // Enable SetNew flag for Gen8+ compatibility
+            if (_currentPouch is InventoryPouch8 pouch8)
+            {
+                pouch8.SetNew = true;
+            }
+            else if (_currentPouch is InventoryPouch9 pouch9)
+            {
+                pouch9.SetNew = true;
+            }
+
+            // Refresh the display
+            LoadItems();
+            
+            await DisplayAlert("成功", $"道具已更新: ID {newItemId}, 数量 {newCount}", "确定");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"编辑道具失败: {ex.Message}", "确定");
+        }
+    }
+
+    private void OnItemSearchChanged(object sender, TextChangedEventArgs e)
+    {
+        try
+        {
+            var searchText = e.NewTextValue?.ToLower() ?? "";
+            
+            foreach (var child in ItemsContainer.Children)
+            {
+                if (child is Microsoft.Maui.Controls.Frame frame && frame.Content is Grid grid)
+                {
+                    // Skip the header row
+                    if (frame.BackgroundColor == Color.FromArgb("#34495E")) continue;
+                    
+                    // Check if this is an item row (has item name in column 0)
+                    if (grid.Children.Count >= 1 && grid.Children[0] is StackLayout nameStack)
+                    {
+                        var nameLabel = nameStack.Children.FirstOrDefault() as Label;
+                        var itemName = nameLabel?.Text?.ToLower() ?? "";
+                        
+                        var isVisible = string.IsNullOrEmpty(searchText) || 
+                                       itemName.Contains(searchText);
+                        
+                        frame.IsVisible = isVisible;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnItemSearchChanged 异常: {ex}");
+            // Silently handle search errors
+        }
+    }
+
+    private void FlushInventoryChanges()
+    {
+        if (_saveFile == null) return;
+        
+        // Trigger the SaveFile's inventory persistence mechanism
+        // This calls LoadFromPouches() which executes pouches.SaveAll(Data)
+        var currentInventory = _saveFile.Inventory;
+        _saveFile.Inventory = currentInventory;
+    }
+
+    /// <summary>
+    /// 使用PKHeX.Core的正确方式获取道具过滤列表
+    /// </summary>
+    private List<IPickerItem> GetFilteredItemsForPouch(InventoryType pouchType)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"开始获取 {pouchType} 类型的道具");
+            
+            if (_saveFile == null || _currentPouch == null) 
+            {
+                System.Diagnostics.Debug.WriteLine("SaveFile 或 CurrentPouch 为空");
+                return new List<IPickerItem>();
+            }
+
+            // 获取所有道具
+            var allItems = CachedDataService.GetItems();
+            System.Diagnostics.Debug.WriteLine($"获取到 {allItems.Count} 个总道具");
+            
+            // 使用当前pouch的LegalItems数组 - 这是PKHeX.Core的标准方式
+            if (_currentPouch.LegalItems == null || _currentPouch.LegalItems.Length == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("当前背包没有合法道具列表，返回前100个道具作为安全后备");
+                return allItems.Take(100).ToList();
+            }
+            
+            // 创建合法道具ID的HashSet
+            var legalItemIds = new HashSet<int>();
+            foreach (var legalItemId in _currentPouch.LegalItems)
+            {
+                legalItemIds.Add((int)legalItemId);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"当前背包有 {legalItemIds.Count} 个合法道具ID");
+            
+            // 过滤道具列表
+            var filteredItems = new List<IPickerItem>();
+            foreach (var item in allItems)
+            {
+                if (legalItemIds.Contains(item.Id))
+                {
+                    filteredItems.Add(item);
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"过滤后剩余 {filteredItems.Count} 个道具");
+            
+            // 如果过滤后没有道具，返回所有道具作为后备
+            if (filteredItems.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("过滤后没有道具，返回前100个道具作为后备");
+                return allItems.Take(100).ToList();
+            }
+            
+            return filteredItems;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetFilteredItemsForPouch 异常: {ex}");
+            // 发生异常时返回前100个道具作为安全后备
+            try
+            {
+                var allItems = CachedDataService.GetItems();
+                return allItems.Take(100).ToList();
+            }
+            catch
+            {
+                return new List<IPickerItem>();
+            }
+        }
+    }
+
+    private async void OnAddNewItemClicked(object? sender, EventArgs e)
+    {
+        if (_currentPouch == null) 
+        {
+            await DisplayAlert("错误", "当前背包为空，无法添加道具。", "确定");
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"开始添加道具到 {_currentPouch.Type} pouch");
+            
+            // 简化错误处理 - 直接获取道具列表
+            var filteredItems = GetFilteredItemsForPouch(_currentPouch.Type);
+            System.Diagnostics.Debug.WriteLine($"获取到 {filteredItems.Count} 个可用道具");
+            
+            if (filteredItems.Count == 0)
+            {
+                await DisplayAlert("提示", $"{_currentPouch.Type} 背包暂无可用道具。", "确定");
+                return;
+            }
+            
+            try
+            {
+                // 创建并使用SearchablePickerPage
+                SearchablePickerPage pickerPage;
+                try
+                {
+                    pickerPage = new SearchablePickerPage();
+                }
+                catch (Exception initEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SearchablePickerPage 创建失败: {initEx}");
+                    await DisplayAlert("错误", $"无法创建选择器界面: {initEx.Message}", "确定");
+                    return;
+                }
+                
+                // 设置道具列表
+                try
+                {
+                    await Task.Run(() => {
+                        pickerPage.SetItems(filteredItems, $"选择 {_currentPouch.Type} 道具");
+                    });
+                    
+                    // 等待一小段时间确保SetItems完成
+                    await Task.Delay(100);
+                }
+                catch (Exception setItemsEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"设置道具列表失败: {setItemsEx}");
+                    await DisplayAlert("错误", $"无法设置道具列表: {setItemsEx.Message}", "确定");
+                    return;
+                }
+                
+                // 设置完成回调
+                var completionSource = new TaskCompletionSource<IPickerItem?>();
+                pickerPage.CompletionSource = completionSource;
+                
+                // 推送模态页面
+                try
+                {
+                    await Navigation.PushModalAsync(pickerPage);
+                }
+                catch (Exception navEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"推送模态页面失败: {navEx}");
+                    await DisplayAlert("错误", $"无法打开选择器: {navEx.Message}", "确定");
+                    return;
+                }
+                
+                // 等待用户选择
+                var selectedItem = await completionSource.Task;
+                
+                if (selectedItem == null)
+                {
+                    System.Diagnostics.Debug.WriteLine("用户取消了选择");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"用户选择了道具: {selectedItem.DisplayName} (ID: {selectedItem.Id})");
+
+                // 获取数量
+                var countResult = await DisplayPromptAsync("添加新道具", 
+                    $"为 {selectedItem.DisplayName} 输入数量:", 
+                    placeholder: "例如: 1", 
+                    keyboard: Keyboard.Numeric,
+                    initialValue: "1");
+
+                if (countResult == null) return;
+
+                if (!int.TryParse(countResult, out var count) || count < 1)
+                {
+                    await DisplayAlert("错误", "请输入有效的数量（大于0的数字）。", "确定");
+                    return;
+                }
+
+                count = Math.Min(count, _currentPouch.MaxCount);
+                
+                // 添加道具
+                await AddItemToPouch(selectedItem.Id, count, selectedItem.DisplayName);
+            }
+            catch (Exception pickerEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"SearchablePickerPage 异常: {pickerEx}");
+                await DisplayAlert("错误", $"选择道具时出错: {pickerEx.Message}", "确定");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnAddNewItemClicked 总异常: {ex}");
+            await DisplayAlert("错误", $"添加道具失败: {ex.Message}", "确定");
         }
     }
 
@@ -591,6 +907,8 @@ public partial class InventoryEditorPage : ContentPage
             if (string.IsNullOrWhiteSpace(newValue))
             {
                 _currentPouch.Items[entry.ItemIndex].Count = 0;
+                // When count becomes 0, refresh the display to hide this item
+                LoadItems();
             }
             else if (int.TryParse(newValue, out var count))
             {
@@ -613,6 +931,12 @@ public partial class InventoryEditorPage : ContentPage
                     item9.Pouch = p9.PouchIndex;
                     item9.IsUpdated = true;
                 }
+
+                // If count becomes 0, refresh to hide the item
+                if (count == 0)
+                {
+                    LoadItems();
+                }
             }
         }
         catch (Exception ex)
@@ -628,14 +952,9 @@ public partial class InventoryEditorPage : ContentPage
         try
         {
             _currentPouch.Items[entry.ItemIndex].Clear();
-            entry.CountEntry.Text = "";
-            entry.ItemIdEntry.Text = "";
             
-            // Update the New checkbox if it exists
-            if (entry.NewCheckBox != null && _currentPouch.Items[entry.ItemIndex] is IItemNewFlag newFlagItem)
-            {
-                entry.NewCheckBox.IsChecked = newFlagItem.IsNew;
-            }
+            // Refresh the display to remove the cleared item from view
+            LoadItems();
         }
         catch (Exception ex)
         {
@@ -722,125 +1041,136 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
-    private async void OnAddNewItemClicked(object? sender, EventArgs e)
+    private string GetItemName(int itemIndex)
     {
-        if (_currentPouch == null) return;
-
+        if (_saveFile == null || itemIndex == 0) 
+            return "无道具";
+        
         try
         {
-            // Get items data immediately - no blocking!
-            var itemsList = await CachedDataService.GetItemsAsync();
-            
-            // Create picker page
-            var pickerPage = new SearchablePickerPage();
-            
-            // If data is empty (still loading), show loading spinner and wait briefly
-            if (!itemsList.Any())
+            // Get Chinese name first (try simplified, then traditional)
+            var chineseStrings = GameInfo.GetStrings("zh");
+            string chineseName = "";
+            if (chineseStrings?.itemlist != null && itemIndex < chineseStrings.itemlist.Length)
             {
-                pickerPage.LoadingSpinnerControl.Show("Loading items...");
-                
-                // Wait a bit for data to load, but don't block forever
-                for (int i = 0; i < 20 && !itemsList.Any(); i++) // Max 2 seconds
+                chineseName = chineseStrings.itemlist[itemIndex];
+            }
+            else
+            {
+                // Try traditional Chinese if simplified not available
+                var traditionalStrings = GameInfo.GetStrings("zh2");
+                if (traditionalStrings?.itemlist != null && itemIndex < traditionalStrings.itemlist.Length)
                 {
-                    await Task.Delay(100);
-                    itemsList = await CachedDataService.GetItemsAsync();
+                    chineseName = traditionalStrings.itemlist[itemIndex];
                 }
-                
-                pickerPage.LoadingSpinnerControl.Hide();
-            }
-            
-            // If we still have no data, show error
-            if (!itemsList.Any())
-            {
-                await DisplayAlert("Error", "Item data is still loading. Please try again in a moment.", "OK");
-                return;
-            }
-            
-            pickerPage.SetItems(itemsList, "Select Item to Add");
-            
-            var completionSource = new TaskCompletionSource<IPickerItem?>();
-            pickerPage.CompletionSource = completionSource;
-            
-            await Navigation.PushModalAsync(pickerPage);
-            var selectedItem = await completionSource.Task;
-            
-            if (selectedItem == null) return;
-
-            var itemId = selectedItem.Id;
-            
-            // Ask for count with a better default
-            var countResult = await DisplayPromptAsync("Add New Item", 
-                $"Enter count for {selectedItem.DisplayName}:", 
-                placeholder: "e.g., 1", 
-                keyboard: Keyboard.Numeric,
-                initialValue: "1");
-
-            if (countResult == null) return;
-
-            if (!int.TryParse(countResult, out var count))
-            {
-                await DisplayAlert("Error", "Invalid count. Please enter a number.", "OK");
-                return;
             }
 
-            count = Math.Max(0, Math.Min(count, _currentPouch.MaxCount));
-
-            // CRITICAL: Enable SetNew flag on pouches for Gen8/Gen9 compatibility
-            if (_currentPouch is InventoryPouch8 pouch8)
+            // Get English name as fallback/supplement
+            var englishStrings = GameInfo.GetStrings("en");
+            string englishName = "Unknown";
+            if (englishStrings?.itemlist != null && itemIndex < englishStrings.itemlist.Length)
             {
-                pouch8.SetNew = true;
-            }
-            else if (_currentPouch is InventoryPouch9 pouch9)
-            {
-                pouch9.SetNew = true;
+                englishName = englishStrings.itemlist[itemIndex];
             }
 
-            // Find an empty slot or use the first available slot
-            for (int i = 0; i < _currentPouch.Items.Length; i++)
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
             {
-                if (_currentPouch.Items[i].Index == 0 || _currentPouch.Items[i].Count == 0)
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
                 {
-                    _currentPouch.Items[i].Index = itemId;
-                    _currentPouch.Items[i].Count = count;
-                    
-                    // Set the IsNew flag for newly added items (important for Gen8+)
-                    if (_currentPouch.Items[i] is IItemNewFlag newFlagItem)
-                    {
-                        newFlagItem.IsNew = true;
-                    }
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
+        }
+        catch
+        {
+            // Fall back to generic name if lookup fails
+        }
+        
+        return $"道具 {itemIndex}";
+    }
 
-                    // For Gen9, ensure proper Pouch assignment for in-game visibility
-                    if (_currentPouch.Items[i] is InventoryItem9 item9 && _currentPouch is InventoryPouch9 p9)
-                    {
-                        item9.Pouch = p9.PouchIndex;
-                        item9.IsUpdated = true; // Mark as updated so it gets saved properly
-                    }
+    private async Task AddItemToPouch(int itemId, int count, string itemName)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"开始添加道具: ID={itemId}, Count={count}, Name={itemName}");
+            
+            // 检查道具是否已存在
+            int existingIndex = -1;
+            for (int i = 0; i < _currentPouch!.Items.Length; i++)
+            {
+                if (_currentPouch.Items[i].Index == itemId)
+                {
+                    existingIndex = i;
+                    break;
+                }
+            }
 
-                    // For Gen8b, set appropriate SortOrder for new items
-                    if (_currentPouch.Items[i] is InventoryItem8b item8b)
+            if (existingIndex >= 0)
+            {
+                // 道具已存在，增加数量
+                var currentCount = _currentPouch.Items[existingIndex].Count;
+                var newCount = Math.Min(currentCount + count, _currentPouch.MaxCount);
+                _currentPouch.Items[existingIndex].Count = newCount;
+                
+                System.Diagnostics.Debug.WriteLine($"道具已存在于槽位 {existingIndex}，数量从 {currentCount} 增加到 {newCount}");
+                await DisplayAlert("成功", $"已将 {itemName} 的数量增加到 {newCount}！", "确定");
+            }
+            else
+            {
+                // 寻找空槽位
+                int emptySlot = -1;
+                for (int i = 0; i < _currentPouch.Items.Length; i++)
+                {
+                    if (_currentPouch.Items[i].Index == 0 || _currentPouch.Items[i].Count == 0)
                     {
-                        // Find the next available sort order
-                        ushort maxSort = 0;
-                        foreach (var existingItem in _currentPouch.Items)
-                        {
-                            if (existingItem is InventoryItem8b existing && existing.SortOrder > maxSort)
-                                maxSort = existing.SortOrder;
-                        }
-                        item8b.SortOrder = (ushort)(maxSort + 1);
+                        emptySlot = i;
+                        break;
                     }
-                    
-                    // Refresh the display
-                    LoadItems();
-                    await DisplayAlert("Success", $"Added {selectedItem.DisplayName} with count {count}! (Configured for in-game visibility)", "OK");
+                }
+
+                if (emptySlot == -1)
+                {
+                    await DisplayAlert("错误", "背包已满，没有空槽位可用。", "确定");
                     return;
                 }
+
+                // 添加新道具到空槽位
+                _currentPouch.Items[emptySlot].Index = itemId;
+                _currentPouch.Items[emptySlot].Count = count;
+                
+                System.Diagnostics.Debug.WriteLine($"添加道具到空槽位 {emptySlot}: ID={itemId}, Count={count}");
+                await DisplayAlert("成功", $"已添加 {itemName}，数量 {count}！", "确定");
             }
 
-            await DisplayAlert("Error", "No empty slots available in this pouch.", "OK");
+            // 设置PKHeX.Core需要的标志
+            try
+            {
+                // 根据InventoryPouch.cs，这些标志用于标记背包有变化
+                if (_currentPouch.GetType().GetProperty("SetNew") != null)
+                {
+                    _currentPouch.GetType().GetProperty("SetNew")?.SetValue(_currentPouch, true);
+                    System.Diagnostics.Debug.WriteLine("设置了SetNew标志");
+                }
+            }
+            catch (Exception flagEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"设置标志失败（非关键错误）: {flagEx.Message}");
+            }
+            
+            // 刷新显示
+            LoadCurrentPouch();
+            System.Diagnostics.Debug.WriteLine("道具添加完成，界面已刷新");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to add item: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"AddItemToPouch 异常: {ex}");
+            await DisplayAlert("错误", $"添加道具时出错: {ex.Message}", "确定");
         }
     }
 
@@ -937,646 +1267,6 @@ public partial class InventoryEditorPage : ContentPage
             await DisplayAlert("Error", $"Failed to save changes: {ex.Message}", "OK");
         }
     }
-
-    /// <summary>
-    /// Flushes in-memory inventory changes back to the SaveFile's underlying data array.
-    /// This ensures that item modifications, New flags, and other properties are persisted.
-    /// </summary>
-    private void FlushInventoryChanges()
-    {
-        if (_saveFile == null) return;
-        
-        // Trigger the SaveFile's inventory persistence mechanism
-        // This calls LoadFromPouches() which executes pouches.SaveAll(Data)
-        var currentInventory = _saveFile.Inventory;
-        _saveFile.Inventory = currentInventory;
-    }
-
-    private string GetItemName(int itemIndex)
-    {
-        if (_saveFile == null || itemIndex == 0) 
-            return "None";
-        
-        try
-        {
-            // Get English name
-            var englishStrings = GameInfo.GetStrings("en");
-            string englishName = "Unknown";
-            if (englishStrings?.itemlist != null && itemIndex < englishStrings.itemlist.Length)
-            {
-                englishName = englishStrings.itemlist[itemIndex];
-            }
-
-            // Get Chinese name (try simplified first, then traditional)
-            var chineseStrings = GameInfo.GetStrings("zh");
-            string chineseName = "";
-            if (chineseStrings?.itemlist != null && itemIndex < chineseStrings.itemlist.Length)
-            {
-                chineseName = chineseStrings.itemlist[itemIndex];
-            }
-            else
-            {
-                // Try traditional Chinese if simplified not available
-                var traditionalStrings = GameInfo.GetStrings("zh2");
-                if (traditionalStrings?.itemlist != null && itemIndex < traditionalStrings.itemlist.Length)
-                {
-                    chineseName = traditionalStrings.itemlist[itemIndex];
-                }
-            }
-
-            // Format the display name with both languages
-            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
-            {
-                return $"{englishName} ({chineseName})";
-            }
-            
-            return englishName;
-        }
-        catch
-        {
-            // Fall back to generic name if lookup fails
-        }
-        
-        return $"Item {itemIndex}";
-    }
-
-    private void OnItemIdChanged(Microsoft.Maui.Controls.Entry itemIdEntry, Microsoft.Maui.Controls.Entry countEntry, Label itemLabel, int arrayIndex)
-    {
-        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
-
-        try
-        {
-            if (int.TryParse(itemIdEntry.Text, out var itemId))
-            {
-                _currentPouch.Items[arrayIndex].Index = (ushort)Math.Max(0, itemId);
-                
-                // Update item name label
-                itemLabel.Text = GetItemName(itemId);
-                
-                // Enable SetNew flag on pouches for Gen8/Gen9 compatibility
-                if (_currentPouch is InventoryPouch8 pouch8)
-                {
-                    pouch8.SetNew = true;
-                }
-                else if (_currentPouch is InventoryPouch9 pouch9)
-                {
-                    pouch9.SetNew = true;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to update item ID: {ex.Message}", "OK");
-        }
-    }
-
-    private void OnItemCountChanged(Microsoft.Maui.Controls.Entry countEntry, int arrayIndex)
-    {
-        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
-
-        try
-        {
-            if (int.TryParse(countEntry.Text, out var count))
-            {
-                _currentPouch.Items[arrayIndex].Count = Math.Max(0, Math.Min(count, _currentPouch.MaxCount));
-                
-                // Enable SetNew flag on pouches for Gen8/Gen9 compatibility
-                if (_currentPouch is InventoryPouch8 pouch8)
-                {
-                    pouch8.SetNew = true;
-                }
-                else if (_currentPouch is InventoryPouch9 pouch9)
-                {
-                    pouch9.SetNew = true;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to update item count: {ex.Message}", "OK");
-        }
-    }
-
-    private void OnNewFlagChanged(CheckBox newCheckBox, int arrayIndex)
-    {
-        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
-
-        try
-        {
-            if (_currentPouch.Items[arrayIndex] is IItemNewFlag newFlagItem)
-            {
-                newFlagItem.IsNew = newCheckBox.IsChecked;
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to update new flag: {ex.Message}", "OK");
-        }
-    }
-
-    private void OnClearItemClicked(int arrayIndex)
-    {
-        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
-
-        try
-        {
-            _currentPouch.Items[arrayIndex].Clear();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to clear item: {ex.Message}", "OK");
-        }
-    }
-
-    #region Popup Modal Methods
-
-    private void OnFullViewClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            ShowPopupModal();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to open full view: {ex.Message}", "OK");
-        }
-    }
-
-    private void ShowPopupModal()
-    {
-        // Update popup header info
-        if (_currentPouch != null)
-        {
-            PopupPouchNameLabel.Text = $"📋 {_currentPouch.Type} - Full View";
-            PopupPouchStatsLabel.Text = PouchStatsLabel.Text;
-        }
-        else
-        {
-            PopupPouchNameLabel.Text = "📋 All Items - Full View";
-            PopupPouchStatsLabel.Text = "Demo Mode";
-        }
-
-        // Load all items into popup
-        LoadPopupItems();
-        
-        // Show the popup overlay
-        ItemsPopupOverlay.IsVisible = true;
-    }
-
-    private void LoadPopupItems()
-    {
-        try
-        {
-            PopupItemsContainer.Children.Clear();
-
-            // Add column headers first
-            CreatePopupColumnHeaders();
-
-            if (_currentPouch != null)
-            {
-                // Load real items
-                LoadRealItemsIntoPopup();
-            }
-            else
-            {
-                // Load demo items
-                LoadDemoItemsIntoPopup();
-            }
-
-            // Update stats
-            UpdatePopupStats();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to load popup items: {ex.Message}", "OK");
-        }
-    }
-
-    private void LoadRealItemsIntoPopup()
-    {
-        if (_currentPouch?.Items == null) return;
-
-        for (int i = 0; i < _currentPouch.Items.Length; i++)
-        {
-            var item = _currentPouch.Items[i];
-            if (item.Index == 0 && item.Count == 0) continue; // Skip empty slots
-
-            CreatePopupItemUI(item.Index, item.Count, i, isDemo: false);
-        }
-
-        // Add "Add New Item" button at the end
-        CreateAddNewItemButton();
-    }
-
-    private void LoadDemoItemsIntoPopup()
-    {
-        var demoItems = GetDemoItemsForPouch(_currentPouch?.Type.ToString() ?? "Items");
-        
-        for (int i = 0; i < demoItems.Length; i++)
-        {
-            var (itemName, count) = demoItems[i];
-            CreatePopupItemUI(i + 1, count, i, isDemo: true, itemName);
-        }
-    }
-
-    private void CreatePopupColumnHeaders()
-    {
-        var headerFrame = new Microsoft.Maui.Controls.Frame
-        {
-            BackgroundColor = Color.FromArgb("#34495E"),
-            Padding = new Thickness(15, 12),
-            Margin = new Thickness(0, 0, 0, 8),
-            CornerRadius = 8,
-            HasShadow = false
-        };
-
-        var headerGrid = new Grid();
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // Item ID
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Item Name
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // Count
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // New flag
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // Actions
-
-        var headers = new[] { "ID", "Item Name", "Count", "New", "Actions" };
-        for (int i = 0; i < headers.Length; i++)
-        {
-            var label = new Label
-            {
-                Text = headers[i],
-                TextColor = Colors.White,
-                FontSize = 13,
-                FontAttributes = FontAttributes.Bold,
-                VerticalOptions = LayoutOptions.Center,
-                HorizontalTextAlignment = i == 1 ? TextAlignment.Start : TextAlignment.Center
-            };
-            Grid.SetColumn(label, i);
-            headerGrid.Children.Add(label);
-        }
-
-        headerFrame.Content = headerGrid;
-        PopupItemsContainer.Children.Add(headerFrame);
-    }
-
-    private void CreatePopupItemUI(int itemIndex, int count, int arrayIndex, bool isDemo, string? itemName = null)
-    {
-        var frame = new Microsoft.Maui.Controls.Frame
-        {
-            BackgroundColor = Colors.White,
-            Padding = new Thickness(15, 12),
-            Margin = new Thickness(0, 2),
-            CornerRadius = 8,
-            HasShadow = false,
-            BorderColor = Color.FromArgb("#E8E8E8")
-        };
-
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // Item ID
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) }); // Item Name
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // Count
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) }); // New flag
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) }); // Actions
-
-        // Item ID Entry
-        var itemIdEntry = new Microsoft.Maui.Controls.Entry
-        {
-            Text = itemIndex.ToString(),
-            Keyboard = Keyboard.Numeric,
-            Placeholder = "ID",
-            FontSize = 13,
-            IsReadOnly = isDemo,
-            BackgroundColor = isDemo ? Color.FromArgb("#F8F9FA") : Colors.White,
-            TextColor = Color.FromArgb("#2C3E50"),
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        Grid.SetColumn(itemIdEntry, 0);
-
-        // Item Name Display with rich formatting
-        var displayName = itemName ?? GetItemName(itemIndex);
-        var nameStackLayout = new StackLayout
-        {
-            VerticalOptions = LayoutOptions.Center,
-            Spacing = 2
-        };
-
-        var itemNameLabel = new Label
-        {
-            Text = displayName,
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#2C3E50"),
-            LineBreakMode = LineBreakMode.TailTruncation
-        };
-
-        var itemSubLabel = new Label
-        {
-            Text = $"ID: {itemIndex}",
-            FontSize = 10,
-            TextColor = Color.FromArgb("#7F8C8D")
-        };
-
-        nameStackLayout.Children.Add(itemNameLabel);
-        nameStackLayout.Children.Add(itemSubLabel);
-        Grid.SetColumn(nameStackLayout, 1);
-
-        // Count Entry with styling
-        var countEntry = new Microsoft.Maui.Controls.Entry
-        {
-            Text = count.ToString(),
-            Keyboard = Keyboard.Numeric,
-            Placeholder = "0",
-            FontSize = 13,
-            IsReadOnly = isDemo,
-            BackgroundColor = isDemo ? Color.FromArgb("#F8F9FA") : Colors.White,
-            TextColor = Color.FromArgb("#2C3E50"),
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        Grid.SetColumn(countEntry, 2);
-
-        // New flag indicator
-        View newFlagView;
-        CheckBox? newCheckBox = null;
-        
-        if (_saveFile != null && _saveFile.Generation >= 8 && !isDemo)
-        {
-            newCheckBox = new CheckBox
-            {
-                VerticalOptions = LayoutOptions.Center,
-                HorizontalOptions = LayoutOptions.Center,
-                Color = Color.FromArgb("#27AE60")
-            };
-            
-            // Set New flag state
-            if (_currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
-            {
-                var item = _currentPouch.Items[arrayIndex];
-                if (item is IItemNewFlag newFlagItem)
-                {
-                    newCheckBox.IsChecked = newFlagItem.IsNew;
-                }
-            }
-            
-            newFlagView = newCheckBox;
-        }
-        else
-        {
-            var badge = new Microsoft.Maui.Controls.Frame
-            {
-                BackgroundColor = isDemo ? Color.FromArgb("#3498DB") : Color.FromArgb("#95A5A6"),
-                Padding = new Thickness(8, 4),
-                CornerRadius = 10,
-                HasShadow = false,
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center
-            };
-
-            var badgeLabel = new Label
-            {
-                Text = isDemo ? "DEMO" : "N/A",
-                FontSize = 9,
-                FontAttributes = FontAttributes.Bold,
-                TextColor = Colors.White,
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-
-            badge.Content = badgeLabel;
-            newFlagView = badge;
-        }
-        
-        Grid.SetColumn(newFlagView, 3);
-
-        // Action buttons in a horizontal stack
-        var actionStack = new StackLayout
-        {
-            Orientation = StackOrientation.Horizontal,
-            Spacing = 4,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
-        };
-
-        // Edit button
-        var editButton = new Button
-        {
-            Text = "✏️",
-            FontSize = 11,
-            BackgroundColor = Color.FromArgb("#3498DB"),
-            TextColor = Colors.White,
-            CornerRadius = 4,
-            WidthRequest = 32,
-            HeightRequest = 32,
-            Padding = 0,
-            IsEnabled = !isDemo
-        };
-
-        // Delete button
-        var deleteButton = new Button
-        {
-            Text = "🗑️",
-            FontSize = 11,
-            BackgroundColor = isDemo ? Color.FromArgb("#BDC3C7") : Color.FromArgb("#E74C3C"),
-            TextColor = Colors.White,
-            CornerRadius = 4,
-            WidthRequest = 32,
-            HeightRequest = 32,
-            Padding = 0,
-            IsEnabled = !isDemo
-        };
-
-        actionStack.Children.Add(editButton);
-        actionStack.Children.Add(deleteButton);
-        Grid.SetColumn(actionStack, 4);
-
-        // Add event handlers for real items
-        if (!isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
-        {
-            itemIdEntry.TextChanged += (s, e) => {
-                OnItemIdChanged(itemIdEntry, countEntry, itemNameLabel, arrayIndex);
-                // Update the sub-label
-                if (int.TryParse(e.NewTextValue, out var newId))
-                {
-                    itemSubLabel.Text = $"ID: {newId}";
-                }
-            };
-            
-            countEntry.TextChanged += (s, e) => OnItemCountChanged(countEntry, arrayIndex);
-            
-            if (newCheckBox != null)
-            {
-                newCheckBox.CheckedChanged += (s, e) => OnNewFlagChanged(newCheckBox, arrayIndex);
-            }
-
-            editButton.Clicked += async (s, e) => await OnEditItemClicked(arrayIndex);
-            deleteButton.Clicked += (s, e) => OnClearItemClicked(arrayIndex);
-        }
-
-        grid.Children.Add(itemIdEntry);
-        grid.Children.Add(nameStackLayout);
-        grid.Children.Add(countEntry);
-        grid.Children.Add(newFlagView);
-        grid.Children.Add(actionStack);
-
-        frame.Content = grid;
-        PopupItemsContainer.Children.Add(frame);
-    }
-
-    private void CreateAddNewItemButton()
-    {
-        var addFrame = new Microsoft.Maui.Controls.Frame
-        {
-            BackgroundColor = Color.FromArgb("#27AE60"),
-            Padding = 15,
-            Margin = new Thickness(0, 10),
-            CornerRadius = 8,
-            HasShadow = true
-        };
-
-        var addButton = new Button
-        {
-            Text = "➕ Add New Item",
-            FontSize = 14,
-            BackgroundColor = Colors.Transparent,
-            TextColor = Colors.White,
-            FontAttributes = FontAttributes.Bold
-        };
-        addButton.Clicked += OnAddNewItemClicked;
-        
-        addFrame.Content = addButton;
-        PopupItemsContainer.Children.Add(addFrame);
-    }
-
-    private void OnClosePopupClicked(object sender, EventArgs e)
-    {
-        ItemsPopupOverlay.IsVisible = false;
-        
-        // Refresh the main view to show any changes made in popup
-        if (_currentPouch != null)
-        {
-            LoadCurrentPouch();
-        }
-    }
-
-    private void OnSaveFromPopupClicked(object sender, EventArgs e)
-    {
-        OnSaveClicked(sender, e);
-    }
-
-    private async Task OnEditItemClicked(int arrayIndex)
-    {
-        if (_currentPouch?.Items == null || arrayIndex >= _currentPouch.Items.Length) return;
-
-        try
-        {
-            var item = _currentPouch.Items[arrayIndex];
-            
-            var itemIdResult = await DisplayPromptAsync("Edit Item", 
-                $"Current Item ID: {item.Index}\nEnter new Item ID:", 
-                placeholder: $"{item.Index}", 
-                initialValue: item.Index.ToString(),
-                keyboard: Keyboard.Numeric);
-
-            if (itemIdResult == null) return;
-
-            if (!int.TryParse(itemIdResult, out var newItemId))
-            {
-                await DisplayAlert("Error", "Invalid Item ID. Please enter a number.", "OK");
-                return;
-            }
-
-            var countResult = await DisplayPromptAsync("Edit Item", 
-                $"Current Count: {item.Count}\nEnter new count:", 
-                placeholder: $"{item.Count}", 
-                initialValue: item.Count.ToString(),
-                keyboard: Keyboard.Numeric);
-
-            if (countResult == null) return;
-
-            if (!int.TryParse(countResult, out var newCount))
-            {
-                await DisplayAlert("Error", "Invalid count. Please enter a number.", "OK");
-                return;
-            }
-
-            // Update the item
-            newCount = Math.Max(0, Math.Min(newCount, _currentPouch.MaxCount));
-            item.Index = newItemId;
-            item.Count = newCount;
-
-            // Enable SetNew flag for Gen8+ compatibility
-            if (_currentPouch is InventoryPouch8 pouch8)
-            {
-                pouch8.SetNew = true;
-            }
-            else if (_currentPouch is InventoryPouch9 pouch9)
-            {
-                pouch9.SetNew = true;
-            }
-
-            // Refresh the popup display
-            LoadPopupItems();
-            
-            await DisplayAlert("Success", $"Item updated: ID {newItemId}, Count {newCount}", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to edit item: {ex.Message}", "OK");
-        }
-    }
-
-    private void UpdatePopupStats()
-    {
-        if (_currentPouch != null)
-        {
-            var totalItems = _currentPouch.Items.Count(item => item.Index != 0 || item.Count != 0);
-            var maxSlots = _currentPouch.Items.Length;
-            PopupPouchStatsLabel.Text = $"Items: {totalItems}/{maxSlots} • Max Count: {_currentPouch.MaxCount}";
-        }
-        else
-        {
-            PopupPouchStatsLabel.Text = "Demo Mode - Sample Items";
-        }
-    }
-
-    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
-    {
-        try
-        {
-            var searchText = e.NewTextValue?.ToLower() ?? "";
-            
-            foreach (var child in PopupItemsContainer.Children)
-            {
-                if (child is Microsoft.Maui.Controls.Frame frame && frame.Content is Grid grid)
-                {
-                    // Skip the header row
-                    if (frame.BackgroundColor == Color.FromArgb("#34495E")) continue;
-                    
-                    // Check if this is an item row (has item name in column 1)
-                    if (grid.Children.Count >= 2 && grid.Children[1] is StackLayout nameStack)
-                    {
-                        var nameLabel = nameStack.Children.FirstOrDefault() as Label;
-                        var itemName = nameLabel?.Text?.ToLower() ?? "";
-                        var itemId = "";
-                        
-                        // Also check ID for search
-                        if (grid.Children[0] is Microsoft.Maui.Controls.Entry idEntry)
-                        {
-                            itemId = idEntry.Text?.ToLower() ?? "";
-                        }
-                        
-                        var isVisible = string.IsNullOrEmpty(searchText) || 
-                                       itemName.Contains(searchText) || 
-                                       itemId.Contains(searchText);
-                        
-                        frame.IsVisible = isVisible;
-                    }
-                }
-            }
-        }
-        catch (Exception)
-        {
-            // Silently handle search errors
-        }
-    }
-
-    #endregion
 
     public class ItemEntry
     {

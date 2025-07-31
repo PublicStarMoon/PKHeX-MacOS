@@ -28,16 +28,63 @@ public partial class PokemonEditorPage : ContentPage
         _boxIndex = boxIndex;
         _slotIndex = slotIndex;
         
-        // Initialize data asynchronously to prevent UI blocking
-        _ = Task.Run(async () =>
+        // Load data immediately without any background operations
+        LoadPokemonData();
+    }
+
+    /// <summary>
+    /// Safe wrapper for SearchablePickerPage operations
+    /// </summary>
+    private async Task<IPickerItem?> ShowPickerSafely(List<IPickerItem> items, string title, IPickerItem? currentSelection = null)
+    {
+        try
         {
-            await Dispatcher.DispatchAsync(async () =>
+            if (items == null || items.Count == 0)
             {
-                InitializePickerData();
-                await Task.Delay(100); // Small delay to allow spinner to show
-                LoadPokemonData();
-            });
-        });
+                await DisplayAlert("错误", "没有可选择的项目", "确定");
+                return null;
+            }
+
+            SearchablePickerPage pickerPage;
+            try
+            {
+                pickerPage = new SearchablePickerPage();
+            }
+            catch (Exception initEx)
+            {
+                await DisplayAlert("错误", $"无法创建选择器界面: {initEx.Message}", "确定");
+                return null;
+            }
+
+            try
+            {
+                pickerPage.SetItems(items, title, currentSelection);
+            }
+            catch (Exception setEx)
+            {
+                await DisplayAlert("错误", $"无法设置选择器数据: {setEx.Message}", "确定");
+                return null;
+            }
+            
+            var completionSource = new TaskCompletionSource<IPickerItem?>();
+            pickerPage.CompletionSource = completionSource;
+            
+            try
+            {
+                await Navigation.PushModalAsync(pickerPage);
+                return await completionSource.Task;
+            }
+            catch (Exception navEx)
+            {
+                await DisplayAlert("错误", $"无法打开选择器: {navEx.Message}", "确定");
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择器操作失败: {ex.Message}", "确定");
+            return null;
+        }
     }
 
     private void LoadPokemonData()
@@ -55,6 +102,20 @@ public partial class PokemonEditorPage : ContentPage
             SpeciesEntry.Text = _pokemon.Species.ToString();
             NicknameEntry.Text = _pokemon.Nickname;
             LevelEntry.Text = _pokemon.CurrentLevel.ToString();
+            
+            // Load only essential data (natures and balls are small lists)
+            if (!_natureItems.Any())
+            {
+                _natureItems = CachedDataService.GetNatures().Cast<NatureItem>().ToList();
+            }
+            if (!_ballItems.Any())
+            {
+                _ballItems = CachedDataService.GetBalls().Cast<BallItem>().ToList();
+            }
+            if (!_formItems.Any() && _pokemon != null)
+            {
+                _formItems = CachedDataService.GetForms(_pokemon.Species, _pokemon.Context).Cast<FormItem>().ToList();
+            }
             
             // Set nature button text
             var selectedNature = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
@@ -76,25 +137,17 @@ public partial class PokemonEditorPage : ContentPage
             SpDefenseEVEntry.Text = _pokemon.EV_SPD.ToString();
             SpeedEVEntry.Text = _pokemon.EV_SPE.ToString();
 
-            // Moves - set button texts
-            var selectedMove1 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
-            Move1Button.Text = selectedMove1?.DisplayName ?? "Select Move...";
-            
-            var selectedMove2 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
-            Move2Button.Text = selectedMove2?.DisplayName ?? "Select Move...";
-            
-            var selectedMove3 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
-            Move3Button.Text = selectedMove3?.DisplayName ?? "Select Move...";
-            
-            var selectedMove4 = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
-            Move4Button.Text = selectedMove4?.DisplayName ?? "Select Move...";
+            // Moves - Show actual move names instead of just IDs
+            Move1Button.Text = _pokemon.Move1 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move1);
+            Move2Button.Text = _pokemon.Move2 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move2);
+            Move3Button.Text = _pokemon.Move3 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move3);
+            Move4Button.Text = _pokemon.Move4 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move4);
 
             // Physical Properties
             GenderEntry.Text = _pokemon.Gender.ToString();
             
-            // Set ability button text
-            var selectedAbility = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
-            AbilityButton.Text = selectedAbility?.DisplayName ?? "Select Ability...";
+            // Set ability button text - show actual ability name
+            AbilityButton.Text = _pokemon.Ability == 0 ? "Select Ability..." : GetAbilityName(_pokemon.Ability);
             
             // Set form button text
             var selectedForm = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
@@ -107,9 +160,8 @@ public partial class PokemonEditorPage : ContentPage
             ShinyCheckBox.IsChecked = _pokemon.IsShiny;
             EggCheckBox.IsChecked = _pokemon.IsEgg;
             
-            // Set held item button text
-            var selectedHeldItem = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
-            HeldItemButton.Text = selectedHeldItem?.DisplayName ?? "Select Item...";
+            // Set held item button text - show actual item name
+            HeldItemButton.Text = _pokemon.HeldItem == 0 ? "Select Item..." : GetItemName(_pokemon.HeldItem);
 
             // Origin & Met Information
             OTNameEntry.Text = _pokemon.OT_Name;
@@ -228,20 +280,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 1", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Move1 = (ushort)result.Id;
-            Move1Button.Text = result.DisplayName;
+            // Load moves only when needed
+            if (!_moveItems.Any())
+            {
+                _moveItems = CachedDataService.GetMoves().Cast<MoveItem>().ToList();
+            }
+            
+            var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 1", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Move1 = (ushort)result.Id;
+                Move1Button.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择招式失败: {ex.Message}", "确定");
         }
     }
 
@@ -249,20 +307,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 2", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Move2 = (ushort)result.Id;
-            Move2Button.Text = result.DisplayName;
+            // Load moves only when needed
+            if (!_moveItems.Any())
+            {
+                _moveItems = CachedDataService.GetMoves().Cast<MoveItem>().ToList();
+            }
+            
+            var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 2", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Move2 = (ushort)result.Id;
+                Move2Button.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择招式失败: {ex.Message}", "确定");
         }
     }
 
@@ -270,20 +334,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 3", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Move3 = (ushort)result.Id;
-            Move3Button.Text = result.DisplayName;
+            // Load moves only when needed
+            if (!_moveItems.Any())
+            {
+                _moveItems = CachedDataService.GetMoves().Cast<MoveItem>().ToList();
+            }
+            
+            var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 3", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Move3 = (ushort)result.Id;
+                Move3Button.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择招式失败: {ex.Message}", "确定");
         }
     }
 
@@ -291,20 +361,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 4", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Move4 = (ushort)result.Id;
-            Move4Button.Text = result.DisplayName;
+            // Load moves only when needed
+            if (!_moveItems.Any())
+            {
+                _moveItems = CachedDataService.GetMoves().Cast<MoveItem>().ToList();
+            }
+            
+            var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 4", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Move4 = (ushort)result.Id;
+                Move4Button.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择招式失败: {ex.Message}", "确定");
         }
     }
 
@@ -312,20 +388,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_abilityItems.Cast<IPickerItem>().ToList(), "Select Ability", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Ability = result.Id;
-            AbilityButton.Text = result.DisplayName;
+            // Load abilities only when needed
+            if (!_abilityItems.Any())
+            {
+                _abilityItems = CachedDataService.GetAbilities().Cast<AbilityItem>().ToList();
+            }
+            
+            var currentSelection = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
+            var result = await ShowPickerSafely(_abilityItems.Cast<IPickerItem>().ToList(), "Select Ability", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Ability = result.Id;
+                AbilityButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择特性失败: {ex.Message}", "确定");
         }
     }
 
@@ -333,20 +415,20 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_natureItems.Cast<IPickerItem>().ToList(), "Select Nature", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Nature = result.Id;
-            NatureButton.Text = result.DisplayName;
+            var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
+            var result = await ShowPickerSafely(_natureItems.Cast<IPickerItem>().ToList(), "Select Nature", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Nature = result.Id;
+                NatureButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择性格失败: {ex.Message}", "确定");
         }
     }
 
@@ -354,21 +436,21 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_formItems.Cast<IPickerItem>().ToList(), "Select Form", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Form = (byte)result.Id;
-            FormButton.Text = result.DisplayName;
-            HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} {GetFormName(_pokemon.Species, (byte)result.Id)} (Gen {_pokemon.Format})";
+            var currentSelection = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
+            var result = await ShowPickerSafely(_formItems.Cast<IPickerItem>().ToList(), "Select Form", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Form = (byte)result.Id;
+                FormButton.Text = result.DisplayName;
+                HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} {GetFormName(_pokemon.Species, (byte)result.Id)} (Gen {_pokemon.Format})";
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择形态失败: {ex.Message}", "确定");
         }
     }
 
@@ -376,20 +458,20 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_ballItems.Cast<IPickerItem>().ToList(), "Select Ball", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.Ball = result.Id;
-            BallButton.Text = result.DisplayName;
+            var currentSelection = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
+            var result = await ShowPickerSafely(_ballItems.Cast<IPickerItem>().ToList(), "Select Ball", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.Ball = result.Id;
+                BallButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择精灵球失败: {ex.Message}", "确定");
         }
     }
 
@@ -397,20 +479,26 @@ public partial class PokemonEditorPage : ContentPage
     {
         if (_pokemon == null) return;
         
-        var currentSelection = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
-        var pickerPage = new SearchablePickerPage();
-        pickerPage.SetItems(_itemItems.Cast<IPickerItem>().ToList(), "Select Held Item", currentSelection);
-        
-        var completionSource = new TaskCompletionSource<IPickerItem?>();
-        pickerPage.CompletionSource = completionSource;
-        
-        await Navigation.PushModalAsync(pickerPage);
-        var result = await completionSource.Task;
-        
-        if (result != null && _pokemon != null)
+        try
         {
-            _pokemon.HeldItem = result.Id;
-            HeldItemButton.Text = result.DisplayName;
+            // Load items only when needed
+            if (!_itemItems.Any())
+            {
+                _itemItems = CachedDataService.GetItems().Cast<ItemItem>().ToList();
+            }
+            
+            var currentSelection = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
+            var result = await ShowPickerSafely(_itemItems.Cast<IPickerItem>().ToList(), "Select Held Item", currentSelection);
+            
+            if (result != null && _pokemon != null)
+            {
+                _pokemon.HeldItem = result.Id;
+                HeldItemButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("错误", $"选择携带道具失败: {ex.Message}", "确定");
         }
     }
 
@@ -810,6 +898,28 @@ public partial class PokemonEditorPage : ContentPage
     }
 
     /// <summary>
+    /// Gets the item name for display
+    /// </summary>
+    private string GetItemName(int itemId)
+    {
+        try
+        {
+            if (itemId == 0) return "None";
+
+            var englishItems = GameInfo.GetStrings("en").itemlist;
+            if (itemId < englishItems.Length)
+            {
+                return englishItems[itemId];
+            }
+            return $"Item {itemId}";
+        }
+        catch
+        {
+            return $"Item {itemId}";
+        }
+    }
+
+    /// <summary>
     /// Gets the multilingual move name in both English and Chinese
     /// </summary>
     private string GetMoveName(ushort moveId)
@@ -820,19 +930,12 @@ public partial class PokemonEditorPage : ContentPage
 
             // Get move names using GameInfo.GetStrings
             var englishMoves = GameInfo.GetStrings("en").movelist;
-            var chineseMoves = GameInfo.GetStrings("zh2").movelist ?? GameInfo.GetStrings("zh").movelist;
 
-            var englishName = moveId < englishMoves.Length ? englishMoves[moveId] : $"Move {moveId}";
-            var chineseName = "";
-
-            if (chineseMoves != null && moveId < chineseMoves.Length)
-                chineseName = chineseMoves[moveId];
-
-            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
-            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
-                return $"{englishName} ({chineseName})";
-            else
-                return englishName;
+            if (moveId < englishMoves.Length)
+            {
+                return englishMoves[moveId];
+            }
+            return $"Move {moveId}";
         }
         catch
         {
@@ -851,19 +954,12 @@ public partial class PokemonEditorPage : ContentPage
 
             // Get ability names using GameInfo.GetStrings
             var englishAbilities = GameInfo.GetStrings("en").abilitylist;
-            var chineseAbilities = GameInfo.GetStrings("zh2").abilitylist ?? GameInfo.GetStrings("zh").abilitylist;
 
-            var englishName = abilityId < englishAbilities.Length ? englishAbilities[abilityId] : $"Ability {abilityId}";
-            var chineseName = "";
-
-            if (chineseAbilities != null && abilityId < chineseAbilities.Length)
-                chineseName = chineseAbilities[abilityId];
-
-            // Return format: "English Name (Chinese Name)" or just English if Chinese not available
-            if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
-                return $"{englishName} ({chineseName})";
-            else
-                return englishName;
+            if (abilityId < englishAbilities.Length)
+            {
+                return englishAbilities[abilityId];
+            }
+            return $"Ability {abilityId}";
         }
         catch
         {
@@ -913,102 +1009,4 @@ public partial class PokemonEditorPage : ContentPage
             return $"Form {form}";
         }
     }
-
-    /// <summary>
-    /// Initialize picker data sources using cached data for better performance
-    /// Data is loaded in background thread at app startup for improved UI responsiveness
-    /// Uses loading spinner to show progress and prevent UI thread blocking
-    /// </summary>
-    private async void InitializePickerData()
-    {
-        try
-        {
-            // Check if data is already ready - if so, no loading spinner needed
-            if (CachedDataService.IsInitialized)
-            {
-                await LoadDataWithoutSpinner();
-                return;
-            }
-
-            // Show loading spinner and load data asynchronously to prevent UI blocking
-            LoadingSpinner.Show("初始化数据中...");
-            
-            // Load all data asynchronously with proper error handling
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            // Fallback to basic empty lists if loading fails
-            LoadFallbackData();
-            System.Diagnostics.Debug.WriteLine($"Failed to initialize picker data: {ex.Message}");
-        }
-        finally
-        {
-            // Always hide loading spinner
-            LoadingSpinner.Hide();
-        }
-    }
-
-    private async Task LoadDataAsync()
-    {
-        // Load all data concurrently for better performance - NO BLOCKING!
-        var moveTask = CachedDataService.GetMovesAsync();
-        var abilityTask = CachedDataService.GetAbilitiesAsync();
-        var natureTask = CachedDataService.GetNaturesAsync();
-        var itemTask = CachedDataService.GetItemsAsync();
-        var ballTask = CachedDataService.GetBallsAsync();
-
-        // Wait for all tasks to complete
-        await Task.WhenAll(moveTask, abilityTask, natureTask, itemTask, ballTask);
-
-        // Assign results with proper casting
-        _moveItems = (await moveTask).Cast<MoveItem>().ToList();
-        _abilityItems = (await abilityTask).Cast<AbilityItem>().ToList();
-        _natureItems = (await natureTask).Cast<NatureItem>().ToList();
-        _itemItems = (await itemTask).Cast<ItemItem>().ToList();
-        _ballItems = (await ballTask).Cast<BallItem>().ToList();
-
-        // Initialize form list for current pokemon
-        if (_pokemon != null)
-        {
-            _formItems = CachedDataService.GetForms(_pokemon.Species, _pokemon.Context).Cast<FormItem>().ToList();
-        }
-        else
-        {
-            _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
-        }
-    }
-
-    private async Task LoadDataWithoutSpinner()
-    {
-        // Data is ready, load immediately without spinner
-        _moveItems = (await CachedDataService.GetMovesAsync()).Cast<MoveItem>().ToList();
-        _abilityItems = (await CachedDataService.GetAbilitiesAsync()).Cast<AbilityItem>().ToList();
-        _natureItems = (await CachedDataService.GetNaturesAsync()).Cast<NatureItem>().ToList();
-        _itemItems = (await CachedDataService.GetItemsAsync()).Cast<ItemItem>().ToList();
-        _ballItems = (await CachedDataService.GetBallsAsync()).Cast<BallItem>().ToList();
-
-        // Initialize form list for current pokemon
-        if (_pokemon != null)
-        {
-            _formItems = CachedDataService.GetForms(_pokemon.Species, _pokemon.Context).Cast<FormItem>().ToList();
-        }
-        else
-        {
-            _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
-        }
-    }
-
-    private void LoadFallbackData()
-    {
-        // Fallback to empty lists if caching fails
-        _moveItems = new List<MoveItem> { new() { Id = 0, DisplayName = "None" } };
-        _abilityItems = new List<AbilityItem> { new() { Id = 0, DisplayName = "None" } };
-        _natureItems = new List<NatureItem> { new() { Id = 0, DisplayName = "Hardy" } };
-        _itemItems = new List<ItemItem> { new() { Id = 0, DisplayName = "None" } };
-        _ballItems = new List<BallItem> { new() { Id = 0, DisplayName = "None" } };
-        _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
-    }
 }
-
-// Data model classes for pickers are now defined in SearchablePickerPage.xaml.cs

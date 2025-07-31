@@ -12,18 +12,35 @@ public partial class App : Application
         // Initialize PKHeX Core
         InitializePKHeXCore();
         
-        // Start background initialization of game data
-        // This will load species/natures/moves/items data in a background thread
-        // to improve performance when opening editors later
-        CachedDataService.StartBackgroundInitialization();
+        // Remove background initialization - load on demand instead
+        // CachedDataService.StartBackgroundInitialization();
         
         MainPage = new AppShell();
     }
     
     private static void InitializePKHeXCore()
     {
-        // Initialize game strings and data
-        // Note: Some initialization may not be needed for this basic demo
+        try
+        {
+            // Initialize game strings and data
+            // Force initialization of GameInfo strings for multiple languages
+            var englishStrings = GameInfo.GetStrings("en");
+            var chineseStrings = GameInfo.GetStrings("zh");
+
+            // Set current language to Chinese as default
+            GameInfo.CurrentLanguage = "zh";
+            
+            // Ensure strings are properly loaded
+            if (englishStrings?.itemlist == null || chineseStrings?.itemlist == null)
+            {
+                throw new InvalidOperationException("Failed to load game strings");
+            }
+        }
+        catch (Exception ex)
+        {
+            // If initialization fails, we'll handle it gracefully in CachedDataService
+            Console.WriteLine($"PKHeX Core initialization warning: {ex.Message}");
+        }
     }
     
     protected override Window CreateWindow(IActivationState? activationState)
@@ -35,3 +52,4 @@ public partial class App : Application
         return window;
     }
 }
+

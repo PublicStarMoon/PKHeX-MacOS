@@ -31,8 +31,8 @@ public abstract class LoadingContentPage : ContentPage
             {
                 // If main content is already a Grid, add spinner to it
                 mainGrid.Children.Add(LoadingSpinner);
-                Grid.SetRowSpan(LoadingSpinner, int.MaxValue);
-                Grid.SetColumnSpan(LoadingSpinner, int.MaxValue);
+                Grid.SetRowSpan(LoadingSpinner, Math.Max(1, mainGrid.RowDefinitions.Count));
+                Grid.SetColumnSpan(LoadingSpinner, Math.Max(1, mainGrid.ColumnDefinitions.Count));
             }
             else if (Content != null)
             {
@@ -42,8 +42,6 @@ public abstract class LoadingContentPage : ContentPage
                 
                 gridWrapper.Children.Add(originalContent);
                 gridWrapper.Children.Add(LoadingSpinner);
-                Grid.SetRowSpan(LoadingSpinner, int.MaxValue);
-                Grid.SetColumnSpan(LoadingSpinner, int.MaxValue);
                 
                 Content = gridWrapper;
             }

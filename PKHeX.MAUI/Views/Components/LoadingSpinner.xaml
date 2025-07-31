@@ -2,8 +2,11 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PKHeX.MAUI.Views.Components.LoadingSpinner"
-             x:Name="LoadingSpinnerRoot">
-    <Grid BackgroundColor="Transparent">
+             x:Name="LoadingSpinnerRoot"
+             IsVisible="False"
+             InputTransparent="True">
+    <Grid BackgroundColor="#80000000" 
+          InputTransparent="{Binding IsVisible, Source={RelativeSource AncestorType={x:Type ContentView}}, Converter={StaticResource InverseBoolConverter}}">
         <Border BackgroundColor="#E0000000" 
                 Opacity="0.3"
                 IsVisible="{Binding IsVisible, Source={x:Reference LoadingSpinnerRoot}}" />
