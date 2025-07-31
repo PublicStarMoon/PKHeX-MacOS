@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-and-test-macos:
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 60
     
     steps:
@@ -83,7 +83,7 @@ jobs:
     # - name: Build PKHeX MAUI for macOS
     #   run: |
     #     cd PKHeX.MAUI
-    #     dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0 -r maccatalyst-arm64
+    #     dotnet build --configuration Release --no-restore -f net8.0-maccatalyst -r maccatalyst-arm64
     
     # - name: Verify MAUI build output
     #   run: |
@@ -94,7 +94,7 @@ jobs:
     #       ls -la bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/
           
     #       # Set app path for UI tests
-    #       echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
+    #       echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
     #     else
     #       echo "⚠️ MacOS app bundle not found, checking other output directories..."
     #       find bin -name "*.app" -type d || echo "No .app bundles found"
@@ -184,7 +184,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PKHeX-MacOS-Build
-        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/
+        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/
         retention-days: 30
     
     - name: Upload Appium Logs
@@ -235,7 +235,7 @@ jobs:
         fi
         
         # MacOS app
-        if [ -d PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0 ]; then
+        if [ -d PKHeX.MAUI/bin/Release/net8.0-maccatalyst ]; then
           echo "📱 **MacOS App**: Ready for deployment" >> $GITHUB_STEP_SUMMARY
         fi
         
