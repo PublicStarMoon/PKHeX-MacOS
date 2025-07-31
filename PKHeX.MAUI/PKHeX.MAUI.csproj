@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <TargetFrameworks>net8.0-maccatalyst17.0</TargetFrameworks>
-        <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers>
         <OutputType>Exe</OutputType>
         <RootNamespace>PKHeX.MAUI</RootNamespace>
         <UseMaui>true</UseMaui>

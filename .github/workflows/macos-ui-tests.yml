@@ -83,7 +83,7 @@ jobs:
     # - name: Build PKHeX MAUI for macOS
     #   run: |
     #     cd PKHeX.MAUI
-    #     dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0
+    #     dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0 -r maccatalyst-arm64
     
     # - name: Verify MAUI build output
     #   run: |
@@ -104,7 +104,7 @@ jobs:
     
     - name: Build UI Test Project
       run: |
-        dotnet build PKHeX.MAUI.UITests/PKHeX.MAUI.UITests.csproj --configuration Release --verbosity minimal
+        dotnet build PKHeX.MAUI.UITests/PKHeX.MAUI.UITests.csproj --configuration Release --verbosity minimal -r maccatalyst-arm64
     
     - name: Start Appium Server
       run: |

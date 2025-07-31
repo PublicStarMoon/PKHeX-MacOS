@@ -9,9 +9,6 @@
     
     <!-- App Identifier for macOS Catalyst bundle requirement -->
     <ApplicationId>com.pkhex.macos.uitests</ApplicationId>
-    
-    <!-- Configure to build without specific runtime to match MAUI project build behavior -->
-    <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>

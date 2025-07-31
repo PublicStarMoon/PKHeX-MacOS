@@ -59,14 +59,15 @@ dotnet restore PKHeX.MAUI/PKHeX.MAUI.csproj --verbosity quiet
 
 # Build the project
 echo "🔨 Building PKHeX.MAUI in ${CONFIG} configuration..."
-dotnet build PKHeX.MAUI/PKHeX.MAUI.csproj --configuration $CONFIG --no-restore
+dotnet build PKHeX.MAUI/PKHeX.MAUI.csproj --configuration $CONFIG --no-restore -r maccatalyst-arm64
 
 # Check build result
 if [ $? -eq 0 ]; then
     echo ""
     echo "✅ Build completed successfully!"
     echo "Configuration: $CONFIG"
-    echo "Output: PKHeX.MAUI/bin/$CONFIG/"
+    echo "Runtime: maccatalyst-arm64"
+    echo "Output: PKHeX.MAUI/bin/$CONFIG/net8.0-maccatalyst17.0/maccatalyst-arm64/"
     echo ""
     echo "To run the application, use:"
     echo "  ./run.sh $CONFIGURATION"
