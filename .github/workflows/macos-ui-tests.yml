@@ -41,7 +41,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
     
     - name: Install Appium and drivers
       run: |
@@ -119,17 +118,6 @@ jobs:
         }
         
         echo "Appium server started successfully"
-    
-    - name: Run UI Tests - Demo Mode
-      continue-on-error: true
-      run: |
-        cd PKHeX.MAUI.UITests
-        dotnet test --configuration Release --no-build --verbosity normal \
-          --filter "FullyQualifiedName~DemoModeTests" \
-          --logger trx --results-directory ../TestResults/UI/ \
-          --logger "console;verbosity=detailed"
-      env:
-        PKHEX_APP_PATH: ${{ env.PKHEX_APP_PATH }}
     
     - name: Run UI Tests - Pokemon Creation
       continue-on-error: true
@@ -248,9 +236,8 @@ jobs:
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📋 Test Cases Covered" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Demo Mode Activation**: Launch app, enable demo mode, verify UI state" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Pokemon Creation Workflow**: Navigate to box editor, create Wishiwashi, edit properties" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Inventory Management**: Access inventory editor, add Master Ball to Ball pouch" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Pokemon Creation Workflow**: Navigate to box editor, create Wishiwashi, edit properties (with auto-enabled demo mode)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Inventory Management**: Access inventory editor, add Master Ball to Ball pouch (with auto-enabled demo mode)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📁 Artifacts Available" >> $GITHUB_STEP_SUMMARY
         echo "- 🖼️ **UI Screenshots**: Visual evidence of each test step" >> $GITHUB_STEP_SUMMARY
