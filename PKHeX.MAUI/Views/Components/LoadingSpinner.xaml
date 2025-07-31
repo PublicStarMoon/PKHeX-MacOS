@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PKHeX.MAUI.Views.Components.LoadingSpinner"
+             x:Name="LoadingSpinnerRoot">
+    <Grid BackgroundColor="Transparent">
+        <Border BackgroundColor="#E0000000" 
+                Opacity="0.3"
+                IsVisible="{Binding IsVisible, Source={x:Reference LoadingSpinnerRoot}}" />
+        
+        <Border BackgroundColor="White"
+                StrokeThickness="0"
+                WidthRequest="120"
+                HeightRequest="120"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                IsVisible="{Binding IsVisible, Source={x:Reference LoadingSpinnerRoot}}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="12" />
+            </Border.StrokeShape>
+            
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.2" Offset="0,4" Radius="8" />
+            </Border.Shadow>
+            
+            <StackLayout Spacing="15" HorizontalOptions="Center" VerticalOptions="Center">
+                <!-- Custom rotating spinner using Path for modern look -->
+                <Grid WidthRequest="32" HeightRequest="32">
+                    <Path x:Name="SpinnerPath"
+                          Stroke="#6366F1"
+                          StrokeThickness="3"
+                          Data="M 16,4 A 12,12 0 0,1 28,16"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center" />
+                </Grid>
+                
+                <Label x:Name="LoadingLabel"
+                       Text="刷新加载中..."
+                       FontSize="14"
+                       TextColor="#374151"
+                       FontAttributes="Italic"
+                       HorizontalOptions="Center" />
+            </StackLayout>
+        </Border>
+    </Grid>
+</ContentView>

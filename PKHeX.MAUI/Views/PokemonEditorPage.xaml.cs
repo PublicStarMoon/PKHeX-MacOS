@@ -1,4 +1,6 @@
 using PKHeX.Core;
+using PKHeX.MAUI.Services;
+using PKHeX.MAUI.Models;
 
 namespace PKHeX.MAUI.Views;
 
@@ -25,8 +27,17 @@ public partial class PokemonEditorPage : ContentPage
         _saveFile = saveFile;
         _boxIndex = boxIndex;
         _slotIndex = slotIndex;
-        InitializePickerData();
-        LoadPokemonData();
+        
+        // Initialize data asynchronously to prevent UI blocking
+        _ = Task.Run(async () =>
+        {
+            await Dispatcher.DispatchAsync(async () =>
+            {
+                InitializePickerData();
+                await Task.Delay(100); // Small delay to allow spinner to show
+                LoadPokemonData();
+            });
+        });
     }
 
     private void LoadPokemonData()
@@ -215,6 +226,8 @@ public partial class PokemonEditorPage : ContentPage
     // New Button click handlers for searchable pickers
     private async void OnMove1ButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 1", currentSelection);
@@ -234,6 +247,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnMove2ButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 2", currentSelection);
@@ -253,6 +268,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnMove3ButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 3", currentSelection);
@@ -272,6 +289,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnMove4ButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 4", currentSelection);
@@ -291,6 +310,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnAbilityButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_abilityItems.Cast<IPickerItem>().ToList(), "Select Ability", currentSelection);
@@ -310,6 +331,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnNatureButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_natureItems.Cast<IPickerItem>().ToList(), "Select Nature", currentSelection);
@@ -329,6 +352,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnFormButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_formItems.Cast<IPickerItem>().ToList(), "Select Form", currentSelection);
@@ -349,6 +374,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnBallButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_ballItems.Cast<IPickerItem>().ToList(), "Select Ball", currentSelection);
@@ -368,6 +395,8 @@ public partial class PokemonEditorPage : ContentPage
 
     private async void OnHeldItemButtonClicked(object sender, EventArgs e)
     {
+        if (_pokemon == null) return;
+        
         var currentSelection = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
         var pickerPage = new SearchablePickerPage();
         pickerPage.SetItems(_itemItems.Cast<IPickerItem>().ToList(), "Select Held Item", currentSelection);
@@ -886,126 +915,99 @@ public partial class PokemonEditorPage : ContentPage
     }
 
     /// <summary>
-    /// Initialize picker data sources
+    /// Initialize picker data sources using cached data for better performance
+    /// Data is loaded in background thread at app startup for improved UI responsiveness
+    /// Uses loading spinner to show progress and prevent UI thread blocking
     /// </summary>
-    private void InitializePickerData()
+    private async void InitializePickerData()
     {
         try
         {
-            // Initialize move list
-            _moveItems.Clear();
-            var englishMoves = GameInfo.GetStrings("en").movelist;
-            var chineseMoves = GameInfo.GetStrings("zh2").movelist ?? GameInfo.GetStrings("zh").movelist;
+            // Check if data is already ready - if so, no loading spinner needed
+            if (CachedDataService.IsInitialized)
+            {
+                await LoadDataWithoutSpinner();
+                return;
+            }
+
+            // Show loading spinner and load data asynchronously to prevent UI blocking
+            LoadingSpinner.Show("初始化数据中...");
             
-            _moveItems.Add(new MoveItem { Id = 0, DisplayName = "None" });
-            for (int i = 1; i < englishMoves.Length && i < 1000; i++)
-            {
-                var englishName = englishMoves[i];
-                var chineseName = chineseMoves != null && i < chineseMoves.Length ? chineseMoves[i] : "";
-                
-                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
-                    ? $"{englishName} ({chineseName})" 
-                    : englishName;
-                    
-                _moveItems.Add(new MoveItem { Id = i, DisplayName = displayName });
-            }
-
-            // Initialize ability list
-            _abilityItems.Clear();
-            var englishAbilities = GameInfo.GetStrings("en").abilitylist;
-            var chineseAbilities = GameInfo.GetStrings("zh2").abilitylist ?? GameInfo.GetStrings("zh").abilitylist;
-            
-            _abilityItems.Add(new AbilityItem { Id = 0, DisplayName = "None" });
-            for (int i = 1; i < englishAbilities.Length && i < 300; i++)
-            {
-                var englishName = englishAbilities[i];
-                var chineseName = chineseAbilities != null && i < chineseAbilities.Length ? chineseAbilities[i] : "";
-                
-                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
-                    ? $"{englishName} ({chineseName})" 
-                    : englishName;
-                    
-                _abilityItems.Add(new AbilityItem { Id = i, DisplayName = displayName });
-            }
-
-            // Initialize nature list
-            _natureItems.Clear();
-            var englishNatures = GameInfo.GetStrings("en").natures;
-            var chineseNatures = GameInfo.GetStrings("zh2").natures ?? GameInfo.GetStrings("zh").natures;
-            
-            for (int i = 0; i < englishNatures.Length && i < 25; i++)
-            {
-                var englishName = englishNatures[i];
-                var chineseName = chineseNatures != null && i < chineseNatures.Length ? chineseNatures[i] : "";
-                
-                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
-                    ? $"{englishName} ({chineseName})" 
-                    : englishName;
-                    
-                _natureItems.Add(new NatureItem { Id = i, DisplayName = displayName });
-            }
-
-            // Initialize item list (for held items)
-            _itemItems.Clear();
-            var englishItems = GameInfo.GetStrings("en").itemlist;
-            var chineseItems = GameInfo.GetStrings("zh2").itemlist ?? GameInfo.GetStrings("zh").itemlist;
-            
-            _itemItems.Add(new ItemItem { Id = 0, DisplayName = "None" });
-            for (int i = 1; i < englishItems.Length && i < 2000; i++)
-            {
-                var englishName = englishItems[i];
-                var chineseName = chineseItems != null && i < chineseItems.Length ? chineseItems[i] : "";
-                
-                var displayName = !string.IsNullOrEmpty(chineseName) && chineseName != englishName 
-                    ? $"{englishName} ({chineseName})" 
-                    : englishName;
-                    
-                _itemItems.Add(new ItemItem { Id = i, DisplayName = displayName });
-            }
-
-            // Initialize ball list (simplified - just basic balls)
-            _ballItems.Clear();
-            _ballItems.Add(new BallItem { Id = 0, DisplayName = "None" });
-            _ballItems.Add(new BallItem { Id = 1, DisplayName = "Master Ball (大师球)" });
-            _ballItems.Add(new BallItem { Id = 2, DisplayName = "Ultra Ball (高级球)" });
-            _ballItems.Add(new BallItem { Id = 3, DisplayName = "Great Ball (超级球)" });
-            _ballItems.Add(new BallItem { Id = 4, DisplayName = "Poké Ball (精灵球)" });
-            _ballItems.Add(new BallItem { Id = 5, DisplayName = "Safari Ball (狩猎球)" });
-            _ballItems.Add(new BallItem { Id = 6, DisplayName = "Net Ball (捕网球)" });
-            _ballItems.Add(new BallItem { Id = 7, DisplayName = "Dive Ball (潜水球)" });
-            _ballItems.Add(new BallItem { Id = 8, DisplayName = "Nest Ball (巢穴球)" });
-            _ballItems.Add(new BallItem { Id = 9, DisplayName = "Repeat Ball (重复球)" });
-            _ballItems.Add(new BallItem { Id = 10, DisplayName = "Timer Ball (计时球)" });
-            _ballItems.Add(new BallItem { Id = 11, DisplayName = "Luxury Ball (豪华球)" });
-            _ballItems.Add(new BallItem { Id = 12, DisplayName = "Premier Ball (纪念球)" });
-
-            // Initialize form list
-            _formItems.Clear();
-            if (_pokemon != null)
-            {
-                // Get the number of forms for this species
-                var englishStrings = GameInfo.GetStrings("en");
-                var formCount = PKHeX.Core.FormConverter.GetFormList(_pokemon.Species, englishStrings.types, englishStrings.forms, GameInfo.GenderSymbolUnicode, _pokemon.Context).Length;
-                
-                for (int i = 0; i < formCount; i++)
-                {
-                    var formName = GetFormName(_pokemon.Species, (byte)i);
-                    _formItems.Add(new FormItem { Id = i, DisplayName = formName });
-                }
-            }
-            else
-            {
-                // Default forms when no Pokemon loaded
-                _formItems.Add(new FormItem { Id = 0, DisplayName = "Normal Form" });
-            }
-
-            // Form and picker data initialization complete
+            // Load all data asynchronously with proper error handling
+            await LoadDataAsync();
         }
         catch (Exception ex)
         {
-            // Log error but don't crash
-            System.Diagnostics.Debug.WriteLine($"Error initializing picker data: {ex.Message}");
+            // Fallback to basic empty lists if loading fails
+            LoadFallbackData();
+            System.Diagnostics.Debug.WriteLine($"Failed to initialize picker data: {ex.Message}");
         }
+        finally
+        {
+            // Always hide loading spinner
+            LoadingSpinner.Hide();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        // Load all data concurrently for better performance - NO BLOCKING!
+        var moveTask = CachedDataService.GetMovesAsync();
+        var abilityTask = CachedDataService.GetAbilitiesAsync();
+        var natureTask = CachedDataService.GetNaturesAsync();
+        var itemTask = CachedDataService.GetItemsAsync();
+        var ballTask = CachedDataService.GetBallsAsync();
+
+        // Wait for all tasks to complete
+        await Task.WhenAll(moveTask, abilityTask, natureTask, itemTask, ballTask);
+
+        // Assign results with proper casting
+        _moveItems = (await moveTask).Cast<MoveItem>().ToList();
+        _abilityItems = (await abilityTask).Cast<AbilityItem>().ToList();
+        _natureItems = (await natureTask).Cast<NatureItem>().ToList();
+        _itemItems = (await itemTask).Cast<ItemItem>().ToList();
+        _ballItems = (await ballTask).Cast<BallItem>().ToList();
+
+        // Initialize form list for current pokemon
+        if (_pokemon != null)
+        {
+            _formItems = CachedDataService.GetForms(_pokemon.Species, _pokemon.Context).Cast<FormItem>().ToList();
+        }
+        else
+        {
+            _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
+        }
+    }
+
+    private async Task LoadDataWithoutSpinner()
+    {
+        // Data is ready, load immediately without spinner
+        _moveItems = (await CachedDataService.GetMovesAsync()).Cast<MoveItem>().ToList();
+        _abilityItems = (await CachedDataService.GetAbilitiesAsync()).Cast<AbilityItem>().ToList();
+        _natureItems = (await CachedDataService.GetNaturesAsync()).Cast<NatureItem>().ToList();
+        _itemItems = (await CachedDataService.GetItemsAsync()).Cast<ItemItem>().ToList();
+        _ballItems = (await CachedDataService.GetBallsAsync()).Cast<BallItem>().ToList();
+
+        // Initialize form list for current pokemon
+        if (_pokemon != null)
+        {
+            _formItems = CachedDataService.GetForms(_pokemon.Species, _pokemon.Context).Cast<FormItem>().ToList();
+        }
+        else
+        {
+            _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
+        }
+    }
+
+    private void LoadFallbackData()
+    {
+        // Fallback to empty lists if caching fails
+        _moveItems = new List<MoveItem> { new() { Id = 0, DisplayName = "None" } };
+        _abilityItems = new List<AbilityItem> { new() { Id = 0, DisplayName = "None" } };
+        _natureItems = new List<NatureItem> { new() { Id = 0, DisplayName = "Hardy" } };
+        _itemItems = new List<ItemItem> { new() { Id = 0, DisplayName = "None" } };
+        _ballItems = new List<BallItem> { new() { Id = 0, DisplayName = "None" } };
+        _formItems = new List<FormItem> { new() { Id = 0, DisplayName = "Normal Form" } };
     }
 }
 

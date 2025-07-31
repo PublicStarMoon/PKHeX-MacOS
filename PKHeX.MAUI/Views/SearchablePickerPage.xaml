@@ -2,9 +2,11 @@
 <ContentPage x:Class="PKHeX.MAUI.Views.SearchablePickerPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:PKHeX.MAUI.Views.Components"
              Title="{Binding Title}">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -27,8 +29,17 @@
                    BackgroundColor="#F8F9FA" 
                    Margin="10,0" />
         
+        <!-- Search Info Label -->
+        <Label Grid.Row="2"
+               x:Name="SearchInfoLabel"
+               FontSize="12"
+               TextColor="#666"
+               HorizontalOptions="Center"
+               Margin="10,5"
+               IsVisible="False" />
+        
         <!-- List View -->
-        <CollectionView Grid.Row="2" 
+        <CollectionView Grid.Row="3" 
                         x:Name="ItemsCollectionView"
                         ItemsSource="{Binding FilteredItems}"
                         SelectionMode="Single"
@@ -62,7 +73,7 @@
         </CollectionView>
         
         <!-- Action Buttons -->
-        <StackLayout Grid.Row="3" 
+        <StackLayout Grid.Row="4" 
                      Orientation="Horizontal" 
                      HorizontalOptions="Center" 
                      Margin="10">
@@ -79,5 +90,8 @@
                     WidthRequest="120" 
                     Margin="5" />
         </StackLayout>
+        
+        <!-- Loading Spinner for data initialization -->
+        <components:LoadingSpinner x:Name="LoadingSpinner" Grid.RowSpan="5" />
     </Grid>
 </ContentPage>

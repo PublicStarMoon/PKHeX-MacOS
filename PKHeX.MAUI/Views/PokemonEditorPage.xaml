@@ -2,6 +2,7 @@
 <ContentPage x:Class="PKHeX.MAUI.Views.PokemonEditorPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:PKHeX.MAUI.Views.Components"
              Title="Pokemon Editor">
 
     <Grid BackgroundColor="#F8F9FA">
@@ -396,6 +397,8 @@
 
             </StackLayout>
         </ScrollView>
+        
+        <!-- Loading Spinner for data initialization -->
+        <components:LoadingSpinner x:Name="LoadingSpinner" Grid.RowSpan="2" />
     </Grid>
-
 </ContentPage>

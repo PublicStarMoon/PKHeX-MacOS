@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using Microsoft.Maui.Controls;
 using PKHeX.MAUI.Services;
+using PKHeX.MAUI.Models;
 
 namespace PKHeX.MAUI.Views;
 
@@ -727,21 +728,49 @@ public partial class InventoryEditorPage : ContentPage
 
         try
         {
-            var itemIdResult = await DisplayPromptAsync("Add New Item", 
-                "Enter Item ID:", 
-                placeholder: "e.g., 15", 
-                keyboard: Keyboard.Numeric);
-
-            if (itemIdResult == null) return;
-
-            if (!int.TryParse(itemIdResult, out var itemId))
+            // Get items data immediately - no blocking!
+            var itemsList = await CachedDataService.GetItemsAsync();
+            
+            // Create picker page
+            var pickerPage = new SearchablePickerPage();
+            
+            // If data is empty (still loading), show loading spinner and wait briefly
+            if (!itemsList.Any())
             {
-                await DisplayAlert("Error", "Invalid Item ID. Please enter a number.", "OK");
+                pickerPage.LoadingSpinnerControl.Show("Loading items...");
+                
+                // Wait a bit for data to load, but don't block forever
+                for (int i = 0; i < 20 && !itemsList.Any(); i++) // Max 2 seconds
+                {
+                    await Task.Delay(100);
+                    itemsList = await CachedDataService.GetItemsAsync();
+                }
+                
+                pickerPage.LoadingSpinnerControl.Hide();
+            }
+            
+            // If we still have no data, show error
+            if (!itemsList.Any())
+            {
+                await DisplayAlert("Error", "Item data is still loading. Please try again in a moment.", "OK");
                 return;
             }
+            
+            pickerPage.SetItems(itemsList, "Select Item to Add");
+            
+            var completionSource = new TaskCompletionSource<IPickerItem?>();
+            pickerPage.CompletionSource = completionSource;
+            
+            await Navigation.PushModalAsync(pickerPage);
+            var selectedItem = await completionSource.Task;
+            
+            if (selectedItem == null) return;
 
+            var itemId = selectedItem.Id;
+            
+            // Ask for count with a better default
             var countResult = await DisplayPromptAsync("Add New Item", 
-                "Enter Item Count:", 
+                $"Enter count for {selectedItem.DisplayName}:", 
                 placeholder: "e.g., 1", 
                 keyboard: Keyboard.Numeric,
                 initialValue: "1");
@@ -802,7 +831,7 @@ public partial class InventoryEditorPage : ContentPage
                     
                     // Refresh the display
                     LoadItems();
-                    await DisplayAlert("Success", $"Added Item {itemId} with count {count}! (Configured for in-game visibility)", "OK");
+                    await DisplayAlert("Success", $"Added {selectedItem.DisplayName} with count {count}! (Configured for in-game visibility)", "OK");
                     return;
                 }
             }

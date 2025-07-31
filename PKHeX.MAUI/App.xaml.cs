@@ -1,4 +1,5 @@
 using PKHeX.Core;
+using PKHeX.MAUI.Services;
 
 namespace PKHeX.MAUI;
 
@@ -10,6 +11,11 @@ public partial class App : Application
         
         // Initialize PKHeX Core
         InitializePKHeXCore();
+        
+        // Start background initialization of game data
+        // This will load species/natures/moves/items data in a background thread
+        // to improve performance when opening editors later
+        CachedDataService.StartBackgroundInitialization();
         
         MainPage = new AppShell();
     }
@@ -24,10 +30,7 @@ public partial class App : Application
     {
         var window = base.CreateWindow(activationState);
         
-        if (window != null)
-        {
-            window.Title = "PKHeX for macOS";
-        }
+        window.Title = "PKHeX for macOS";
         
         return window;
     }

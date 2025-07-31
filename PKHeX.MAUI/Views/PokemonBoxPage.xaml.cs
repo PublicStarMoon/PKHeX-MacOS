@@ -2,6 +2,7 @@ using PKHeX.Core;
 using Microsoft.Maui.Graphics;
 using System.Collections.ObjectModel;
 using PKHeX.MAUI.Services;
+using PKHeX.MAUI.Models;
 
 namespace PKHeX.MAUI.Views;
 
@@ -211,33 +212,65 @@ public partial class PokemonBoxPage : ContentPage
     {
         try
         {
-            // For now, create a simple demo Pokemon
-            var result = await DisplayPromptAsync("Add Pokemon", 
-                "Enter Pokemon species number (1-1010):", 
-                placeholder: "25 for Pikachu");
-
-            if (result != null && int.TryParse(result, out int species))
+            // Get species data immediately - no blocking!
+            var speciesList = await CachedDataService.GetSpeciesAsync();
+            
+            // Create picker page
+            var pickerPage = new SearchablePickerPage();
+            
+            // If data is empty (still loading), show loading spinner and wait briefly
+            if (!speciesList.Any())
             {
-                if (species <= 0 || species > 1010)
+                pickerPage.LoadingSpinnerControl.Show("Loading species...");
+                
+                // Wait a bit for data to load, but don't block forever
+                for (int i = 0; i < 20 && !speciesList.Any(); i++) // Max 2 seconds
                 {
-                    await DisplayAlert("Error", "Invalid species number. Please enter a number between 1 and 1010.", "OK");
-                    return;
+                    await Task.Delay(100);
+                    speciesList = await CachedDataService.GetSpeciesAsync();
                 }
-
-                // Create a new Pokemon based on the save file's format
-                var newPokemon = _saveFile.BlankPKM;
-                newPokemon.Species = (ushort)species;
-                newPokemon.CurrentLevel = 5;
-                newPokemon.Heal();
                 
-                // Place in box
-                _saveFile.SetBoxSlotAtIndex(newPokemon, _currentBox, slot);
-                _currentBoxPokemon[slot] = newPokemon;
-                
-                UpdatePokemonSlot(slot, newPokemon);
-                UpdateBoxCountLabel();
-                StatusLabel.Text = $"Added {GetSpeciesName((ushort)species)} to slot {slot + 1}";
+                pickerPage.LoadingSpinnerControl.Hide();
             }
+            
+            // If we still have no data, show error
+            if (!speciesList.Any())
+            {
+                await DisplayAlert("Error", "Species data is still loading. Please try again in a moment.", "OK");
+                return;
+            }
+            
+            pickerPage.SetItems(speciesList.Cast<IPickerItem>().ToList(), "Select Pokémon Species");
+            
+            var completionSource = new TaskCompletionSource<IPickerItem?>();
+            pickerPage.CompletionSource = completionSource;
+            
+            await Navigation.PushModalAsync(pickerPage);
+            var selectedSpecies = await completionSource.Task;
+            
+            if (selectedSpecies == null) return;
+
+            var species = selectedSpecies.Id;
+
+            if (species <= 0 || species > 1010)
+            {
+                await DisplayAlert("Error", "Invalid species number.", "OK");
+                return;
+            }
+
+            // Create a new Pokemon based on the save file's format
+            var newPokemon = _saveFile.BlankPKM;
+            newPokemon.Species = (ushort)species;
+            newPokemon.CurrentLevel = 5;
+            newPokemon.Heal();
+            
+            // Place in box
+            _saveFile.SetBoxSlotAtIndex(newPokemon, _currentBox, slot);
+            _currentBoxPokemon[slot] = newPokemon;
+            
+            UpdatePokemonSlot(slot, newPokemon);
+            UpdateBoxCountLabel();
+            StatusLabel.Text = $"Added {selectedSpecies.DisplayName} to slot {slot + 1}";
         }
         catch (Exception ex)
         {
