@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-maccatalyst17.0</TargetFramework>
-    <RuntimeIdentifier>maccatalyst-arm64</RuntimeIdentifier>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -10,6 +9,9 @@
     
     <!-- App Identifier for macOS Catalyst bundle requirement -->
     <ApplicationId>com.pkhex.macos.uitests</ApplicationId>
+    
+    <!-- Configure to build without specific runtime to match MAUI project build behavior -->
+    <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
