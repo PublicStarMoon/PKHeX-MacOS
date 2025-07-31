@@ -25,17 +25,20 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
     
-    - name: Cache .NET packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
-    
-    - name: Install MAUI workload
+    - name: Install .NET MAUI Workloads
       run: |
-        sudo dotnet workload install maui --skip-sign-check
+        dotnet workload install maui
+        dotnet workload install maccatalyst
+
+    - name: Repair Workloads
+      run: dotnet workload repair
+
+    - name: Clean Solution
+      run: dotnet clean
+
+    # - name: Install MAUI workload
+    #   run: |
+    #     sudo dotnet workload install maui --skip-sign-check
     
     - name: Install Node.js for Appium
       uses: actions/setup-node@v4
@@ -63,7 +66,7 @@ jobs:
         # rather than direct TCC database modification for better compatibility
     
     - name: Restore dependencies
-      run: dotnet restore --ignore-failed-sources
+      run: dotnet restore
     
     # - name: Build Core Projects  
     #   run: |
