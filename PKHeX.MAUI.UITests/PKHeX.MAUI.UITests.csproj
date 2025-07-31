@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-maccatalyst17.0</TargetFramework>
+    <RuntimeIdentifier>maccatalyst-arm64</RuntimeIdentifier>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
