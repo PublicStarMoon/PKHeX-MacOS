@@ -76,10 +76,43 @@ public abstract class BaseTest : IDisposable
             
             // Take initial screenshot
             await ScreenshotHelper.TakeScreenshot(Driver, "app_startup");
+            
+            // Enable demo mode for all tests - this allows access to editors without real save files
+            await EnableDemoMode();
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to initialize Appium driver: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Enables demo mode for all tests to allow access to editors without real save files
+    /// </summary>
+    protected virtual async Task EnableDemoMode()
+    {
+        try
+        {
+            // Wait for main page to load
+            await MainPage.WaitForPageToLoad();
+            await ScreenshotHelper.TakeScreenshot(Driver!, "main_page_loaded_for_demo");
+            
+            // Click demo mode button to enable demo mode
+            await MainPage.ClickDemoMode();
+            await ScreenshotHelper.TakeScreenshot(Driver!, "demo_mode_enabled");
+            
+            // Wait for demo mode to be enabled
+            await WaitHelper.WaitAsync(TestDataHelper.Timeouts.NavigationDelay);
+            
+            // Verify demo mode is enabled
+            if (!MainPage.IsDemoModeEnabled())
+            {
+                throw new InvalidOperationException("Failed to enable demo mode - editors may not be accessible");
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to enable demo mode: {ex.Message}. All tests require demo mode to access editors.", ex);
         }
     }
 

@@ -4,11 +4,12 @@ This document describes the automated UI testing framework for PKHeX macOS MAUI 
 
 ## Overview
 
-The UI testing framework uses **Appium WebDriver** with **xUnit** to automate testing of the PKHeX macOS application. It covers three main test scenarios:
+The UI testing framework uses **Appium WebDriver** with **xUnit** to automate testing of the PKHeX macOS application. Demo mode is automatically enabled for all tests to provide access to editors without requiring real save files.
 
-1. **Demo Mode Activation**: Testing the demo mode functionality and UI state changes
-2. **Pokemon Creation and Editing**: Complete workflow for creating and editing Pokemon
-3. **Inventory Management**: Testing item management and pouch functionality
+The framework covers two main test scenarios:
+
+1. **Pokemon Creation and Editing**: Complete workflow for creating and editing Pokemon
+2. **Inventory Management**: Testing item management and pouch functionality
 
 ## Project Structure
 
@@ -16,8 +17,7 @@ The UI testing framework uses **Appium WebDriver** with **xUnit** to automate te
 PKHeX.MAUI.UITests/
 ├── PKHeX.MAUI.UITests.csproj          # Project file with dependencies
 ├── Tests/                              # Test classes
-│   ├── BaseTest.cs                     # Base class for all UI tests
-│   ├── DemoModeTests.cs               # Demo mode activation tests
+│   ├── BaseTest.cs                     # Base class with demo mode auto-enablement
 │   ├── PokemonCreationTests.cs        # Pokemon creation workflow tests
 │   └── InventoryManagementTests.cs    # Inventory management tests
 ├── PageObjects/                        # Page Object Model implementation
@@ -32,27 +32,17 @@ PKHeX.MAUI.UITests/
 └── Screenshots/                        # Generated screenshots (runtime)
 ```
 
-## Test Cases
+## Test Framework Features
 
-### 1. Demo Mode Tests (`DemoModeTests.cs`)
+### Automatic Demo Mode
+All tests automatically enable demo mode during setup, which:
+- Provides access to all editors without requiring real save files
+- Ensures consistent test environment across all test runs
+- Eliminates the need for save file management in testing
 
-Tests the demo mode functionality that allows users to test the application without a save file.
+### Test Coverage
 
-**Key Test Cases:**
-- `DemoMode_WhenActivated_ShouldEnableAllEditors`: Verifies demo mode enables all editor buttons
-- `DemoMode_WhenEnabled_ShouldAllowNavigationToBoxEditor`: Tests navigation to box editor
-- `DemoMode_WhenEnabled_ShouldAllowNavigationToInventoryEditor`: Tests navigation to inventory editor
-- `DemoMode_BeforeActivation_ShouldHaveDisabledEditors`: Verifies initial disabled state
-- `DemoMode_ActivationFlow_ShouldHandleConfirmationDialogs`: Tests dialog handling
-
-**Screenshots Captured:**
-- Initial application state
-- Demo mode button click
-- Demo save file loaded confirmation
-- Enabled editor buttons
-- Navigation to different editors
-
-### 2. Pokemon Creation Tests (`PokemonCreationTests.cs`)
+### 1. Pokemon Creation Tests (`PokemonCreationTests.cs`)
 
 Tests the complete Pokemon creation and editing workflow.
 
@@ -72,7 +62,7 @@ Tests the complete Pokemon creation and editing workflow.
 - Move configuration
 - Save confirmation
 
-### 3. Inventory Management Tests (`InventoryManagementTests.cs`)
+### 2. Inventory Management Tests (`InventoryManagementTests.cs`)
 
 Tests inventory management functionality including pouch navigation and item manipulation.
 
@@ -172,9 +162,6 @@ The framework implements the Page Object Model pattern for maintainable and reus
 ### Running Individual Test Classes
 
 ```bash
-# Demo mode tests only
-dotnet test --filter "FullyQualifiedName~DemoModeTests"
-
 # Pokemon creation tests only
 dotnet test --filter "FullyQualifiedName~PokemonCreationTests"
 

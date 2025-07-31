@@ -11,11 +11,6 @@ public class InventoryManagementTests : BaseTest, IAsyncLifetime
     public async Task InitializeAsync()
     {
         await SetupAppiumDriver();
-        
-        // Enable demo mode for all tests in this class
-        await MainPage.WaitForPageToLoad();
-        await MainPage.ClickDemoMode();
-        await WaitHelper.WaitAsync(TestDataHelper.Timeouts.NavigationDelay);
     }
 
     public async Task DisposeAsync()
