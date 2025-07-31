@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.InputDialogPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Title="输入数量"
+             BackgroundColor="#F8F9FA">
+
+    <Grid>
+        <!-- Semi-transparent background -->
+        <BoxView BackgroundColor="Black" Opacity="0.5" />
+        
+        <!-- Dialog content -->
+        <Frame BackgroundColor="White"
+               CornerRadius="15"
+               Padding="30"
+               Margin="40"
+               VerticalOptions="Center"
+               HorizontalOptions="Center"
+               MinimumWidthRequest="300"
+               HasShadow="True">
+            
+            <StackLayout Spacing="20">
+                <!-- Title -->
+                <Label x:Name="TitleLabel"
+                       Text="输入数量"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#2C3E50"
+                       HorizontalTextAlignment="Center" />
+                
+                <!-- Message -->
+                <Label x:Name="MessageLabel"
+                       Text="请输入道具数量:"
+                       FontSize="14"
+                       TextColor="#34495E"
+                       HorizontalTextAlignment="Center" />
+                
+                <!-- Input field -->
+                <Entry x:Name="InputEntry"
+                       Placeholder="例如: 1"
+                       Text="1"
+                       Keyboard="Numeric"
+                       FontSize="16"
+                       BackgroundColor="#F8F9FA"
+                       TextColor="#2C3E50"
+                       HorizontalTextAlignment="Center" />
+                
+                <!-- Buttons -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="15">
+                    <Button x:Name="CancelButton"
+                            Text="取消"
+                            BackgroundColor="#95A5A6"
+                            TextColor="White"
+                            CornerRadius="8"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            Grid.Column="0"
+                            Clicked="OnCancelClicked" />
+                    
+                    <Button x:Name="OkButton"
+                            Text="确定"
+                            BackgroundColor="#3498DB"
+                            TextColor="White"
+                            CornerRadius="8"
+                            FontSize="14"
+                            FontAttributes="Bold"
+                            Grid.Column="1"
+                            Clicked="OnOkClicked" />
+                </Grid>
+            </StackLayout>
+        </Frame>
+    </Grid>
+</ContentPage>

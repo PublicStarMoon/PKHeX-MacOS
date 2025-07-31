@@ -409,12 +409,21 @@ public partial class InventoryEditorPage : ContentPage
             ItemsContainer.Children.Add(columnHeaderFrame);
 
             // Only show items that have a count > 0 and index > 0 (non-empty items)
+            System.Diagnostics.Debug.WriteLine($"LoadItems: 开始显示道具，总槽位数: {_currentPouch.Items.Length}");
+            
             for (int i = 0; i < _currentPouch.Items.Length; i++)
             {
                 var item = _currentPouch.Items[i];
+                System.Diagnostics.Debug.WriteLine($"LoadItems: 槽位 {i}: ID={item.Index}, Count={item.Count}");
+                
                 if (item.Index > 0 && item.Count > 0) // Only show actual items
                 {
+                    System.Diagnostics.Debug.WriteLine($"LoadItems: 显示槽位 {i} 的道具: {GetItemName(item.Index)}");
                     CreateItemUI(item.Index, item.Count, i, isDemo: false);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"LoadItems: 跳过槽位 {i} (ID={item.Index}, Count={item.Count})");
                 }
             }
 
@@ -857,6 +866,9 @@ public partial class InventoryEditorPage : ContentPage
                 // 等待用户选择
                 var selectedItem = await completionSource.Task;
                 
+                // 添加调试日志（而非用户可见的对话框）
+                System.Diagnostics.Debug.WriteLine($"接收到的选择结果: {selectedItem?.DisplayName ?? "null"}, ID: {selectedItem?.Id ?? -1}");
+                
                 if (selectedItem == null)
                 {
                     System.Diagnostics.Debug.WriteLine("用户取消了选择");
@@ -865,25 +877,110 @@ public partial class InventoryEditorPage : ContentPage
 
                 System.Diagnostics.Debug.WriteLine($"用户选择了道具: {selectedItem.DisplayName} (ID: {selectedItem.Id})");
 
-                // 获取数量
-                var countResult = await DisplayPromptAsync("添加新道具", 
-                    $"为 {selectedItem.DisplayName} 输入数量:", 
-                    placeholder: "例如: 1", 
-                    keyboard: Keyboard.Numeric,
-                    initialValue: "1");
-
-                if (countResult == null) return;
-
-                if (!int.TryParse(countResult, out var count) || count < 1)
-                {
-                    await DisplayAlert("错误", "请输入有效的数量（大于0的数字）。", "确定");
-                    return;
-                }
-
-                count = Math.Min(count, _currentPouch.MaxCount);
+                // 直接添加道具到背包，不用单独的方法
+                await Task.Delay(500); // 给UI时间恢复
                 
-                // 添加道具
-                await AddItemToPouch(selectedItem.Id, count, selectedItem.DisplayName);
+                // 添加道具到背包
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"开始添加道具: {selectedItem.DisplayName} (ID: {selectedItem.Id})");
+                    
+                    if (_currentPouch?.Items == null)
+                    {
+                        await DisplayAlert("错误", "当前背包为空，无法添加道具", "确定");
+                        return;
+                    }
+                    
+                    // 查找空槽位或相同道具的槽位
+                    bool added = false;
+                    int emptySlot = -1;
+                    int sameItemSlot = -1;
+                    
+                    for (int i = 0; i < _currentPouch.Items.Length; i++)
+                    {
+                        var item = _currentPouch.Items[i];
+                        
+                        // 找到相同道具且未满的槽位
+                        if (item.Index == selectedItem.Id && item.Count > 0 && item.Count < _currentPouch.MaxCount)
+                        {
+                            sameItemSlot = i;
+                            break;
+                        }
+                        
+                        // 记录第一个空槽位
+                        if (emptySlot == -1 && (item.Index == 0 || item.Count == 0))
+                        {
+                            emptySlot = i;
+                        }
+                    }
+                    
+                    int targetSlot = -1;
+                    
+                    // 优先增加已有相同道具的数量
+                    if (sameItemSlot >= 0)
+                    {
+                        _currentPouch.Items[sameItemSlot].Count++;
+                        targetSlot = sameItemSlot;
+                        added = true;
+                        System.Diagnostics.Debug.WriteLine($"增加已有道具数量，槽位: {sameItemSlot}");
+                    }
+                    // 否则使用空槽位
+                    else if (emptySlot >= 0)
+                    {
+                        _currentPouch.Items[emptySlot].Index = selectedItem.Id;
+                        _currentPouch.Items[emptySlot].Count = 1;
+                        targetSlot = emptySlot;
+                        added = true;
+                        System.Diagnostics.Debug.WriteLine($"添加到空槽位: {emptySlot}");
+                    }
+                    
+                    if (added)
+                    {
+                        // CRITICAL: Enable SetNew flag for Gen8/Gen9 compatibility
+                        if (_currentPouch is InventoryPouch8 pouch8)
+                        {
+                            pouch8.SetNew = true;
+                            System.Diagnostics.Debug.WriteLine("设置 Gen8 SetNew 标志");
+                        }
+                        else if (_currentPouch is InventoryPouch9 pouch9)
+                        {
+                            pouch9.SetNew = true;
+                            System.Diagnostics.Debug.WriteLine("设置 Gen9 SetNew 标志");
+                        }
+                        
+                        // For Gen9, ensure proper configuration for in-game visibility
+                        if (_currentPouch.Items[targetSlot] is InventoryItem9 item9 && _currentPouch is InventoryPouch9 p9)
+                        {
+                            item9.Pouch = p9.PouchIndex;
+                            item9.IsUpdated = true;
+                            item9.IsNew = true;
+                            System.Diagnostics.Debug.WriteLine("设置 Gen9 道具属性");
+                        }
+                        
+                        // 刷新显示
+                        LoadItems();
+                        
+                        await DisplayAlert("添加成功", 
+                            $"道具已添加！\n" +
+                            $"名称: {selectedItem.DisplayName}\n" +
+                            $"ID: {selectedItem.Id}\n" +
+                            $"槽位: {targetSlot}\n" +
+                            $"数量: {_currentPouch.Items[targetSlot].Count}", 
+                            "确定");
+                        
+                        System.Diagnostics.Debug.WriteLine($"道具添加成功：槽位 {targetSlot}, 数量 {_currentPouch.Items[targetSlot].Count}");
+                    }
+                    else
+                    {
+                        await DisplayAlert("背包已满", "所有槽位都已被使用且已达到最大数量", "确定");
+                        System.Diagnostics.Debug.WriteLine("背包已满，无法添加道具");
+                    }
+                }
+                catch (Exception addEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"添加道具异常: {addEx}");
+                    await DisplayAlert("添加失败", $"添加道具时发生错误: {addEx.Message}", "确定");
+                }
             }
             catch (Exception pickerEx)
             {
@@ -1092,86 +1189,6 @@ public partial class InventoryEditorPage : ContentPage
         }
         
         return $"道具 {itemIndex}";
-    }
-
-    private async Task AddItemToPouch(int itemId, int count, string itemName)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"开始添加道具: ID={itemId}, Count={count}, Name={itemName}");
-            
-            // 检查道具是否已存在
-            int existingIndex = -1;
-            for (int i = 0; i < _currentPouch!.Items.Length; i++)
-            {
-                if (_currentPouch.Items[i].Index == itemId)
-                {
-                    existingIndex = i;
-                    break;
-                }
-            }
-
-            if (existingIndex >= 0)
-            {
-                // 道具已存在，增加数量
-                var currentCount = _currentPouch.Items[existingIndex].Count;
-                var newCount = Math.Min(currentCount + count, _currentPouch.MaxCount);
-                _currentPouch.Items[existingIndex].Count = newCount;
-                
-                System.Diagnostics.Debug.WriteLine($"道具已存在于槽位 {existingIndex}，数量从 {currentCount} 增加到 {newCount}");
-                await DisplayAlert("成功", $"已将 {itemName} 的数量增加到 {newCount}！", "确定");
-            }
-            else
-            {
-                // 寻找空槽位
-                int emptySlot = -1;
-                for (int i = 0; i < _currentPouch.Items.Length; i++)
-                {
-                    if (_currentPouch.Items[i].Index == 0 || _currentPouch.Items[i].Count == 0)
-                    {
-                        emptySlot = i;
-                        break;
-                    }
-                }
-
-                if (emptySlot == -1)
-                {
-                    await DisplayAlert("错误", "背包已满，没有空槽位可用。", "确定");
-                    return;
-                }
-
-                // 添加新道具到空槽位
-                _currentPouch.Items[emptySlot].Index = itemId;
-                _currentPouch.Items[emptySlot].Count = count;
-                
-                System.Diagnostics.Debug.WriteLine($"添加道具到空槽位 {emptySlot}: ID={itemId}, Count={count}");
-                await DisplayAlert("成功", $"已添加 {itemName}，数量 {count}！", "确定");
-            }
-
-            // 设置PKHeX.Core需要的标志
-            try
-            {
-                // 根据InventoryPouch.cs，这些标志用于标记背包有变化
-                if (_currentPouch.GetType().GetProperty("SetNew") != null)
-                {
-                    _currentPouch.GetType().GetProperty("SetNew")?.SetValue(_currentPouch, true);
-                    System.Diagnostics.Debug.WriteLine("设置了SetNew标志");
-                }
-            }
-            catch (Exception flagEx)
-            {
-                System.Diagnostics.Debug.WriteLine($"设置标志失败（非关键错误）: {flagEx.Message}");
-            }
-            
-            // 刷新显示
-            LoadCurrentPouch();
-            System.Diagnostics.Debug.WriteLine("道具添加完成，界面已刷新");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"AddItemToPouch 异常: {ex}");
-            await DisplayAlert("错误", $"添加道具时出错: {ex.Message}", "确定");
-        }
     }
 
     private async void OnMaxAllClicked(object sender, EventArgs e)

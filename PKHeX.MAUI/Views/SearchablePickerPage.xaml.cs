@@ -226,6 +226,9 @@ public partial class SearchablePickerPage : ContentPage
             {
                 SelectedItem = selectedItem;
                 System.Diagnostics.Debug.WriteLine($"选择了道具: {selectedItem.DisplayName}");
+                
+                // 更新页面标题来显示当前选择
+                PageTitle = $"选择 - 当前: {selectedItem.DisplayName}";
             }
         }
         catch (Exception ex)
@@ -239,12 +242,36 @@ public partial class SearchablePickerPage : ContentPage
         try
         {
             System.Diagnostics.Debug.WriteLine($"确定按钮点击，选择的道具: {SelectedItem?.DisplayName ?? "无"}");
-            CompletionSource?.SetResult(SelectedItem);
+            
+            // 显示调试信息给用户
+            if (SelectedItem == null)
+            {
+                await DisplayAlert("调试信息", "没有选择任何道具！请先点击一个道具来选择它。", "OK");
+                return;
+            }
+            
+            var confirmResult = await DisplayAlert("确认选择", 
+                $"您选择了: {SelectedItem.DisplayName} (ID: {SelectedItem.Id})\n\n确定要选择这个道具吗？", 
+                "确定", "取消");
+                
+            if (!confirmResult)
+            {
+                return; // 用户取消了选择
+            }
+            
+            // 在关闭页面之前设置结果
+            var result = SelectedItem;
+            CompletionSource?.SetResult(result);
+            
+            // 等待一小段时间确保结果被处理
+            await Task.Delay(50);
+            
             await Navigation.PopModalAsync();
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"OnOkClicked 异常: {ex}");
+            await DisplayAlert("错误", $"选择时发生错误: {ex.Message}", "OK");
             CompletionSource?.SetException(ex);
         }
     }
@@ -254,7 +281,13 @@ public partial class SearchablePickerPage : ContentPage
         try
         {
             System.Diagnostics.Debug.WriteLine("取消按钮点击");
+            
+            // 在关闭页面之前设置null结果
             CompletionSource?.SetResult(null);
+            
+            // 等待一小段时间确保结果被处理
+            await Task.Delay(50);
+            
             await Navigation.PopModalAsync();
         }
         catch (Exception ex)
