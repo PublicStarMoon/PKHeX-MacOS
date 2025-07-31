@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    
+    <!-- App Identifier for macOS Catalyst bundle requirement -->
+    <ApplicationId>com.pkhex.macos.uitests</ApplicationId>
   </PropertyGroup>
 
   <ItemGroup>
