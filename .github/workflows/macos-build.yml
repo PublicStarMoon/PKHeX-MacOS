@@ -39,15 +39,15 @@ jobs:
         cd PKHeX.MAUI
         # PKHeX.MAUI only targets net8.0-maccatalyst, not net8.0
         # Must explicitly specify framework to avoid NETSDK1047 error
-        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst
+        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0
     
     - name: Verify build output
       run: |
         cd PKHeX.MAUI
-        if [ -d "bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
+        if [ -d "bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
           echo "✅ MacOS app bundle created successfully!"
-          echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app"
-          ls -la bin/Release/net8.0-maccatalyst/maccatalyst-arm64/
+          echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app"
+          ls -la bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/
         else
           echo "⚠️ MacOS app bundle not found, checking other output directories..."
           find bin -name "*.app" -type d || echo "No .app bundles found"
@@ -59,7 +59,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PKHeX-MacOS-Build
-        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/
+        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/
         retention-days: 30
     
     - name: Build status summary

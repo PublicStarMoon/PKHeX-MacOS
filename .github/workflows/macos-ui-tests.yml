@@ -83,18 +83,18 @@ jobs:
     - name: Build PKHeX MAUI for macOS
       run: |
         cd PKHeX.MAUI
-        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst
+        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0
     
     - name: Verify MAUI build output
       run: |
         cd PKHeX.MAUI
-        if [ -d "bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
+        if [ -d "bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
           echo "✅ MacOS app bundle created successfully!"
-          echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app"
-          ls -la bin/Release/net8.0-maccatalyst/maccatalyst-arm64/
+          echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app"
+          ls -la bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/
           
           # Set app path for UI tests
-          echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
+          echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
         else
           echo "⚠️ MacOS app bundle not found, checking other output directories..."
           find bin -name "*.app" -type d || echo "No .app bundles found"
@@ -184,7 +184,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: PKHeX-MacOS-Build
-        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst/
+        path: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/
         retention-days: 30
     
     - name: Upload Appium Logs
@@ -235,7 +235,7 @@ jobs:
         fi
         
         # MacOS app
-        if [ -d PKHeX.MAUI/bin/Release/net8.0-maccatalyst ]; then
+        if [ -d PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0 ]; then
           echo "📱 **MacOS App**: Ready for deployment" >> $GITHUB_STEP_SUMMARY
         fi
         
