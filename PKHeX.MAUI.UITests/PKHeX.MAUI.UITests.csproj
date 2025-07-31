@@ -9,6 +9,9 @@
     
     <!-- App Identifier for macOS Catalyst bundle requirement -->
     <ApplicationId>com.pkhex.macos.uitests</ApplicationId>
+    
+    <!-- Match the main MAUI project's platform version to avoid Mac Catalyst mapping errors -->
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>
