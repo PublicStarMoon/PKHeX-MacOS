@@ -97,7 +97,7 @@ public partial class PokemonEditorPage : ContentPage
 
             // Basic information  
             var generationInfo = GetGenerationInfo(_pokemon);
-            HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} (Gen {_pokemon.Format})";
+            HeaderLabel.Text = $"编辑中: {GetSpeciesName(_pokemon.Species)} (第{_pokemon.Format}世代)";
             GenerationLabel.Text = generationInfo;
             SpeciesEntry.Text = _pokemon.Species.ToString();
             NicknameEntry.Text = _pokemon.Nickname;
@@ -138,30 +138,30 @@ public partial class PokemonEditorPage : ContentPage
             SpeedEVEntry.Text = _pokemon.EV_SPE.ToString();
 
             // Moves - Show actual move names instead of just IDs
-            Move1Button.Text = _pokemon.Move1 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move1);
-            Move2Button.Text = _pokemon.Move2 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move2);
-            Move3Button.Text = _pokemon.Move3 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move3);
-            Move4Button.Text = _pokemon.Move4 == 0 ? "Select Move..." : GetMoveName((ushort)_pokemon.Move4);
+            Move1Button.Text = _pokemon.Move1 == 0 ? "选择招式..." : GetMoveName((ushort)_pokemon.Move1);
+            Move2Button.Text = _pokemon.Move2 == 0 ? "选择招式..." : GetMoveName((ushort)_pokemon.Move2);
+            Move3Button.Text = _pokemon.Move3 == 0 ? "选择招式..." : GetMoveName((ushort)_pokemon.Move3);
+            Move4Button.Text = _pokemon.Move4 == 0 ? "选择招式..." : GetMoveName((ushort)_pokemon.Move4);
 
             // Physical Properties
             GenderEntry.Text = _pokemon.Gender.ToString();
             
             // Set ability button text - show actual ability name
-            AbilityButton.Text = _pokemon.Ability == 0 ? "Select Ability..." : GetAbilityName(_pokemon.Ability);
+            AbilityButton.Text = _pokemon.Ability == 0 ? "选择特性..." : GetAbilityName(_pokemon.Ability);
             
             // Set form button text
             var selectedForm = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
-            FormButton.Text = selectedForm?.DisplayName ?? "Select Form...";
+            FormButton.Text = selectedForm?.DisplayName ?? "选择形态...";
             
             // Set ball button text
             var selectedBall = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
-            BallButton.Text = selectedBall?.DisplayName ?? "Select Ball...";
+            BallButton.Text = selectedBall?.DisplayName ?? "选择精灵球...";
             
             ShinyCheckBox.IsChecked = _pokemon.IsShiny;
             EggCheckBox.IsChecked = _pokemon.IsEgg;
             
             // Set held item button text - show actual item name
-            HeldItemButton.Text = _pokemon.HeldItem == 0 ? "Select Item..." : GetItemName(_pokemon.HeldItem);
+            HeldItemButton.Text = _pokemon.HeldItem == 0 ? "选择道具..." : GetItemName(_pokemon.HeldItem);
 
             // Origin & Met Information
             OTNameEntry.Text = _pokemon.OT_Name;
@@ -289,12 +289,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move1);
-            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 1", currentSelection);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "选择招式 1", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Move1 = (ushort)result.Id;
-                Move1Button.Text = result.DisplayName;
+                Move1Button.Text = GetMoveName((ushort)result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -316,12 +316,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move2);
-            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 2", currentSelection);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "选择招式 2", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Move2 = (ushort)result.Id;
-                Move2Button.Text = result.DisplayName;
+                Move2Button.Text = GetMoveName((ushort)result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -343,12 +343,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move3);
-            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 3", currentSelection);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "选择招式 3", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Move3 = (ushort)result.Id;
-                Move3Button.Text = result.DisplayName;
+                Move3Button.Text = GetMoveName((ushort)result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -370,12 +370,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _moveItems.FirstOrDefault(x => x.Id == _pokemon.Move4);
-            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "Select Move 4", currentSelection);
+            var result = await ShowPickerSafely(_moveItems.Cast<IPickerItem>().ToList(), "选择招式 4", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Move4 = (ushort)result.Id;
-                Move4Button.Text = result.DisplayName;
+                Move4Button.Text = GetMoveName((ushort)result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -397,12 +397,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _abilityItems.FirstOrDefault(x => x.Id == _pokemon.Ability);
-            var result = await ShowPickerSafely(_abilityItems.Cast<IPickerItem>().ToList(), "Select Ability", currentSelection);
+            var result = await ShowPickerSafely(_abilityItems.Cast<IPickerItem>().ToList(), "选择特性", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Ability = result.Id;
-                AbilityButton.Text = result.DisplayName;
+                AbilityButton.Text = GetAbilityName(result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -418,12 +418,12 @@ public partial class PokemonEditorPage : ContentPage
         try
         {
             var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
-            var result = await ShowPickerSafely(_natureItems.Cast<IPickerItem>().ToList(), "Select Nature", currentSelection);
+            var result = await ShowPickerSafely(_natureItems.Cast<IPickerItem>().ToList(), "选择性格", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Nature = result.Id;
-                NatureButton.Text = result.DisplayName;
+                NatureButton.Text = result.DisplayName; // Nature items should already have Chinese names
             }
         }
         catch (Exception ex)
@@ -439,13 +439,13 @@ public partial class PokemonEditorPage : ContentPage
         try
         {
             var currentSelection = _formItems.FirstOrDefault(x => x.Id == _pokemon.Form);
-            var result = await ShowPickerSafely(_formItems.Cast<IPickerItem>().ToList(), "Select Form", currentSelection);
+            var result = await ShowPickerSafely(_formItems.Cast<IPickerItem>().ToList(), "选择形态", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Form = (byte)result.Id;
-                FormButton.Text = result.DisplayName;
-                HeaderLabel.Text = $"Editing: {GetSpeciesName(_pokemon.Species)} {GetFormName(_pokemon.Species, (byte)result.Id)} (Gen {_pokemon.Format})";
+                FormButton.Text = GetFormName(_pokemon.Species, (byte)result.Id); // Use our Chinese-enabled method
+                HeaderLabel.Text = $"编辑中: {GetSpeciesName(_pokemon.Species)} {GetFormName(_pokemon.Species, (byte)result.Id)} (第{_pokemon.Format}世代)";
             }
         }
         catch (Exception ex)
@@ -461,12 +461,12 @@ public partial class PokemonEditorPage : ContentPage
         try
         {
             var currentSelection = _ballItems.FirstOrDefault(x => x.Id == _pokemon.Ball);
-            var result = await ShowPickerSafely(_ballItems.Cast<IPickerItem>().ToList(), "Select Ball", currentSelection);
+            var result = await ShowPickerSafely(_ballItems.Cast<IPickerItem>().ToList(), "选择精灵球", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.Ball = result.Id;
-                BallButton.Text = result.DisplayName;
+                BallButton.Text = result.DisplayName; // Ball items should already have Chinese names
             }
         }
         catch (Exception ex)
@@ -488,12 +488,12 @@ public partial class PokemonEditorPage : ContentPage
             }
             
             var currentSelection = _itemItems.FirstOrDefault(x => x.Id == _pokemon.HeldItem);
-            var result = await ShowPickerSafely(_itemItems.Cast<IPickerItem>().ToList(), "Select Held Item", currentSelection);
+            var result = await ShowPickerSafely(_itemItems.Cast<IPickerItem>().ToList(), "选择携带道具", currentSelection);
             
             if (result != null && _pokemon != null)
             {
                 _pokemon.HeldItem = result.Id;
-                HeldItemButton.Text = result.DisplayName;
+                HeldItemButton.Text = GetItemName(result.Id); // Use our Chinese-enabled method
             }
         }
         catch (Exception ex)
@@ -898,115 +898,221 @@ public partial class PokemonEditorPage : ContentPage
     }
 
     /// <summary>
-    /// Gets the item name for display
+    /// Gets the item name for display with Chinese priority
     /// </summary>
     private string GetItemName(int itemId)
     {
         try
         {
-            if (itemId == 0) return "None";
+            if (itemId == 0) return "无道具";
 
-            var englishItems = GameInfo.GetStrings("en").itemlist;
-            if (itemId < englishItems.Length)
+            // Get Chinese name first (try simplified, then traditional)
+            var chineseStrings = GameInfo.GetStrings("zh");
+            string chineseName = "";
+            if (chineseStrings?.itemlist != null && itemId < chineseStrings.itemlist.Length)
             {
-                return englishItems[itemId];
+                chineseName = chineseStrings.itemlist[itemId];
             }
-            return $"Item {itemId}";
+            else
+            {
+                // Try traditional Chinese if simplified not available
+                var traditionalStrings = GameInfo.GetStrings("zh2");
+                if (traditionalStrings?.itemlist != null && itemId < traditionalStrings.itemlist.Length)
+                {
+                    chineseName = traditionalStrings.itemlist[itemId];
+                }
+            }
+
+            // Get English name as fallback/supplement
+            var englishStrings = GameInfo.GetStrings("en");
+            string englishName = "Unknown";
+            if (englishStrings?.itemlist != null && itemId < englishStrings.itemlist.Length)
+            {
+                englishName = englishStrings.itemlist[itemId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
         }
         catch
         {
-            return $"Item {itemId}";
+            return $"道具 {itemId}";
         }
     }
 
     /// <summary>
-    /// Gets the multilingual move name in both English and Chinese
+    /// Gets the move name with Chinese priority
     /// </summary>
     private string GetMoveName(ushort moveId)
     {
         try
         {
-            if (moveId == 0) return "None";
+            if (moveId == 0) return "无招式";
 
-            // Get move names using GameInfo.GetStrings
-            var englishMoves = GameInfo.GetStrings("en").movelist;
-
-            if (moveId < englishMoves.Length)
+            // Get Chinese name first (try simplified, then traditional)
+            var chineseStrings = GameInfo.GetStrings("zh");
+            string chineseName = "";
+            if (chineseStrings?.movelist != null && moveId < chineseStrings.movelist.Length)
             {
-                return englishMoves[moveId];
+                chineseName = chineseStrings.movelist[moveId];
             }
-            return $"Move {moveId}";
+            else
+            {
+                // Try traditional Chinese if simplified not available
+                var traditionalStrings = GameInfo.GetStrings("zh2");
+                if (traditionalStrings?.movelist != null && moveId < traditionalStrings.movelist.Length)
+                {
+                    chineseName = traditionalStrings.movelist[moveId];
+                }
+            }
+
+            // Get English name as fallback/supplement
+            var englishStrings = GameInfo.GetStrings("en");
+            string englishName = "Unknown";
+            if (englishStrings?.movelist != null && moveId < englishStrings.movelist.Length)
+            {
+                englishName = englishStrings.movelist[moveId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
         }
         catch
         {
-            return $"Move {moveId}";
+            return $"招式 {moveId}";
         }
     }
 
     /// <summary>
-    /// Gets the multilingual ability name in both English and Chinese
+    /// Gets the ability name with Chinese priority
     /// </summary>
     private string GetAbilityName(int abilityId)
     {
         try
         {
-            if (abilityId == 0) return "None";
+            if (abilityId == 0) return "无特性";
 
-            // Get ability names using GameInfo.GetStrings
-            var englishAbilities = GameInfo.GetStrings("en").abilitylist;
-
-            if (abilityId < englishAbilities.Length)
+            // Get Chinese name first (try simplified, then traditional)
+            var chineseStrings = GameInfo.GetStrings("zh");
+            string chineseName = "";
+            if (chineseStrings?.abilitylist != null && abilityId < chineseStrings.abilitylist.Length)
             {
-                return englishAbilities[abilityId];
+                chineseName = chineseStrings.abilitylist[abilityId];
             }
-            return $"Ability {abilityId}";
+            else
+            {
+                // Try traditional Chinese if simplified not available
+                var traditionalStrings = GameInfo.GetStrings("zh2");
+                if (traditionalStrings?.abilitylist != null && abilityId < traditionalStrings.abilitylist.Length)
+                {
+                    chineseName = traditionalStrings.abilitylist[abilityId];
+                }
+            }
+
+            // Get English name as fallback/supplement
+            var englishStrings = GameInfo.GetStrings("en");
+            string englishName = "Unknown";
+            if (englishStrings?.abilitylist != null && abilityId < englishStrings.abilitylist.Length)
+            {
+                englishName = englishStrings.abilitylist[abilityId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
         }
         catch
         {
-            return $"Ability {abilityId}";
+            return $"特性 {abilityId}";
         }
     }
 
     /// <summary>
-    /// Gets the form name for a species with multilingual support
+    /// Gets the form name for a species with Chinese priority
     /// </summary>
     private string GetFormName(ushort species, byte form)
     {
         try
         {
-            if (form == 0) return "Normal Form";
+            if (form == 0) return "普通形态";
 
-            // Get form names using PKHeX's FormConverter
-            var englishStrings = GameInfo.GetStrings("en");
-            var chineseStrings = GameInfo.GetStrings("zh2") ?? GameInfo.GetStrings("zh");
-            
             // Use the pokemon's context if available, otherwise default to Gen 9
             var context = _pokemon?.Context ?? EntityContext.Gen9;
             
-            var forms = FormConverter.GetFormList(species, englishStrings.types, englishStrings.forms, GameInfo.GenderSymbolUnicode, context);
-            var formsChinese = FormConverter.GetFormList(species, chineseStrings?.types ?? englishStrings.types, 
-                chineseStrings?.forms ?? englishStrings.forms, GameInfo.GenderSymbolUnicode, context);
+            // Get Chinese form names first
+            var chineseStrings = GameInfo.GetStrings("zh") ?? GameInfo.GetStrings("zh2");
+            var englishStrings = GameInfo.GetStrings("en");
+            
+            var englishForms = FormConverter.GetFormList(species, englishStrings.types, englishStrings.forms, GameInfo.GenderSymbolUnicode, context);
+            var chineseForms = chineseStrings != null ? 
+                FormConverter.GetFormList(species, chineseStrings.types ?? englishStrings.types, 
+                    chineseStrings.forms ?? englishStrings.forms, GameInfo.GenderSymbolUnicode, context) :
+                null;
 
-            if (forms != null && form < forms.Length)
+            string englishName = "";
+            string chineseName = "";
+            
+            // Get English form name
+            if (englishForms != null && form < englishForms.Length)
             {
-                var englishName = forms[form];
-                var chineseName = "";
-                
-                if (formsChinese != null && form < formsChinese.Length)
-                    chineseName = formsChinese[form];
-
-                // Return format: "English Name (Chinese Name)" or just English if Chinese not available
-                if (!string.IsNullOrEmpty(chineseName) && chineseName != englishName)
-                    return $"{englishName} ({chineseName})";
-                else
-                    return englishName;
+                englishName = englishForms[form];
+            }
+            
+            // Get Chinese form name
+            if (chineseForms != null && form < chineseForms.Length)
+            {
+                chineseName = chineseForms[form];
             }
 
-            return $"Form {form}";
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            else if (!string.IsNullOrEmpty(englishName))
+            {
+                return englishName;
+            }
+
+            return $"形态 {form}";
         }
         catch
         {
-            return $"Form {form}";
+            return $"形态 {form}";
         }
     }
 }

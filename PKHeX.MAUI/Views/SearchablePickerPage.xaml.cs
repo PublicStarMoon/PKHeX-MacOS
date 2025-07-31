@@ -246,12 +246,12 @@ public partial class SearchablePickerPage : ContentPage
             // 显示调试信息给用户
             if (SelectedItem == null)
             {
-                await DisplayAlert("调试信息", "没有选择任何道具！请先点击一个道具来选择它。", "OK");
+                await DisplayAlert("调试信息", "没有选择任何选项！请先点击一个选项来选择它。", "OK");
                 return;
             }
-            
-            var confirmResult = await DisplayAlert("确认选择", 
-                $"您选择了: {SelectedItem.DisplayName} (ID: {SelectedItem.Id})\n\n确定要选择这个道具吗？", 
+
+            var confirmResult = await DisplayAlert("确认选择",
+                $"您选择了: {SelectedItem.DisplayName} (ID: {SelectedItem.Id})\n\n确定要选择这个选项吗？",
                 "确定", "取消");
                 
             if (!confirmResult)
