@@ -45,7 +45,8 @@ jobs:
     - name: Install Appium and drivers
       run: |
         npm install -g appium@${{ env.APPIUM_VERSION }}
-        npm install -g @appium/mac2-driver
+        npm install -g appium-mac2-driver
+        npm install -g appium-xcuitest-driver
         # Verify installation
         appium --version
         appium driver list
