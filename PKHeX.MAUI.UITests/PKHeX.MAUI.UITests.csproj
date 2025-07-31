@@ -1,17 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-maccatalyst</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     
-    <!-- App Identifier for macOS Catalyst bundle requirement -->
-    <ApplicationId>com.pkhex.macos.uitests</ApplicationId>
-    
-    <!-- Match the main MAUI project's platform version to avoid Mac Catalyst mapping errors -->
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+    <!-- UI tests run on host system, not in macOS Catalyst runtime -->
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,11 +23,13 @@
     <PackageReference Include="Appium.WebDriver" Version="5.0.0-rc.1" />
     <PackageReference Include="DotNetSeleniumExtras.WaitHelpers" Version="3.11.0" />
     <PackageReference Include="Selenium.Support" Version="4.16.2" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.8" />
   </ItemGroup>
 
-  <!-- Reference MAUI project for macOS Catalyst target -->
-  <ItemGroup>
+  <!-- UI tests run externally and interact with the built app -->
+  <!-- ProjectReference removed to avoid build conflicts -->
+  <!-- The tests will launch and interact with the separately built MAUI app -->
+  <ItemGroup Condition="false">
     <ProjectReference Include="..\PKHeX.MAUI\PKHeX.MAUI.csproj" />
   </ItemGroup>
 
