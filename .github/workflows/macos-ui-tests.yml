@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-and-test-macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     timeout-minutes: 60
     
     steps:
