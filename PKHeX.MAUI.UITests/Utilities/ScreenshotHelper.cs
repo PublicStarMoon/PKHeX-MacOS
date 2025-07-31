@@ -30,7 +30,7 @@ public class ScreenshotHelper
             var filePath = Path.Combine(_screenshotDirectory, fileName);
             
             // Save as PNG using ImageSharp for better compression
-            using var image = Image.Load(screenshot.AsByteArray);
+            using var image = SixLabors.ImageSharp.Image.Load(screenshot.AsByteArray);
             await image.SaveAsPngAsync(filePath);
             
             Console.WriteLine($"Screenshot saved: {filePath}");
@@ -64,7 +64,7 @@ public class ScreenshotHelper
                     var fileName = $"{testName}_{step}_element_{timestamp}_{counter:D3}.png";
                     var filePath = Path.Combine(_screenshotDirectory, fileName);
                     
-                    using var image = Image.Load(elementScreenshot.AsByteArray);
+                    using var image = SixLabors.ImageSharp.Image.Load(elementScreenshot.AsByteArray);
                     await image.SaveAsPngAsync(filePath);
                     
                     Console.WriteLine($"Element screenshot saved: {filePath}");
