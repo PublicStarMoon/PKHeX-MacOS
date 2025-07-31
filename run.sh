@@ -54,7 +54,7 @@ echo "Press Ctrl+C to stop the application"
 echo ""
 
 # Run the application
-dotnet run --project PKHeX.MAUI/PKHeX.MAUI.csproj --configuration $CONFIG --framework net8.0-maccatalyst
+dotnet run --project PKHeX.MAUI/PKHeX.MAUI.csproj --configuration $CONFIG --framework net8.0-maccatalyst -r maccatalyst-arm64
 
 # Check if the application started successfully
 if [ $? -eq 0 ]; then
