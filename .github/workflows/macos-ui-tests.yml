@@ -53,14 +53,14 @@ jobs:
     
     - name: Configure macOS for UI automation
       run: |
-        # Enable accessibility access for Terminal (required for UI automation)
-        sudo sqlite3 /Library/Application\ Support/com.apple.TCC/TCC.db "INSERT OR REPLACE INTO access VALUES('kTCCServiceAccessibility','com.apple.Terminal',0,2,2,1,NULL,NULL,0,'UNUSED',NULL,0,1592919552);"
-        
         # Enable developer mode to allow unsigned code execution
         sudo DevToolsSecurity -enable
         
         # Allow apps downloaded from anywhere (for test apps)
         sudo spctl --master-disable
+        
+        # Note: Accessibility permissions are handled through app entitlements
+        # rather than direct TCC database modification for better compatibility
     
     - name: Restore dependencies
       run: dotnet restore --ignore-failed-sources
