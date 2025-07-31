@@ -144,6 +144,15 @@ The UI has been completely refactored to focus on essential functionality:
 - Integrated advanced features into main editing flows
 - Improved architecture with clean Core/Drawing separation
 
+## Documentation
+
+For detailed information about using PKHeX for macOS:
+
+- **[UI Workflow Documentation](PKHeX.MAUI/UI_WORKFLOW_DOCUMENTATION.md)**: Complete guide to the user interface, page interactions, and editing workflows
+- **[Navigation Flow Diagram](PKHeX.MAUI/NAVIGATION_FLOW_DIAGRAM.md)**: Visual navigation maps and detailed navigation patterns
+- **[Page State Management](PKHeX.MAUI/PAGE_STATE_MANAGEMENT.md)**: Technical details about state preservation and memory management
+- **[Build & Run Guide](BUILD_RUN_GUIDE.md)**: Comprehensive build and deployment instructions
+
 ## Technical Details
 
 ### Architecture
