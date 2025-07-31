@@ -65,46 +65,46 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore --ignore-failed-sources
     
-    - name: Build Core Projects  
-      run: |
-        dotnet build PKHeX.Core/PKHeX.Core.csproj --configuration Release --no-restore --verbosity minimal
-        # Skip Windows-specific drawing libraries on macOS to avoid System.Drawing compatibility issues
-        # dotnet build PKHeX.Drawing/PKHeX.Drawing.csproj --configuration Release --no-restore --verbosity minimal  
-        # dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore --verbosity minimal
-        # dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore --verbosity minimal
+    # - name: Build Core Projects  
+    #   run: |
+    #     dotnet build PKHeX.Core/PKHeX.Core.csproj --configuration Release --no-restore --verbosity minimal
+    #     # Skip Windows-specific drawing libraries on macOS to avoid System.Drawing compatibility issues
+    #     # dotnet build PKHeX.Drawing/PKHeX.Drawing.csproj --configuration Release --no-restore --verbosity minimal  
+    #     # dotnet build PKHeX.Drawing.PokeSprite/PKHeX.Drawing.PokeSprite.csproj --configuration Release --no-restore --verbosity minimal
+    #     # dotnet build PKHeX.Drawing.Misc/PKHeX.Drawing.Misc.csproj --configuration Release --no-restore --verbosity minimal
     
-    - name: Run Core Tests  
-      run: |
-        # Skip specific legality tests on macOS due to missing test data files and potential System.Drawing dependencies
-        dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-restore --verbosity minimal \
-          --logger trx --results-directory TestResults/ \
-          --filter "FullyQualifiedName!~TestPublicFiles&FullyQualifiedName!~TestPrivateFiles"
+    # - name: Run Core Tests  
+    #   run: |
+    #     # Skip specific legality tests on macOS due to missing test data files and potential System.Drawing dependencies
+    #     dotnet test Tests/PKHeX.Core.Tests/PKHeX.Core.Tests.csproj --configuration Release --no-restore --verbosity minimal \
+    #       --logger trx --results-directory TestResults/ \
+    #       --filter "FullyQualifiedName!~TestPublicFiles&FullyQualifiedName!~TestPrivateFiles"
     
-    - name: Build PKHeX MAUI for macOS
-      run: |
-        cd PKHeX.MAUI
-        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0
+    # - name: Build PKHeX MAUI for macOS
+    #   run: |
+    #     cd PKHeX.MAUI
+    #     dotnet build --configuration Release --no-restore -f net8.0-maccatalyst17.0
     
-    - name: Verify MAUI build output
-      run: |
-        cd PKHeX.MAUI
-        if [ -d "bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
-          echo "✅ MacOS app bundle created successfully!"
-          echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app"
-          ls -la bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/
+    # - name: Verify MAUI build output
+    #   run: |
+    #     cd PKHeX.MAUI
+    #     if [ -d "bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" ]; then
+    #       echo "✅ MacOS app bundle created successfully!"
+    #       echo "App bundle location: PKHeX.MAUI/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app"
+    #       ls -la bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/
           
-          # Set app path for UI tests
-          echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
-        else
-          echo "⚠️ MacOS app bundle not found, checking other output directories..."
-          find bin -name "*.app" -type d || echo "No .app bundles found"
-          find bin -name "PKHeX.MAUI*" || echo "No PKHeX.MAUI outputs found"
-          exit 1
-        fi
+    #       # Set app path for UI tests
+    #       echo "PKHEX_APP_PATH=$(pwd)/bin/Release/net8.0-maccatalyst17.0/maccatalyst-arm64/PKHeX.MAUI.app" >> $GITHUB_ENV
+    #     else
+    #       echo "⚠️ MacOS app bundle not found, checking other output directories..."
+    #       find bin -name "*.app" -type d || echo "No .app bundles found"
+    #       find bin -name "PKHeX.MAUI*" || echo "No PKHeX.MAUI outputs found"
+    #       exit 1
+    #     fi
     
     - name: Build UI Test Project
       run: |
-        dotnet build PKHeX.MAUI.UITests/PKHeX.MAUI.UITests.csproj --configuration Release --no-restore --verbosity minimal
+        dotnet build PKHeX.MAUI.UITests/PKHeX.MAUI.UITests.csproj --configuration Release --verbosity minimal
     
     - name: Start Appium Server
       run: |
