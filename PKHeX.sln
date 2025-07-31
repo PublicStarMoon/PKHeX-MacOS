@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PKHeX.Drawing.Misc", "PKHeX
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PKHeX.MAUI", "PKHeX.MAUI\PKHeX.MAUI.csproj", "{1E23E896-DABF-48A2-BD0F-06B8E0574FF7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PKHeX.MAUI.UITests", "PKHeX.MAUI.UITests\PKHeX.MAUI.UITests.csproj", "{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,12 +58,17 @@ Global
 		{1E23E896-DABF-48A2-BD0F-06B8E0574FF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E23E896-DABF-48A2-BD0F-06B8E0574FF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E23E896-DABF-48A2-BD0F-06B8E0574FF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C3B5B74F-ACE8-4FB2-A917-0DEDBFD5703B} = {7C0598C9-DDF3-4ACC-B15D-6A626ADB7530}
+		{2F34E8A7-EABF-4C8A-B1F6-1E8D7C9E3F42} = {7C0598C9-DDF3-4ACC-B15D-6A626ADB7530}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AAD7224E-2087-43E8-A7C9-D5555BFBB3B9}
