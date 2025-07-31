@@ -12,11 +12,11 @@ namespace PKHeX.MAUI.UITests.Tests;
 // The framework is designed to run on macOS CI runners where proper drivers are available
 public class MacOSAppiumDriver : AppiumDriver
 {
-    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options) : base(service, options)
+    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options) : base(service.ServiceUrl, (ICapabilities)options)
     {
     }
 
-    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options, TimeSpan commandTimeout) : base(service, options, commandTimeout)
+    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options, TimeSpan commandTimeout) : base(service.ServiceUrl, (ICapabilities)options, commandTimeout)
     {
     }
 }
