@@ -12,11 +12,11 @@ namespace PKHeX.MAUI.UITests.Tests;
 // The framework is designed to run on macOS CI runners where proper drivers are available
 public class MacOSAppiumDriver : AppiumDriver
 {
-    public MacOSAppiumDriver(Uri remoteAddress, AppiumOptions options) : base(remoteAddress, options)
+    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options) : base(service, options)
     {
     }
 
-    public MacOSAppiumDriver(Uri remoteAddress, AppiumOptions options, TimeSpan commandTimeout) : base(remoteAddress, options, commandTimeout)
+    public MacOSAppiumDriver(AppiumLocalService service, AppiumOptions options, TimeSpan commandTimeout) : base(service, options, commandTimeout)
     {
     }
 }
@@ -68,8 +68,8 @@ public abstract class BaseTest : IDisposable
 
         try
         {
-            // Create driver instance using the service URL
-            Driver = new MacOSAppiumDriver(Service.ServiceUrl, options, TimeSpan.FromSeconds(60));
+            // Create driver instance using the service directly
+            Driver = new MacOSAppiumDriver(Service, options, TimeSpan.FromSeconds(60));
             Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
             
             WaitHelper.Initialize(Driver);
