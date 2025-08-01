@@ -13,6 +13,7 @@ public partial class PokemonEditorPage : ContentPage
     private int _slotIndex = -1;
 
     // Data sources for pickers
+    private List<SpeciesItem> _speciesItems = new();
     private List<MoveItem> _moveItems = new();
     private List<AbilityItem> _abilityItems = new();
     private List<NatureItem> _natureItems = new();
@@ -99,7 +100,17 @@ public partial class PokemonEditorPage : ContentPage
             var generationInfo = GetGenerationInfo(_pokemon);
             HeaderLabel.Text = $"编辑中: {GetSpeciesName(_pokemon.Species)} (第{_pokemon.Format}世代)";
             GenerationLabel.Text = generationInfo;
-            SpeciesEntry.Text = _pokemon.Species.ToString();
+            
+            // Load species data if not already loaded
+            if (!_speciesItems.Any())
+            {
+                _speciesItems = CachedDataService.GetSpecies().Cast<SpeciesItem>().ToList();
+            }
+            
+            // Set species button text - show actual species name
+            var selectedSpecies = _speciesItems.FirstOrDefault(x => x.Id == _pokemon.Species);
+            SpeciesButton.Text = selectedSpecies?.DisplayName ?? "Select Species...";
+            
             NicknameEntry.Text = _pokemon.Nickname;
             LevelEntry.Text = _pokemon.CurrentLevel.ToString();
             
@@ -170,6 +181,21 @@ public partial class PokemonEditorPage : ContentPage
             SIDEntry.Text = _pokemon.SID16.ToString();
             MetLocationEntry.Text = _pokemon.Met_Location.ToString();
             MetLevelEntry.Text = _pokemon.Met_Level.ToString();
+            
+            // Obedience Level - only available in Generation 9
+            bool isGen9 = _pokemon.Format == 9;
+            ObedienceLevelLabel.IsVisible = isGen9;
+            ObedienceLevelEntry.IsVisible = isGen9;
+            
+            if (isGen9 && _pokemon is IObedienceLevel obediencePokemon)
+            {
+                ObedienceLevelEntry.Text = obediencePokemon.Obedience_Level.ToString();
+            }
+            else if (isGen9)
+            {
+                // Fallback for Gen 9 pokemon that somehow don't implement IObedienceLevel
+                ObedienceLevelEntry.Text = "0";
+            }
 
             // Friendship & Language
             FriendshipEntry.Text = _pokemon.CurrentFriendship.ToString();
@@ -186,14 +212,37 @@ public partial class PokemonEditorPage : ContentPage
         }
     }
 
-    private void OnSpeciesChanged(object sender, TextChangedEventArgs e)
+    private async void OnSpeciesButtonClicked(object sender, EventArgs e)
     {
         if (_isUpdating || _pokemon == null) return;
 
-        if (ushort.TryParse(e.NewTextValue, out ushort species))
+        try
         {
-            _pokemon.Species = species;
-            HeaderLabel.Text = $"Editing: Species {species}";
+            // Load species data if not already loaded
+            if (!_speciesItems.Any())
+            {
+                _speciesItems = CachedDataService.GetSpecies().Cast<SpeciesItem>().ToList();
+            }
+
+            var currentSpecies = _speciesItems.FirstOrDefault(x => x.Id == _pokemon.Species);
+            var result = await ShowPickerSafely(_speciesItems.Cast<IPickerItem>().ToList(), "Select Species", currentSpecies);
+            
+            if (result != null)
+            {
+                _pokemon.Species = (ushort)result.Id;
+                SpeciesButton.Text = result.DisplayName;
+                HeaderLabel.Text = $"编辑中: {GetSpeciesName(_pokemon.Species)} (第{_pokemon.Format}世代)";
+                
+                // Clear form items when species changes as they are species-specific
+                _formItems.Clear();
+                
+                StatusLabel.Text = $"Species changed to: {result.DisplayName}";
+                StatusLabel.IsVisible = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to change species: {ex.Message}", "OK");
         }
     }
 
@@ -638,6 +687,20 @@ public partial class PokemonEditorPage : ContentPage
         if (int.TryParse(e.NewTextValue, out int level) && level >= 0 && level <= 100)
         {
             _pokemon.Met_Level = level;
+        }
+    }
+
+    private void OnObedienceLevelChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        // Only available for Generation 9 Pokemon
+        if (_pokemon.Format == 9 && _pokemon is IObedienceLevel obediencePokemon)
+        {
+            if (byte.TryParse(e.NewTextValue, out byte obedienceLevel) && obedienceLevel >= 0 && obedienceLevel <= 100)
+            {
+                obediencePokemon.Obedience_Level = obedienceLevel;
+            }
         }
     }
 

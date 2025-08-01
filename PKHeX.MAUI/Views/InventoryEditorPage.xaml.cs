@@ -387,22 +387,26 @@ public partial class InventoryEditorPage : ContentPage
             var headerGrid = new Grid();
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
             headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
             var nameLabel = new Label { Text = "道具名称", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Start };
             var countLabel = new Label { Text = "数量", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
             var newLabel = new Label { Text = "新", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            var favoriteLabel = new Label { Text = "收藏", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
             var actionLabel = new Label { Text = "操作", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
 
             Grid.SetColumn(nameLabel, 0);
             Grid.SetColumn(countLabel, 1);
             Grid.SetColumn(newLabel, 2);
-            Grid.SetColumn(actionLabel, 3);
+            Grid.SetColumn(favoriteLabel, 3);
+            Grid.SetColumn(actionLabel, 4);
 
             headerGrid.Children.Add(nameLabel);
             headerGrid.Children.Add(countLabel);
             headerGrid.Children.Add(newLabel);
+            headerGrid.Children.Add(favoriteLabel);
             headerGrid.Children.Add(actionLabel);
             
             columnHeaderFrame.Content = headerGrid;
@@ -453,7 +457,8 @@ public partial class InventoryEditorPage : ContentPage
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
         // Item name and ID display
@@ -538,6 +543,46 @@ public partial class InventoryEditorPage : ContentPage
         }
         Grid.SetColumn(newFlagView, 2);
 
+        // Favorite flag indicator
+        View favoriteFlagView;
+        CheckBox? favoriteCheckBox = null;
+        
+        if (_saveFile != null && _saveFile.Generation >= 8 && !isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
+        {
+            var item = _currentPouch.Items[arrayIndex];
+            if (item is IItemFavorite favoriteItem)
+            {
+                favoriteCheckBox = new CheckBox
+                {
+                    IsChecked = favoriteItem.IsFavorite,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Color = Color.FromArgb("#F59E0B")
+                };
+                favoriteFlagView = favoriteCheckBox;
+            }
+            else
+            {
+                favoriteFlagView = new Label { Text = "N/A", FontSize = 10, TextColor = Color.FromArgb("#94A3B8"), HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
+            }
+        }
+        else
+        {
+            var badge = new Microsoft.Maui.Controls.Frame
+            {
+                BackgroundColor = isDemo ? Color.FromArgb("#3B82F6") : Color.FromArgb("#94A3B8"),
+                Padding = new Thickness(6, 4),
+                CornerRadius = 6,
+                HasShadow = false,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            var badgeLabel = new Label { Text = isDemo ? "DEMO" : "N/A", FontSize = 9, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            badge.Content = badgeLabel;
+            favoriteFlagView = badge;
+        }
+        Grid.SetColumn(favoriteFlagView, 3);
+
         // Action buttons
         var actionStack = new StackLayout
         {
@@ -575,7 +620,7 @@ public partial class InventoryEditorPage : ContentPage
 
         actionStack.Children.Add(editButton);
         actionStack.Children.Add(deleteButton);
-        Grid.SetColumn(actionStack, 3);
+        Grid.SetColumn(actionStack, 4);
 
         // Event handlers for real items
         if (!isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
@@ -585,7 +630,8 @@ public partial class InventoryEditorPage : ContentPage
                 ItemIndex = arrayIndex, 
                 CountEntry = countEntry, 
                 ItemIdEntry = new Microsoft.Maui.Controls.Entry { Text = itemIndex.ToString() }, 
-                NewCheckBox = newCheckBox 
+                NewCheckBox = newCheckBox,
+                FavoriteCheckBox = favoriteCheckBox
             };
 
             countEntry.TextChanged += (s, e) => {
@@ -600,6 +646,11 @@ public partial class InventoryEditorPage : ContentPage
                 newCheckBox.CheckedChanged += (s, e) => OnNewFlagChanged(itemEntry, e.Value);
             }
 
+            if (favoriteCheckBox != null)
+            {
+                favoriteCheckBox.CheckedChanged += (s, e) => OnFavoriteFlagChanged(itemEntry, e.Value);
+            }
+
             editButton.Clicked += async (s, e) => await OnEditItemClicked(arrayIndex);
             deleteButton.Clicked += (s, e) => OnClearItemClicked(itemEntry);
 
@@ -609,6 +660,7 @@ public partial class InventoryEditorPage : ContentPage
         grid.Children.Add(nameStackLayout);
         grid.Children.Add(countEntry);
         grid.Children.Add(newFlagView);
+        grid.Children.Add(favoriteFlagView);
         grid.Children.Add(actionStack);
 
         frame.Content = grid;
@@ -715,10 +767,26 @@ public partial class InventoryEditorPage : ContentPage
     {
         if (_saveFile == null) return;
         
-        // Trigger the SaveFile's inventory persistence mechanism
-        // This calls LoadFromPouches() which executes pouches.SaveAll(Data)
-        var currentInventory = _saveFile.Inventory;
-        _saveFile.Inventory = currentInventory;
+        try
+        {
+            // FIXED: Directly call SaveAll to persist inventory changes to SaveFile.Data
+            // This ensures all pouch modifications (including IsNew, IsUpdated flags) are written to the save data
+            var inventory = _saveFile.Inventory;
+            if (inventory != null && inventory.Count > 0)
+            {
+                // Call SaveAll extension method to write all pouches to SaveFile.Data
+                inventory.SaveAll(_saveFile.Data);
+                System.Diagnostics.Debug.WriteLine("Successfully flushed inventory changes to SaveFile.Data");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("No inventory found to flush");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"FlushInventoryChanges error: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -1138,6 +1206,41 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
+    private void OnFavoriteFlagChanged(ItemEntry entry, bool isFavorite)
+    {
+        if (_currentPouch == null || entry.ItemIndex >= _currentPouch.Items.Length) return;
+
+        try
+        {
+            var item = _currentPouch.Items[entry.ItemIndex];
+            if (item is IItemFavorite favoriteItem)
+            {
+                favoriteItem.IsFavorite = isFavorite;
+
+                // CRITICAL: Enable SetNew flag on pouches for Gen8/Gen9 compatibility
+                if (_currentPouch is InventoryPouch8 pouch8)
+                {
+                    pouch8.SetNew = true;
+                }
+                else if (_currentPouch is InventoryPouch9 pouch9)
+                {
+                    pouch9.SetNew = true;
+                }
+
+                // For Gen9, ensure item is marked as updated for proper saving
+                if (item is InventoryItem9 item9 && _currentPouch is InventoryPouch9 p9)
+                {
+                    item9.IsUpdated = true;
+                    item9.Pouch = p9.PouchIndex;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayAlert("Error", $"Failed to update favorite flag: {ex.Message}", "OK");
+        }
+    }
+
     private string GetItemName(int itemIndex)
     {
         if (_saveFile == null || itemIndex == 0) 
@@ -1291,5 +1394,6 @@ public partial class InventoryEditorPage : ContentPage
         public Microsoft.Maui.Controls.Entry CountEntry { get; set; } = null!;
         public Microsoft.Maui.Controls.Entry ItemIdEntry { get; set; } = null!;
         public CheckBox? NewCheckBox { get; set; }
+        public CheckBox? FavoriteCheckBox { get; set; }
     }
 }

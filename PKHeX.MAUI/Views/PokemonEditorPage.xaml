@@ -30,11 +30,11 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
-                        <Label Grid.Row="0" Grid.Column="0" Text="Species ID:" VerticalOptions="Center" 
+                        <Label Grid.Row="0" Grid.Column="0" Text="Species:" VerticalOptions="Center" 
                                TextColor="#2C3E50" FontSize="14" FontAttributes="Bold"/>
-                        <Entry Grid.Row="0" Grid.Column="1" x:Name="SpeciesEntry" Keyboard="Numeric" 
-                               TextChanged="OnSpeciesChanged" BackgroundColor="#ECF0F1" TextColor="#2C3E50" 
-                               FontSize="14" Margin="0,5"/>
+                        <Button Grid.Row="0" Grid.Column="1" x:Name="SpeciesButton" 
+                                Clicked="OnSpeciesButtonClicked" BackgroundColor="#ECF0F1" TextColor="#2C3E50" 
+                                FontSize="14" Margin="0,5" Text="Select Species..." HorizontalOptions="Fill"/>
                         
                         <Label Grid.Row="1" Grid.Column="0" Text="Nickname:" VerticalOptions="Center" 
                                TextColor="#2C3E50" FontSize="14" FontAttributes="Bold"/>
@@ -311,6 +311,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
                         <Label Grid.Row="0" Grid.Column="0" Text="OT Name:" VerticalOptions="Center" 
@@ -347,6 +348,12 @@
                         <Entry Grid.Row="5" Grid.Column="1" x:Name="MetLevelEntry" Keyboard="Numeric" 
                                TextChanged="OnMetLevelChanged" BackgroundColor="White" TextColor="#2C3E50" 
                                FontSize="14" Margin="5"/>
+                        
+                        <Label Grid.Row="6" Grid.Column="0" x:Name="ObedienceLevelLabel" Text="听话等级:" VerticalOptions="Center" 
+                               TextColor="White" FontSize="14" FontAttributes="Bold"/>
+                        <Entry Grid.Row="6" Grid.Column="1" x:Name="ObedienceLevelEntry" Keyboard="Numeric" 
+                               TextChanged="OnObedienceLevelChanged" BackgroundColor="White" TextColor="#2C3E50" 
+                               FontSize="14" Margin="5" Placeholder="0-100"/>
                     </Grid>
                 </StackLayout>
             </Frame>
