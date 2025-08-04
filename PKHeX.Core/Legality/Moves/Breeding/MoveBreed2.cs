@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static PKHeX.Core.EggSource2;
-using static PKHeX.Core.LearnSource2;
+using static PKHeX.Core.PersonalInfo2;
 
 namespace PKHeX.Core;
 
@@ -12,7 +12,7 @@ namespace PKHeX.Core;
 /// <remarks>Refer to <see cref="EggSource2"/> for inheritance ordering.</remarks>
 public static class MoveBreed2
 {
-    private const int level = 5;
+    private const byte Level = EncounterEgg2.Level;
 
     /// <inheritdoc cref="MoveBreed.Validate"/>
     public static bool Validate(ushort species, GameVersion version, ReadOnlySpan<ushort> moves, Span<byte> origins)
@@ -23,22 +23,21 @@ public static class MoveBreed2
         if (count == -1)
             count = moves.Length;
 
-        (Learnset[] learn, PersonalTable2 table) = version == GameVersion.C
-            ? (Legal.LevelUpC, PersonalTable.C)
-            : (Legal.LevelUpGS, PersonalTable.GS);
-        if (!table.IsSpeciesInGame(species))
+        ILearnSource<PersonalInfo2> ls = version == GameVersion.C ? LearnSource2C.Instance : LearnSource2GS.Instance;
+        if (!ls.TryGetPersonal(species, 0, out var pi))
             return false;
 
-        var learnset = learn[species];
-        var pi = table[species];
-        var egg = (version == GameVersion.C ? Legal.EggMovesC : Legal.EggMovesGS)[species].Moves;
+        var learnset = ls.GetLearnset(species, 0);
+        var eggMoves = version == GameVersion.C
+            ? LearnSource2C.Instance.GetEggMoves(species, 0)
+            : LearnSource2GS.Instance.GetEggMoves(species, 0);
 
         var actual = MemoryMarshal.Cast<byte, EggSource2>(origins);
         Span<byte> possible = stackalloc byte[count];
-        var value = new BreedInfo<EggSource2>(actual, possible, learnset, moves, level);
+        var value = new BreedInfo<EggSource2>(actual, possible, learnset, moves, Level);
 
         bool inherit = Breeding.GetCanInheritMoves(species);
-        MarkMovesForOrigin(value, egg, count, inherit, pi, version);
+        MarkMovesForOrigin(value, eggMoves, count, inherit, pi, version);
         var valid = RecurseMovesForOrigin(value, count - 1);
         if (!valid)
             CleanResult(actual, possible);
@@ -162,21 +161,21 @@ public static class MoveBreed2
             if (move > Legal.MaxMoveID_2) // byte
                 continue;
 
-            if (baseEgg.IndexOf(move) != -1)
+            if (baseEgg.Contains(move))
                 possible[i] |= 1 << (int)Base;
 
-            if (inheritLevelUp && learn.GetLevelLearnMove(move) != -1)
+            if (inheritLevelUp && learn.GetIsLearn(move))
                 possible[i] |= 1 << (int)ParentLevelUp;
 
             if (eggMoves.Contains(move))
                 possible[i] |= 1 << (int)FatherEgg;
 
-            if (info.GetIsLearnTM(TMHM_GSC.IndexOf((byte)move)))
+            if (info.GetIsLearnTM(MachineMoves.IndexOf((byte)move)))
                 possible[i] |= 1 << (int)FatherTM;
 
             if (version is GameVersion.C)
             {
-                if (info.GetIsLearnTutorType(Tutors_GSC.IndexOf((byte)move)))
+                if (info.GetIsLearnTutorType(TutorMoves.IndexOf((byte)move)))
                     possible[i] |= 1 << (int)Tutor;
             }
         }

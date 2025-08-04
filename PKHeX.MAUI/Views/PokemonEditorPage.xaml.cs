@@ -20,6 +20,7 @@ public partial class PokemonEditorPage : ContentPage
     private List<ItemItem> _itemItems = new();
     private List<BallItem> _ballItems = new();
     private List<FormItem> _formItems = new();
+    private List<TypeItem> _typeItems = new();
 
     public PokemonEditorPage(PKM pokemon, SaveFile saveFile, int boxIndex = -1, int slotIndex = -1)
     {
@@ -183,7 +184,67 @@ public partial class PokemonEditorPage : ContentPage
             MetLevelEntry.Text = _pokemon.Met_Level.ToString();
             
             // Obedience Level - only available in Generation 9
+            bool isGen8 = _pokemon.Format == 8;
             bool isGen9 = _pokemon.Format == 9;
+            
+            // Show/hide generation-specific frames
+            Gen8Frame.IsVisible = isGen8;
+            Gen9Frame.IsVisible = isGen9;
+            
+            // Load Type items for Tera Types if needed
+            if ((isGen8 || isGen9) && !_typeItems.Any())
+            {
+                _typeItems = CachedDataService.GetTypes().Cast<TypeItem>().ToList();
+                
+                // Add special Tera Type options
+                _typeItems.Insert(0, new TypeItem { Id = 19, DisplayName = "--- (None)" }); // TeraTypeUtil.OverrideNone
+                _typeItems.Add(new TypeItem { Id = 99, DisplayName = "Stellar" }); // TeraTypeUtil.Stellar
+            }
+            
+            if (isGen8)
+            {
+                // Load Gen 8 specific data
+                if (_pokemon is IDynamaxLevel dynamaxPokemon)
+                {
+                    DynamaxLevelEntry.Text = dynamaxPokemon.DynamaxLevel.ToString();
+                }
+                if (_pokemon is IGigantamax gigantamaxPokemon)
+                {
+                    CanGigantamaxCheckBox.IsChecked = gigantamaxPokemon.CanGigantamax;
+                }
+                if (_pokemon.StatNature != _pokemon.Nature)
+                {
+                    var selectedStatNature = _natureItems.FirstOrDefault(x => x.Id == (int)_pokemon.StatNature);
+                    StatNatureButton.Text = selectedStatNature?.DisplayName ?? "Select Stat Nature...";
+                }
+                else
+                {
+                    StatNatureButton.Text = "Same as Nature";
+                }
+            }
+            
+            if (isGen9)
+            {
+                // Load Gen 9 specific data
+                if (_pokemon is ITeraType teraPokemon)
+                {
+                    var selectedTeraOriginal = _typeItems.FirstOrDefault(x => x.Id == (int)teraPokemon.TeraTypeOriginal);
+                    TeraTypeOriginalButton.Text = selectedTeraOriginal?.DisplayName ?? "Select Tera Type...";
+                    
+                    var selectedTeraOverride = _typeItems.FirstOrDefault(x => x.Id == (int)teraPokemon.TeraTypeOverride);
+                    TeraTypeOverrideButton.Text = selectedTeraOverride?.DisplayName ?? "Select Tera Type...";
+                }
+                if (_pokemon.StatNature != _pokemon.Nature)
+                {
+                    var selectedStatNature = _natureItems.FirstOrDefault(x => x.Id == (int)_pokemon.StatNature);
+                    StatNatureGen9Button.Text = selectedStatNature?.DisplayName ?? "Select Stat Nature...";
+                }
+                else
+                {
+                    StatNatureGen9Button.Text = "Same as Nature";
+                }
+            }
+            
             ObedienceLevelLabel.IsVisible = isGen9;
             ObedienceLevelEntry.IsVisible = isGen9;
             
@@ -258,7 +319,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int level) && level >= 1 && level <= 100)
         {
-            _pokemon.CurrentLevel = level;
+            _pokemon.CurrentLevel = level; // This automatically updates EXP and Stat_Level
+            _pokemon.ResetPartyStats(); // Recalculate stats after level change
         }
     }
 
@@ -268,7 +330,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_HP = iv;
+            _pokemon.SetIV(0, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -278,7 +341,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_ATK = iv;
+            _pokemon.SetIV(1, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -288,7 +352,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_DEF = iv;
+            _pokemon.SetIV(2, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -298,7 +363,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_SPA = iv;
+            _pokemon.SetIV(4, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -308,7 +374,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_SPD = iv;
+            _pokemon.SetIV(5, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -318,7 +385,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int iv) && iv >= 0 && iv <= 31)
         {
-            _pokemon.IV_SPE = iv;
+            _pokemon.SetIV(3, iv); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after IV change
         }
     }
 
@@ -466,13 +534,16 @@ public partial class PokemonEditorPage : ContentPage
         
         try
         {
-            var currentSelection = _natureItems.FirstOrDefault(x => x.Id == _pokemon.Nature);
+            var currentSelection = _natureItems.FirstOrDefault(x => x.Id == (int)_pokemon.Nature);
             var result = await ShowPickerSafely(_natureItems.Cast<IPickerItem>().ToList(), "选择性格", currentSelection);
             
             if (result != null && _pokemon != null)
             {
-                _pokemon.Nature = result.Id;
+                _pokemon.SetNature((Nature)result.Id);  // Use the proper extension method with Nature enum
                 NatureButton.Text = result.DisplayName; // Nature items should already have Chinese names
+                
+                // Recalculate stats to apply nature changes
+                _pokemon.ResetPartyStats();
             }
         }
         catch (Exception ex)
@@ -558,7 +629,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_HP = ev;
+            _pokemon.SetEV(0, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -568,7 +640,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_ATK = ev;
+            _pokemon.SetEV(1, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -578,7 +651,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_DEF = ev;
+            _pokemon.SetEV(2, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -588,7 +662,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_SPA = ev;
+            _pokemon.SetEV(4, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -598,7 +673,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_SPD = ev;
+            _pokemon.SetEV(5, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -608,7 +684,8 @@ public partial class PokemonEditorPage : ContentPage
 
         if (int.TryParse(e.NewTextValue, out int ev) && ev >= 0 && ev <= 252)
         {
-            _pokemon.EV_SPE = ev;
+            _pokemon.SetEV(3, ev); // Use Core library method
+            _pokemon.ResetPartyStats(); // Recalculate stats after EV change
         }
     }
 
@@ -806,32 +883,218 @@ public partial class PokemonEditorPage : ContentPage
     {
         try
         {
-            // Save changes back to the box slot if this Pokemon is from a box
-            if (_saveFile != null && _pokemon != null && _boxIndex >= 0 && _slotIndex >= 0)
+            if (_pokemon == null)
             {
-                _saveFile.SetBoxSlotAtIndex(_pokemon, _boxIndex, _slotIndex);
-                _saveFile.State.Edited = true;
+                await DisplayAlert("Error", "Cannot save: Pokemon data is null.", "OK");
+                return;
             }
-            // Save changes back to party slot if this Pokemon is from party
-            else if (_saveFile != null && _pokemon != null && _boxIndex == -1 && _slotIndex >= 0)
+
+            if (_saveFile == null)
             {
-                _saveFile.SetPartySlotAtIndex(_pokemon, _slotIndex);
-                _saveFile.State.Edited = true;
+                await DisplayAlert("Error", "Cannot save: Save file is null.", "OK");
+                return;
             }
-            else if (_saveFile != null)
+
+            // Prepare the Pokemon properly using the PKHeX Core patterns
+            var preparedPokemon = PreparePokemonForSave(_pokemon);
+
+            if (_boxIndex >= 0 && _slotIndex >= 0)
             {
-                // Mark save file as edited if no specific slot
-                _saveFile.State.Edited = true;
+                // Set the Pokemon to the specific box slot using the correct Core method
+                _saveFile.SetBoxSlotAtIndex(preparedPokemon, _boxIndex, _slotIndex);
+                await DisplayAlert("Success", $"Pokemon saved to Box {_boxIndex + 1}, Slot {_slotIndex + 1}!", "OK");
+            }
+            else if (_boxIndex == -1 && _slotIndex >= 0)
+            {
+                // Save to party slot
+                if (_slotIndex < _saveFile.PartyCount)
+                {
+                    _saveFile.SetPartySlotAtIndex(preparedPokemon, _slotIndex);
+                    await DisplayAlert("Success", $"Pokemon saved to Party position {_slotIndex + 1}!", "OK");
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Invalid party position.", "OK");
+                }
+            }
+            else
+            {
+                await DisplayAlert("Success", "Pokemon data has been updated!", "OK");
             }
             
             StatusLabel.Text = "Pokemon saved successfully!";
-            await DisplayAlert("Success", "Pokemon changes have been saved!", "OK");
             await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
             StatusLabel.Text = $"Error saving: {ex.Message}";
             await DisplayAlert("Error", $"Failed to save Pokemon: {ex.Message}", "OK");
+        }
+    }
+
+    /// <summary>
+    /// Prepares the Pokemon for saving using PKHeX Core patterns
+    /// </summary>
+    private PKM PreparePokemonForSave(PKM pokemon)
+    {
+        // Create a clone to avoid modifying the original
+        var prepared = pokemon.Clone();
+        
+        // Apply all UI field changes to the Pokemon using SaveMisc pattern
+        SaveAllFieldsToEntity(prepared);
+        
+        // Apply fixes in the correct order as per PKHeX Core patterns
+        prepared.FixMoves();
+        
+        if (prepared.Format >= 6)
+        {
+            prepared.FixRelearn();
+        }
+        
+        // Fix memories for newer generations
+        if (prepared.Format >= 6)
+        {
+            prepared.FixMemories();
+        }
+        
+        // Recalculate stats to ensure they're up to date
+        prepared.ResetPartyStats();
+        
+        // Refresh checksum (must be last)
+        prepared.RefreshChecksum();
+        
+        return prepared;
+    }
+
+    /// <summary>
+    /// Saves all UI field values to the Pokemon entity (similar to WinForms SaveMisc methods)
+    /// </summary>
+    private void SaveAllFieldsToEntity(PKM pokemon)
+    {
+        if (pokemon == null) return;
+
+        try
+        {
+            // Save basic info (similar to SaveMisc1)
+            if (ushort.TryParse(SpeciesButton.Text.Split(' ')[0], out var species))
+                pokemon.Species = species;
+            
+            if (int.TryParse(LevelEntry.Text, out var level) && level >= 1 && level <= 100)
+                pokemon.CurrentLevel = level;
+            
+            if (!string.IsNullOrEmpty(NicknameEntry.Text))
+                pokemon.Nickname = NicknameEntry.Text;
+
+            // Save IVs using proper Core methods
+            if (int.TryParse(HPIVEntry.Text, out var hpIV) && hpIV >= 0 && hpIV <= 31)
+                pokemon.SetIV(0, hpIV);
+            if (int.TryParse(AttackIVEntry.Text, out var atkIV) && atkIV >= 0 && atkIV <= 31)
+                pokemon.SetIV(1, atkIV);
+            if (int.TryParse(DefenseIVEntry.Text, out var defIV) && defIV >= 0 && defIV <= 31)
+                pokemon.SetIV(2, defIV);
+            if (int.TryParse(SpAttackIVEntry.Text, out var spaIV) && spaIV >= 0 && spaIV <= 31)
+                pokemon.SetIV(4, spaIV);
+            if (int.TryParse(SpDefenseIVEntry.Text, out var spdIV) && spdIV >= 0 && spdIV <= 31)
+                pokemon.SetIV(5, spdIV);
+            if (int.TryParse(SpeedIVEntry.Text, out var speIV) && speIV >= 0 && speIV <= 31)
+                pokemon.SetIV(3, speIV);
+
+            // Save EVs using proper Core methods
+            if (int.TryParse(HPEVEntry.Text, out var hpEV) && hpEV >= 0 && hpEV <= 252)
+                pokemon.SetEV(0, hpEV);
+            if (int.TryParse(AttackEVEntry.Text, out var atkEV) && atkEV >= 0 && atkEV <= 252)
+                pokemon.SetEV(1, atkEV);
+            if (int.TryParse(DefenseEVEntry.Text, out var defEV) && defEV >= 0 && defEV <= 252)
+                pokemon.SetEV(2, defEV);
+            if (int.TryParse(SpAttackEVEntry.Text, out var spaEV) && spaEV >= 0 && spaEV <= 252)
+                pokemon.SetEV(4, spaEV);
+            if (int.TryParse(SpDefenseEVEntry.Text, out var spdEV) && spdEV >= 0 && spdEV <= 252)
+                pokemon.SetEV(5, spdEV);
+            if (int.TryParse(SpeedEVEntry.Text, out var speEV) && speEV >= 0 && speEV <= 252)
+                pokemon.SetEV(3, speEV);
+
+            // Save other fields
+            if (int.TryParse(GenderEntry.Text, out var gender) && gender >= 0 && gender <= 2)
+                pokemon.Gender = (byte)gender;
+            
+            if (int.TryParse(FriendshipEntry.Text, out var friendship) && friendship >= 0 && friendship <= 255)
+                pokemon.CurrentFriendship = (byte)friendship;
+            
+            if (int.TryParse(LanguageEntry.Text, out var language) && language >= 0)
+                pokemon.Language = language;
+            
+            if (int.TryParse(VersionEntry.Text, out var version) && version >= 0)
+                pokemon.Version = (GameVersion)version;
+
+            // Save trainer info
+            if (!string.IsNullOrEmpty(OTNameEntry.Text))
+                pokemon.OT_Name = OTNameEntry.Text;
+            
+            if (int.TryParse(OTGenderEntry.Text, out var otGender) && otGender >= 0 && otGender <= 1)
+                pokemon.OT_Gender = (byte)otGender;
+            
+            if (ushort.TryParse(TIDEntry.Text, out var tid))
+                pokemon.TID16 = tid;
+            
+            if (ushort.TryParse(SIDEntry.Text, out var sid))
+                pokemon.SID16 = sid;
+            
+            if (int.TryParse(MetLocationEntry.Text, out var metLoc) && metLoc >= 0)
+                pokemon.Met_Location = (ushort)metLoc;
+            
+            if (int.TryParse(MetLevelEntry.Text, out var metLevel) && metLevel >= 0 && metLevel <= 100)
+                pokemon.Met_Level = (byte)metLevel;
+
+            // Save boolean flags
+            pokemon.FatefulEncounter = FatefulCheckBox.IsChecked == true;
+            pokemon.IsEgg = EggCheckBox.IsChecked == true;
+
+            // Handle shiny
+            if (ShinyCheckBox.IsChecked == true)
+            {
+                var shinyVal = pokemon.ShinyXor;
+                if (shinyVal >= 16)
+                    pokemon.PID = (uint)(((pokemon.TID16 ^ pokemon.SID16) ^ (pokemon.PID & 0xFFFF)) << 16) | (pokemon.PID & 0xFFFF);
+            }
+
+            // Handle Obedience Level for Gen 9
+            if (pokemon.Format == 9 && pokemon is IObedienceLevel obediencePokemon)
+            {
+                if (byte.TryParse(ObedienceLevelEntry.Text, out var obedienceLevel) && obedienceLevel >= 0 && obedienceLevel <= 100)
+                    obediencePokemon.Obedience_Level = obedienceLevel;
+            }
+
+            // Handle held item
+            // Note: Held item is set directly through the button click handler
+            // The HeldItemButton text contains the item name, not the ID
+
+            // Generation-specific properties
+            if (pokemon.Format == 8)
+            {
+                // Gen 8 specific properties
+                if (pokemon is IDynamaxLevel dynamaxPokemon && byte.TryParse(DynamaxLevelEntry.Text, out var dynamaxLevel) && dynamaxLevel <= 10)
+                {
+                    dynamaxPokemon.DynamaxLevel = dynamaxLevel;
+                }
+                
+                if (pokemon is IGigantamax gigantamaxPokemon)
+                {
+                    gigantamaxPokemon.CanGigantamax = CanGigantamaxCheckBox.IsChecked == true;
+                }
+            }
+            else if (pokemon.Format == 9)
+            {
+                // Gen 9 specific properties
+                if (pokemon is ITeraType teraPokemon)
+                {
+                    // Note: Tera types are handled by the button click events
+                    // as they're set directly when the user selects them
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in SaveAllFieldsToEntity: {ex.Message}");
         }
     }
 
@@ -923,6 +1186,122 @@ public partial class PokemonEditorPage : ContentPage
         {
             StatusLabel.Text = $"Error clearing EVs: {ex.Message}";
             await DisplayAlert("Error", $"Failed to clear EVs: {ex.Message}", "OK");
+        }
+    }
+
+    // Gen 8 Event Handlers
+    private void OnDynamaxLevelChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (byte.TryParse(e.NewTextValue, out byte level) && level <= 10 && _pokemon is IDynamaxLevel dynamaxPokemon)
+        {
+            dynamaxPokemon.DynamaxLevel = level;
+        }
+    }
+
+    private void OnCanGigantamaxChanged(object sender, CheckedChangedEventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        if (_pokemon is IGigantamax gigantamaxPokemon)
+        {
+            gigantamaxPokemon.CanGigantamax = e.Value;
+        }
+    }
+
+    private async void OnStatNatureButtonClicked(object sender, EventArgs e)
+    {
+        if (_isUpdating || _pokemon == null) return;
+
+        try
+        {
+            if (!_natureItems.Any())
+            {
+                _natureItems = CachedDataService.GetNatures().Cast<NatureItem>().ToList();
+            }
+
+            var currentNature = _natureItems.FirstOrDefault(x => x.Id == (int)_pokemon.StatNature);
+            var result = await ShowPickerSafely(_natureItems.Cast<IPickerItem>().ToList(), "Select Stat Nature", currentNature);
+
+            if (result != null)
+            {
+                _pokemon.StatNature = (Nature)result.Id;
+                
+                // Update the appropriate button text based on generation
+                if (_pokemon.Format == 8)
+                {
+                    StatNatureButton.Text = result.DisplayName;
+                }
+                else if (_pokemon.Format == 9)
+                {
+                    StatNatureGen9Button.Text = result.DisplayName;
+                }
+                
+                // Recalculate stats after nature change
+                _pokemon.ResetPartyStats();
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to change stat nature: {ex.Message}", "OK");
+        }
+    }
+
+    // Gen 9 Event Handlers
+    private async void OnTeraTypeOriginalButtonClicked(object sender, EventArgs e)
+    {
+        if (_isUpdating || _pokemon == null || _pokemon is not ITeraType teraPokemon) return;
+
+        try
+        {
+            if (!_typeItems.Any())
+            {
+                _typeItems = CachedDataService.GetTypes().Cast<TypeItem>().ToList();
+                _typeItems.Insert(0, new TypeItem { Id = 19, DisplayName = "--- (None)" });
+                _typeItems.Add(new TypeItem { Id = 99, DisplayName = "Stellar" });
+            }
+
+            var currentType = _typeItems.FirstOrDefault(x => x.Id == (int)teraPokemon.TeraTypeOriginal);
+            var result = await ShowPickerSafely(_typeItems.Cast<IPickerItem>().ToList(), "Select Original Tera Type", currentType);
+
+            if (result != null)
+            {
+                teraPokemon.TeraTypeOriginal = (MoveType)result.Id;
+                TeraTypeOriginalButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to change original tera type: {ex.Message}", "OK");
+        }
+    }
+
+    private async void OnTeraTypeOverrideButtonClicked(object sender, EventArgs e)
+    {
+        if (_isUpdating || _pokemon == null || _pokemon is not ITeraType teraPokemon) return;
+
+        try
+        {
+            if (!_typeItems.Any())
+            {
+                _typeItems = CachedDataService.GetTypes().Cast<TypeItem>().ToList();
+                _typeItems.Insert(0, new TypeItem { Id = 19, DisplayName = "--- (None)" });
+                _typeItems.Add(new TypeItem { Id = 99, DisplayName = "Stellar" });
+            }
+
+            var currentType = _typeItems.FirstOrDefault(x => x.Id == (int)teraPokemon.TeraTypeOverride);
+            var result = await ShowPickerSafely(_typeItems.Cast<IPickerItem>().ToList(), "Select Override Tera Type", currentType);
+
+            if (result != null)
+            {
+                teraPokemon.TeraTypeOverride = (MoveType)result.Id;
+                TeraTypeOverrideButton.Text = result.DisplayName;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to change override tera type: {ex.Message}", "OK");
         }
     }
 
@@ -1176,6 +1555,149 @@ public partial class PokemonEditorPage : ContentPage
         catch
         {
             return $"形态 {form}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the type name with Chinese priority
+    /// </summary>
+    private string GetTypeName(int typeId)
+    {
+        try
+        {
+            if (typeId == 19) return "--- (None)"; // TeraTypeUtil.OverrideNone
+            if (typeId == 99) return "Stellar"; // TeraTypeUtil.Stellar
+            if (typeId == 0) return "普通"; // Normal type
+            
+            // Get Chinese type names first
+            var chineseStrings = GameInfo.GetStrings("zh") ?? GameInfo.GetStrings("zh2");
+            var englishStrings = GameInfo.GetStrings("en");
+            
+            string chineseName = "";
+            string englishName = "";
+
+            // Get Chinese type name
+            if (chineseStrings?.types != null && typeId < chineseStrings.types.Length)
+            {
+                chineseName = chineseStrings.types[typeId];
+            }
+
+            // Get English type name
+            if (englishStrings?.types != null && typeId < englishStrings.types.Length)
+            {
+                englishName = englishStrings.types[typeId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
+        }
+        catch
+        {
+            return $"属性 {typeId}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the nature name with Chinese priority
+    /// </summary>
+    private string GetNatureName(Nature nature)
+    {
+        try
+        {
+            int natureId = (int)nature;
+            
+            // Get Chinese nature names first
+            var chineseStrings = GameInfo.GetStrings("zh") ?? GameInfo.GetStrings("zh2");
+            var englishStrings = GameInfo.GetStrings("en");
+            
+            string chineseName = "";
+            string englishName = "";
+
+            // Get Chinese nature name
+            if (chineseStrings?.natures != null && natureId < chineseStrings.natures.Length)
+            {
+                chineseName = chineseStrings.natures[natureId];
+            }
+
+            // Get English nature name
+            if (englishStrings?.natures != null && natureId < englishStrings.natures.Length)
+            {
+                englishName = englishStrings.natures[natureId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
+        }
+        catch
+        {
+            return $"性格 {(int)nature}";
+        }
+    }
+
+    /// <summary>
+    /// Gets the ball name with Chinese priority
+    /// </summary>
+    private string GetBallName(int ballId)
+    {
+        try
+        {
+            if (ballId == 0) return "无";
+            
+            // Get Chinese ball names first
+            var chineseStrings = GameInfo.GetStrings("zh") ?? GameInfo.GetStrings("zh2");
+            var englishStrings = GameInfo.GetStrings("en");
+            
+            string chineseName = "";
+            string englishName = "";
+
+            // Get Chinese ball name (ball names are part of items)
+            if (chineseStrings?.itemlist != null && ballId < chineseStrings.itemlist.Length)
+            {
+                chineseName = chineseStrings.itemlist[ballId];
+            }
+
+            // Get English ball name
+            if (englishStrings?.itemlist != null && ballId < englishStrings.itemlist.Length)
+            {
+                englishName = englishStrings.itemlist[ballId];
+            }
+
+            // Format the display name with Chinese as primary
+            if (!string.IsNullOrEmpty(chineseName))
+            {
+                // If Chinese and English are different, show both
+                if (!string.IsNullOrEmpty(englishName) && chineseName != englishName)
+                {
+                    return $"{chineseName} ({englishName})";
+                }
+                return chineseName;
+            }
+            
+            return englishName; // Fallback to English if Chinese not available
+        }
+        catch
+        {
+            return $"精灵球 {ballId}";
         }
     }
 }

@@ -276,6 +276,58 @@ public static class CachedDataService
     }
 
     /// <summary>
+    /// Get types list - for Tera Type selection
+    /// </summary>
+    public static List<IPickerItem> GetTypes()
+    {
+        return _cache.GetOrAdd("types", key =>
+        {
+            var items = new List<IPickerItem>();
+            try
+            {
+                var chineseTypes = GameInfo.GetStrings("zh")?.types;
+                var englishTypes = GameInfo.GetStrings("en")?.types;
+                
+                if (chineseTypes == null || englishTypes == null)
+                {
+                    // Fallback to basic type list
+                    string[] fallbackTypes = { "一般", "格斗", "飞行", "毒", "地面", "岩石", "虫", "幽灵", "钢", "火",
+                                             "水", "草", "电", "超能力", "冰", "龙", "恶", "妖精" };
+                    for (int i = 0; i < fallbackTypes.Length; i++)
+                    {
+                        items.Add(new TypeItem { Id = i, DisplayName = fallbackTypes[i] });
+                    }
+                    return items;
+                }
+                
+                // Load types 0-17 (Normal through Fairy)
+                for (int i = 0; i < Math.Min(chineseTypes.Length, 18); i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(chineseTypes[i]))
+                    {
+                        var englishName = i < englishTypes.Length ? englishTypes[i] : "";
+                        var displayName = string.IsNullOrEmpty(englishName) || chineseTypes[i] == englishName 
+                            ? chineseTypes[i] 
+                            : $"{chineseTypes[i]} ({englishName})";
+                        items.Add(new TypeItem { Id = i, DisplayName = displayName });
+                    }
+                }
+            }
+            catch 
+            { 
+                // Fallback to basic type list
+                string[] fallbackTypes = { "一般", "格斗", "飞行", "毒", "地面", "岩石", "虫", "幽灵", "钢", "火",
+                                         "水", "草", "电", "超能力", "冰", "龙", "恶", "妖精" };
+                for (int i = 0; i < fallbackTypes.Length; i++)
+                {
+                    items.Add(new TypeItem { Id = i, DisplayName = fallbackTypes[i] });
+                }
+            }
+            return items;
+        });
+    }
+
+    /// <summary>
     /// Get balls list - small fixed list
     /// </summary>
     public static List<IPickerItem> GetBalls()
@@ -408,6 +460,7 @@ public static class CachedDataService
     public static Task<List<IPickerItem>> GetMovesAsync() => Task.FromResult(GetMoves());
     public static Task<List<IPickerItem>> GetAbilitiesAsync() => Task.FromResult(GetAbilities());
     public static Task<List<IPickerItem>> GetNaturesAsync() => Task.FromResult(GetNatures());
+    public static Task<List<IPickerItem>> GetTypesAsync() => Task.FromResult(GetTypes());
     public static Task<List<IPickerItem>> GetItemsAsync() => Task.FromResult(GetItems());
     public static Task<List<IPickerItem>> GetBallsAsync() => Task.FromResult(GetBalls());
 }

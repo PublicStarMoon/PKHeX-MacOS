@@ -19,6 +19,16 @@ public interface IHyperTrain
 public static partial class Extensions
 {
     /// <summary>
+    /// Generation 7/8 minimum level for Hyper Training.
+    /// </summary>
+    public const int LevelHyperTrainMin8 = Experience.MaxLevel;
+
+    /// <summary>
+    /// Generation 9+ minimum level for Hyper Training.
+    /// </summary>
+    public const int LevelHyperTrainMin9 = 50;
+
+    /// <summary>
     /// Toggles the Hyper Training flag for a given stat.
     /// </summary>
     /// <param name="t">Hyper Trainable object</param>
@@ -128,27 +138,26 @@ public static partial class Extensions
     /// Indicates if Hyper Training is available to be set.
     /// </summary>
     /// <param name="t">Entity to train</param>
-    /// <param name="h">History of evolutions present as</param>
     /// <returns>True if available, otherwise false.</returns>
-    public static bool IsHyperTrainingAvailable(this IHyperTrain t, EvolutionHistory h) => t switch
+    public static bool IsHyperTrainingAvailable(this IHyperTrain t) => t switch
     {
         // Check for game formats where training is unavailable:
-        PA8 => h.HasVisitedGen7 || h.HasVisitedSWSH || h.HasVisitedBDSP,
+        PA8 and IHomeTrack { HasTracker: false } => false,
         _ => true,
     };
 
-    /// <inheritdoc cref="IsHyperTrainingAvailable(IHyperTrain,EvolutionHistory)"/>
-    public static bool IsHyperTrainingAvailable(this EntityContext c, int currentLevel)
+    /// <inheritdoc cref="IsHyperTrainingAvailable(IHyperTrain)"/>
+    public static bool IsHyperTrainingAvailable(this EntityContext c, byte currentLevel)
     {
         var min = GetHyperTrainMinLevel(c);
-        return currentLevel <= min;
+        return currentLevel >= min;
     }
 
-    /// <inheritdoc cref="GetHyperTrainMinLevel(IHyperTrain,EvolutionHistory)"/>
+    /// <inheritdoc cref="GetHyperTrainMinLevel(IHyperTrain,EvolutionHistory, EntityContext)"/>
     public static int GetHyperTrainMinLevel(this EntityContext c) => c switch
     {
-        EntityContext.Gen7 or EntityContext.Gen8 or EntityContext.Gen8b => 100,
-        EntityContext.Gen9 => 50,
+        EntityContext.Gen7 or EntityContext.Gen8 or EntityContext.Gen8b => LevelHyperTrainMin8,
+        EntityContext.Gen9 => LevelHyperTrainMin9,
         _ => 101,
     };
 
@@ -157,26 +166,32 @@ public static partial class Extensions
     /// </summary>
     /// <param name="_">Entity to train</param>
     /// <param name="h">History of evolutions present as</param>
+    /// <param name="current">Current context</param>
     /// <returns>True if available, otherwise false.</returns>
-    public static int GetHyperTrainMinLevel(this IHyperTrain _, EvolutionHistory h)
+    public static int GetHyperTrainMinLevel(this IHyperTrain _, EvolutionHistory h, EntityContext current)
     {
+        // HOME 3.0.0+ disallows inbound transfers of Hyper Trained Pokémon below level 100.
+        // PokeDupeChecker in BD/SP will DprIllegal if < 100, even if it was legitimately trained in S/V+.
+        if (current == EntityContext.Gen8b)
+            return LevelHyperTrainMin8;
+
         if (h.HasVisitedGen9)
-            return 50;
-        return 100;
+            return LevelHyperTrainMin9;
+        return LevelHyperTrainMin8;
     }
 
-    /// <inheritdoc cref="IsHyperTrainingAvailable(IHyperTrain, EvolutionHistory)"/>
+    /// <inheritdoc cref="IsHyperTrainingAvailable(IHyperTrain)"/>
     /// <param name="pk">Entity data</param>
     /// <param name="h">History of evolutions present as</param>
     public static bool IsHyperTrainingAvailable(this PKM pk, EvolutionHistory h)
     {
         if (pk is not IHyperTrain t)
             return false;
-        if (!t.IsHyperTrainingAvailable(h))
+        if (!t.IsHyperTrainingAvailable())
             return false;
 
         // Gated behind level.
-        var min = t.GetHyperTrainMinLevel(h);
+        var min = t.GetHyperTrainMinLevel(h, pk.Context);
         return pk.CurrentLevel >= min;
     }
 }

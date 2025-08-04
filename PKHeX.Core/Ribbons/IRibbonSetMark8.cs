@@ -1,3 +1,5 @@
+using System;
+
 namespace PKHeX.Core;
 
 /// <summary> Marks introduced in Generation 8 </summary>
@@ -63,15 +65,23 @@ public interface IRibbonSetMarks
     int RibbonMarkCount { get; }
 }
 
-internal static partial class RibbonExtensions
+public static partial class RibbonExtensions
 {
-    public static bool HasWeatherMark(this IRibbonSetMark8 m)
+    public static bool HasWeatherMark(this IRibbonSetMark8 m, out RibbonIndex ribbon)
     {
-        return m.RibbonMarkCloudy   || m.RibbonMarkRainy || m.RibbonMarkStormy    || m.RibbonMarkSnowy
-            || m.RibbonMarkBlizzard || m.RibbonMarkDry   || m.RibbonMarkSandstorm || m.RibbonMarkMisty;
+        if (m.RibbonMarkCloudy) { ribbon = RibbonIndex.MarkCloudy; return true; }
+        if (m.RibbonMarkRainy) { ribbon = RibbonIndex.MarkRainy; return true; }
+        if (m.RibbonMarkStormy) { ribbon = RibbonIndex.MarkStormy; return true; }
+        if (m.RibbonMarkSnowy) { ribbon = RibbonIndex.MarkSnowy; return true; }
+        if (m.RibbonMarkBlizzard) { ribbon = RibbonIndex.MarkBlizzard; return true; }
+        if (m.RibbonMarkDry) { ribbon = RibbonIndex.MarkDry; return true; }
+        if (m.RibbonMarkSandstorm) { ribbon = RibbonIndex.MarkSandstorm; return true; }
+        if (m.RibbonMarkMisty) { ribbon = RibbonIndex.MarkMisty; return true; }
+        ribbon = default;
+        return false;
     }
 
-    internal static void CopyRibbonSetMark8(this IRibbonSetMark8 set, IRibbonSetMark8 dest)
+    public static void CopyRibbonSetMark8(this IRibbonSetMark8 set, IRibbonSetMark8 dest)
     {
         dest.RibbonMarkLunchtime = set.RibbonMarkLunchtime;
         dest.RibbonMarkSleepyTime = set.RibbonMarkSleepyTime;
@@ -119,4 +129,54 @@ internal static partial class RibbonExtensions
         dest.RibbonMarkVigor = set.RibbonMarkVigor;
         dest.RibbonMarkSlump = set.RibbonMarkSlump;
     }
+
+    public static bool HasMark8(this IRibbonSetMark8 set, RibbonIndex index) => index switch
+    {
+        RibbonIndex.MarkLunchtime => set.RibbonMarkLunchtime,
+        RibbonIndex.MarkSleepyTime => set.RibbonMarkSleepyTime,
+        RibbonIndex.MarkDusk => set.RibbonMarkDusk,
+        RibbonIndex.MarkDawn => set.RibbonMarkDawn,
+        RibbonIndex.MarkCloudy => set.RibbonMarkCloudy,
+        RibbonIndex.MarkRainy => set.RibbonMarkRainy,
+        RibbonIndex.MarkStormy => set.RibbonMarkStormy,
+        RibbonIndex.MarkSnowy => set.RibbonMarkSnowy,
+        RibbonIndex.MarkBlizzard => set.RibbonMarkBlizzard,
+        RibbonIndex.MarkDry => set.RibbonMarkDry,
+        RibbonIndex.MarkSandstorm => set.RibbonMarkSandstorm,
+        RibbonIndex.MarkMisty => set.RibbonMarkMisty,
+        RibbonIndex.MarkDestiny => set.RibbonMarkDestiny,
+        RibbonIndex.MarkFishing => set.RibbonMarkFishing,
+        RibbonIndex.MarkCurry => set.RibbonMarkCurry,
+        RibbonIndex.MarkUncommon => set.RibbonMarkUncommon,
+        RibbonIndex.MarkRare => set.RibbonMarkRare,
+        RibbonIndex.MarkRowdy => set.RibbonMarkRowdy,
+        RibbonIndex.MarkAbsentMinded => set.RibbonMarkAbsentMinded,
+        RibbonIndex.MarkJittery => set.RibbonMarkJittery,
+        RibbonIndex.MarkExcited => set.RibbonMarkExcited,
+        RibbonIndex.MarkCharismatic => set.RibbonMarkCharismatic,
+        RibbonIndex.MarkCalmness => set.RibbonMarkCalmness,
+        RibbonIndex.MarkIntense => set.RibbonMarkIntense,
+        RibbonIndex.MarkZonedOut => set.RibbonMarkZonedOut,
+        RibbonIndex.MarkJoyful => set.RibbonMarkJoyful,
+        RibbonIndex.MarkAngry => set.RibbonMarkAngry,
+        RibbonIndex.MarkSmiley => set.RibbonMarkSmiley,
+        RibbonIndex.MarkTeary => set.RibbonMarkTeary,
+        RibbonIndex.MarkUpbeat => set.RibbonMarkUpbeat,
+        RibbonIndex.MarkPeeved => set.RibbonMarkPeeved,
+        RibbonIndex.MarkIntellectual => set.RibbonMarkIntellectual,
+        RibbonIndex.MarkFerocious => set.RibbonMarkFerocious,
+        RibbonIndex.MarkCrafty => set.RibbonMarkCrafty,
+        RibbonIndex.MarkScowling => set.RibbonMarkScowling,
+        RibbonIndex.MarkKindly => set.RibbonMarkKindly,
+        RibbonIndex.MarkFlustered => set.RibbonMarkFlustered,
+        RibbonIndex.MarkPumpedUp => set.RibbonMarkPumpedUp,
+        RibbonIndex.MarkZeroEnergy => set.RibbonMarkZeroEnergy,
+        RibbonIndex.MarkPrideful => set.RibbonMarkPrideful,
+        RibbonIndex.MarkUnsure => set.RibbonMarkUnsure,
+        RibbonIndex.MarkHumble => set.RibbonMarkHumble,
+        RibbonIndex.MarkThorny => set.RibbonMarkThorny,
+        RibbonIndex.MarkVigor => set.RibbonMarkVigor,
+        RibbonIndex.MarkSlump => set.RibbonMarkSlump,
+        _ => throw new ArgumentOutOfRangeException(nameof(index), index, null),
+    };
 }

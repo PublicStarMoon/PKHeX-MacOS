@@ -4,10 +4,10 @@ using static System.Buffers.Binary.BinaryPrimitives;
 namespace PKHeX.Core;
 
 /// <summary> Generation 8 <see cref="PKM"/> format. </summary>
-public sealed class PK8 : G8PKM
+public sealed class PK8 : G8PKM, IHandlerUpdate
 {
-    public override ReadOnlySpan<ushort> ExtraBytes => new ushort[]
-    {
+    public override ReadOnlySpan<ushort> ExtraBytes =>
+    [
         // Alignment bytes
         0x17, 0x1A, 0x1B, 0x23, 0x33, 0x3E, 0x3F,
         0x4C, 0x4D, 0x4E, 0x4F,
@@ -24,25 +24,43 @@ public sealed class PK8 : G8PKM
 
         0x13D, 0x13E, 0x13F,
         0x140, 0x141, 0x142, 0x143, 0x144, 0x145, 0x146, 0x147,
-    };
+    ];
 
     public override PersonalInfo8SWSH PersonalInfo => PersonalTable.SWSH.GetFormEntry(Species, Form);
     public override IPermitRecord Permit => PersonalInfo;
-    public override bool IsNative => SWSH;
     public override EntityContext Context => EntityContext.Gen8;
 
-    public PK8() => AffixedRibbon = -1; // 00 would make it show Kalos Champion :)
-    public PK8(byte[] data) : base(data) { }
-    public override PK8 Clone() => new((byte[])Data.Clone());
+    public PK8() => AffixedRibbon = Core.AffixedRibbon.None;
+    public PK8(Memory<byte> data) : base(data) { }
+    public override PK8 Clone() => new(Data.ToArray());
 
-    public void Trade(ITrainerInfo tr, int Day = 1, int Month = 1, int Year = 2015)
+    // Synthetic Trading Logic
+    public bool BelongsTo(ITrainerInfo tr)
+    {
+        if (tr.Version != Version)
+            return false;
+        if (tr.ID32 != ID32)
+            return false;
+        if (tr.Gender != OriginalTrainerGender)
+            return false;
+
+        Span<char> ot = stackalloc char[MaxStringLengthTrainer];
+        int len = LoadString(OriginalTrainerTrash, ot);
+        return ot[..len].SequenceEqual(tr.OT);
+    }
+
+    public void UpdateHandler(ITrainerInfo tr)
     {
         if (IsEgg)
         {
             // Eggs do not have any modifications done if they are traded
-            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc)
-            if ((tr.TID16 != TID16) || (tr.SID16 != SID16) || (tr.Gender != OT_Gender) || (tr.OT != OT_Name))
-                SetLinkTradeEgg(Day, Month, Year, Locations.LinkTrade6);
+            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc.)
+            const ushort location = Locations.LinkTrade6;
+            if (MetLocation != location && !BelongsTo(tr))
+            {
+                var date = EncounterDate.GetDateSwitch();
+                SetLinkTradeEgg(date.Day, date.Month, date.Year, location);
+            }
             return;
         }
 
@@ -51,52 +69,44 @@ public sealed class PK8 : G8PKM
             TradeHT(tr);
     }
 
-    public int DynamaxType { get => ReadUInt16LittleEndian(Data.AsSpan(0x156)); set => WriteUInt16LittleEndian(Data.AsSpan(0x156), (ushort)value); }
+    public int DynamaxType { get => ReadUInt16LittleEndian(Data[0x156..]); set => WriteUInt16LittleEndian(Data[0x156..], (ushort)value); }
 
     public void FixMemories()
     {
         if (IsEgg) // No memories if is egg.
         {
-            HT_Friendship = HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = HT_Language = 0;
-            /* OT_Friendship */ OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
-
-            // Clear Handler
-            HT_Trash.Clear();
+            this.ClearMemoriesOT();
+            this.ClearMemoriesHT();
+            HandlingTrainerGender = HandlingTrainerFriendship = HandlingTrainerLanguage = 0;
+            HandlingTrainerTrash.Clear();
             return;
         }
 
         if (IsUntraded)
-            HT_Friendship = HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = HT_Language = 0;
-
-        int gen = Generation;
-        if (gen < 6)
-            OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
-        if (gen != 8) // must be transferred via HOME, and must have memories
-            this.SetTradeMemoryHT8(); // not faking HOME tracker.
+        {
+            this.ClearMemoriesHT();
+            HandlingTrainerGender = HandlingTrainerFriendship = HandlingTrainerLanguage = 0;
+            HandlingTrainerTrash.Clear();
+        }
+        else
+        {
+            var gen = Generation;
+            if (gen < 6)
+                this.ClearMemoriesOT();
+        }
     }
 
     private bool TradeOT(ITrainerInfo tr)
     {
         // Check to see if the OT matches the SAV's OT info.
-        if (!(tr.ID32 == ID32 && tr.Gender == OT_Gender && tr.OT == OT_Name))
+        if (!BelongsTo(tr))
             return false;
 
         CurrentHandler = 0;
         return true;
     }
 
-    private void TradeHT(ITrainerInfo tr)
-    {
-        if (HT_Name != tr.OT)
-        {
-            HT_Friendship = 50;
-            HT_Name = tr.OT;
-        }
-        CurrentHandler = 1;
-        HT_Gender = tr.Gender;
-        HT_Language = (byte)tr.Language;
-        this.SetTradeMemoryHT8();
-    }
+    private void TradeHT(ITrainerInfo tr) => PKH.UpdateHandler(this, tr);
 
     // Maximums
     public override ushort MaxMoveID => Legal.MaxMoveID_8;
@@ -104,93 +114,22 @@ public sealed class PK8 : G8PKM
     public override int MaxAbilityID => Legal.MaxAbilityID_8;
     public override int MaxItemID => Legal.MaxItemID_8;
     public override int MaxBallID => Legal.MaxBallID_8;
-    public override int MaxGameID => Legal.MaxGameID_8;
+    public override GameVersion MaxGameID => Legal.MaxGameID_8;
+    public bool IsSideTransfer => LocationsHOME.IsLocationSWSH(MetLocation);
+    public override bool SV => MetLocation is LocationsHOME.SWSL or LocationsHOME.SHVL;
+    public override bool BDSP => MetLocation is LocationsHOME.SWBD or LocationsHOME.SHSP;
+    public override bool LA => MetLocation is LocationsHOME.SWLA;
+    public override bool HasOriginalMetLocation => base.HasOriginalMetLocation && !IsSideTransfer;
 
-    public PB8 ConvertToPB8()
-    {
-        var pk = ConvertTo<PB8>();
-        if (pk.Egg_Location == 0)
-            pk.Egg_Location = Locations.Default8bNone;
-        UnmapLocation(pk);
-        return pk;
-    }
-
-    public override PA8 ConvertToPA8()
-    {
-        var pk = base.ConvertToPA8();
-        UnmapLocation(pk);
-        return pk;
-    }
-
-    private static void UnmapLocation(PKM pk)
-    {
-        switch (pk.Met_Location)
-        {
-            case Locations.HOME_SWLA:
-                pk.Version = (int)GameVersion.PLA;
-                // Keep location due to bad transfer logic (official) -- server legal.
-                break;
-            case Locations.HOME_SWBD:
-                pk.Version = (int)GameVersion.BD;
-                pk.Met_Location = 0; // Load whatever value from the server. We don't know.
-                break;
-            case Locations.HOME_SHSP:
-                pk.Version = (int)GameVersion.SP;
-                pk.Met_Location = 0; // Load whatever value from the server. We don't know.
-                break;
-        }
-    }
-
-    public override void ResetMoves()
-    {
-        var learnsets = Legal.LevelUpSWSH;
-        var table = PersonalTable.SWSH;
-
-        var index = table.GetFormIndex(Species, Form);
-        var learn = learnsets[index];
-        Span<ushort> moves = stackalloc ushort[4];
-        learn.SetEncounterMoves(CurrentLevel, moves);
-        SetMoves(moves);
-        this.SetMaximumPPCurrent(moves);
-    }
-
-    public bool IsSideTransfer => Met_Location is Locations.HOME_SHSP or Locations.HOME_SWBD or Locations.HOME_SWLA;
-    public override bool BDSP => Met_Location is Locations.HOME_SWBD or Locations.HOME_SHSP;
-    public override bool LA => Met_Location is Locations.HOME_SWLA;
-    public override bool HasOriginalMetLocation => base.HasOriginalMetLocation && !(BDSP || LA);
-
-    public void SanitizeImport()
-    {
-        // BDSP->SWSH: Set the Met Location to the magic Location, set the Egg Location to 0 if -1, otherwise BDSPEgg (0 is a valid location, but no eggs can be EggMet there -- only hatched.)
-        // PLA->SWSH: Set the Met Location to the magic Location, set the Egg Location to 0 (no eggs in game).
-        var ver = Version;
-        if (ver is (int)GameVersion.SP)
-        {
-            Version = (int)GameVersion.SH;
-            Met_Location = Locations.HOME_SHSP;
-            Egg_Location = Egg_Location == Locations.Default8bNone ? 0 : Locations.HOME_SWSHBDSPEgg;
-        }
-        else if (ver is (int)GameVersion.BD)
-        {
-            Version = (int)GameVersion.SW;
-            Met_Location = Locations.HOME_SWBD;
-            Egg_Location = Egg_Location == Locations.Default8bNone ? 0 : Locations.HOME_SWSHBDSPEgg;
-        }
-        else if (ver is (int)GameVersion.PLA)
-        {
-            const ushort met = Locations.HOME_SWLA;
-            Version = (int)GameVersion.SW;
-            Met_Location = met;
-            Egg_Location = 0; // Everything originating from this game has an Egg Location of 0.
-        }
-
-        if (Ball > (int)Core.Ball.Beast)
-            Ball = (int)Core.Ball.Poke;
-    }
-
-    public PK9 ConvertToPK9()
-    {
-        // Todo: Transfer to PK9
-        return new PK9();
-    }
+    public override string GetString(ReadOnlySpan<byte> data)
+        => StringConverter8.GetString(data);
+    public override int LoadString(ReadOnlySpan<byte> data, Span<char> destBuffer)
+        => StringConverter8.LoadString(data, destBuffer);
+    public override int SetString(Span<byte> destBuffer, ReadOnlySpan<char> value, int maxLength, StringConverterOption option)
+        => StringConverter8.SetString(destBuffer, value, maxLength, option);
+    public override int GetStringTerminatorIndex(ReadOnlySpan<byte> data)
+        => TrashBytesUTF16.GetTerminatorIndex(data);
+    public override int GetStringLength(ReadOnlySpan<byte> data)
+        => TrashBytesUTF16.GetStringLength(data);
+    public override int GetBytesPerChar() => 2;
 }

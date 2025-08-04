@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static PKHeX.Core.GameVersion;
 using static PKHeX.Core.EggSource34;
-using static PKHeX.Core.LearnSource3;
+using static PKHeX.Core.PersonalInfo3;
 
 namespace PKHeX.Core;
 
@@ -13,7 +13,7 @@ namespace PKHeX.Core;
 /// <remarks>Refer to <see cref="EggSource34"/> for inheritance ordering.</remarks>
 public static class MoveBreed3
 {
-    private const int level = 5;
+    private const byte Level = EncounterEgg3.Level;
 
     /// <inheritdoc cref="MoveBreed.Validate"/>
     public static bool Validate(ushort species, GameVersion version, ReadOnlySpan<ushort> moves, Span<byte> origins)
@@ -24,23 +24,22 @@ public static class MoveBreed3
         if (count == -1)
             count = moves.Length;
 
-        (Learnset[] learn, PersonalTable3 table) = version switch
+        ILearnSource<PersonalInfo3> ls = version switch
         {
-            R or S => (Legal.LevelUpRS, PersonalTable.RS),
-            E      => (Legal.LevelUpE,  PersonalTable.E ),
-            FR     => (Legal.LevelUpFR, PersonalTable.FR),
-            LG     => (Legal.LevelUpLG, PersonalTable.LG),
-            _ => throw new ArgumentException($"Invalid version: {version}"),
+            R => LearnSource3RS.Instance,
+            S => LearnSource3RS.Instance,
+            E => LearnSource3E.Instance,
+            FR => LearnSource3FR.Instance,
+            LG => LearnSource3LG.Instance,
+            _ => throw new ArgumentOutOfRangeException(nameof(version), version, $"Invalid version: {version}"),
         };
-        if (!table.IsSpeciesInGame(species))
+        if (!ls.TryGetPersonal(species, 0, out var pi))
             return false;
 
-        var learnset = learn[species];
-        var pi = table[species];
-
+        var learnset = ls.GetLearnset(species, 0);
         var actual = MemoryMarshal.Cast<byte, EggSource34>(origins);
         Span<byte> possible = stackalloc byte[count];
-        var value = new BreedInfo<EggSource34>(actual, possible, learnset, moves, level);
+        var value = new BreedInfo<EggSource34>(actual, possible, learnset, moves, Level);
         if (species is (int)Species.Pichu && moves[count - 1] is (int)Move.VoltTackle && version == E)
             actual[--count] = VoltTackle;
 
@@ -51,7 +50,7 @@ public static class MoveBreed3
         }
         else
         {
-            var egg = Legal.EggMovesRS[species].Moves;
+            var egg = ls.GetEggMoves(species, 0);
             bool inherit = Breeding.GetCanInheritMoves(species);
             MarkMovesForOrigin(value, egg, count, inherit, pi);
             valid = RecurseMovesForOrigin(value, count - 1);
@@ -156,17 +155,17 @@ public static class MoveBreed3
         var learn = value.Learnset;
         var baseEgg = value.Learnset.GetBaseEggMoves(value.Level);
         var tm = info.TMHM;
-        var tmlist = TM_3;
-        var hmlist = HM_3;
+        var tmlist = MachineMovesTechnical;
+        var hmlist = MachineMovesHidden;
         var moves = value.Moves;
         for (int i = 0; i < count; i++)
         {
             var move = moves[i];
 
-            if (baseEgg.IndexOf(move) != -1)
+            if (baseEgg.Contains(move))
                 possible[i] |= 1 << (int)Base;
 
-            if (inheritLevelUp && learn.GetLevelLearnMove(move) != -1)
+            if (inheritLevelUp && learn.GetIsLearn(move))
                 possible[i] |= 1 << (int)ParentLevelUp;
 
             if (eggMoves.Contains(move))

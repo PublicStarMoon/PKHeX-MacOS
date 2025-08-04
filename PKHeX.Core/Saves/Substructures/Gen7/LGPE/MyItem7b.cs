@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 
 namespace PKHeX.Core;
 
-public sealed class MyItem7b : MyItem
+public sealed class MyItem7b(SAV7b sav, Memory<byte> raw) : MyItem(sav, raw)
 {
     private const int Medicine = 0x0000; // 0
     private const int TM       = 0x00F0; // 1
@@ -12,22 +13,21 @@ public sealed class MyItem7b : MyItem
     private const int Battle   = 0x08E0; // 5
     private const int Key      = 0x0B38; // 6
 
-    public MyItem7b(SAV7b sav, int offset) : base(sav) => Offset = offset;
-
     public override IReadOnlyList<InventoryPouch> Inventory
     {
         get
         {
+            var info = ItemStorage7GG.Instance;
             InventoryPouch7b[] pouch =
-            {
-                new(InventoryType.Medicine, Legal.Pouch_Medicine_GG, 999, Medicine, PouchSize7b.Medicine),
-                new(InventoryType.TMHMs, Legal.Pouch_TM_GG, 1, TM, PouchSize7b.TM),
-                new(InventoryType.Balls, Legal.Pouch_Catching_GG, 999, Catching, PouchSize7b.Catching),
-                new(InventoryType.Items, Legal.Pouch_Regular_GG, 999, Key, PouchSize7b.Items),
-                new(InventoryType.BattleItems, Legal.Pouch_Battle_GG, 999, Battle, PouchSize7b.Battle),
-                new(InventoryType.ZCrystals, Legal.Pouch_PowerUp_GG, 999, PowerUp, PouchSize7b.PowerUp),
-                new(InventoryType.Candy, Legal.Pouch_Candy_GG, 999, Candy, PouchSize7b.Candy),
-            };
+            [
+                new(InventoryType.Medicine, info, 999, Medicine, PouchSize7b.Medicine),
+                new(InventoryType.TMHMs, info, 1, TM, PouchSize7b.TM),
+                new(InventoryType.Balls, info, 999, Catching, PouchSize7b.Catching),
+                new(InventoryType.Items, info, 999, Key, PouchSize7b.Items),
+                new(InventoryType.BattleItems, info, 999, Battle, PouchSize7b.Battle),
+                new(InventoryType.ZCrystals, info, 999, PowerUp, PouchSize7b.PowerUp),
+                new(InventoryType.Candy, info, 999, Candy, PouchSize7b.Candy),
+            ];
             return pouch.LoadAll(Data);
         }
         set

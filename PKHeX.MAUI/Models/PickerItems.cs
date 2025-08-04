@@ -71,3 +71,12 @@ public class SpeciesItem : IPickerItem
     public int Id { get; set; }
     public string DisplayName { get; set; } = "";
 }
+
+/// <summary>
+/// Type item for Tera Type selection pickers
+/// </summary>
+public class TypeItem : IPickerItem
+{
+    public int Id { get; set; }
+    public string DisplayName { get; set; } = "";
+}

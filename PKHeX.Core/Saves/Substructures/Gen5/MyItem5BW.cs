@@ -1,36 +1,30 @@
+using System;
 using System.Collections.Generic;
 
 namespace PKHeX.Core;
 
-public sealed class MyItem5BW : MyItem
+public sealed class MyItem5BW(SAV5BW SAV, Memory<byte> raw) : MyItem(SAV, raw)
 {
-    // offsets/pouch sizes are the same for both BW and B2W2, but Key Item permissions are different
+    // offsets/pouch sizes are the same for both B/W and B2/W2, but Key Item permissions are different
     private const int HeldItem = 0x000; // 0
     private const int KeyItem  = 0x4D8; // 1
     private const int TMHM     = 0x624; // 2
     private const int Medicine = 0x7D8; // 3
     private const int Berry    = 0x898; // 4
 
-    private static readonly ushort[] LegalItems = Legal.Pouch_Items_BW;
-    private static readonly ushort[] LegalKeyItems = Legal.Pouch_Key_BW;
-    private static readonly ushort[] LegalTMHMs = Legal.Pouch_TMHM_BW;
-    private static readonly ushort[] LegalMedicine = Legal.Pouch_Medicine_BW;
-    private static readonly ushort[] LegalBerries = Legal.Pouch_Berries_BW;
-
-    public MyItem5BW(SaveFile SAV, int offset) : base(SAV) => Offset = offset;
-
     public override IReadOnlyList<InventoryPouch> Inventory
     {
         get
         {
+            var info = ItemStorage5BW.Instance;
             InventoryPouch4[] pouch =
-            {
-                new(InventoryType.Items, LegalItems, 999, Offset + HeldItem),
-                new(InventoryType.KeyItems, LegalKeyItems, 1, Offset + KeyItem),
-                new(InventoryType.TMHMs, LegalTMHMs, 1, Offset + TMHM),
-                new(InventoryType.Medicine, LegalMedicine, 999, Offset + Medicine),
-                new(InventoryType.Berries, LegalBerries, 999, Offset + Berry),
-            };
+            [
+                new(InventoryType.Items, info, 999, HeldItem),
+                new(InventoryType.KeyItems, info, 1, KeyItem),
+                new(InventoryType.TMHMs, info, 1, TMHM),
+                new(InventoryType.Medicine, info, 999, Medicine),
+                new(InventoryType.Berries, info, 999, Berry),
+            ];
             return pouch.LoadAll(Data);
         }
         set => value.SaveAll(Data);

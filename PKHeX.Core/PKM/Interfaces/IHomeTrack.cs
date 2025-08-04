@@ -1,4 +1,4 @@
-﻿namespace PKHeX.Core;
+namespace PKHeX.Core;
 
 /// <summary>
 /// Interface that exposes a <see cref="Tracker"/> for Pokémon HOME.
@@ -10,4 +10,10 @@ public interface IHomeTrack
     /// Tracker for the associated <see cref="PKM"/>
     /// </summary>
     ulong Tracker { get; set; }
+
+    /// <summary>
+    /// Simple check if a <see cref="Tracker"/> is present.
+    /// </summary>
+    /// <remarks>Does not ensure that it is a valid tracker, just non-zero.</remarks>
+    bool HasTracker => Tracker != 0;
 }

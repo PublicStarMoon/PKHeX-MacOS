@@ -9,34 +9,33 @@ namespace PKHeX.Core;
 /// <remarks>
 /// Reads four separate pouch blobs: Items, Key Items, Storage, and Recipes.
 /// </remarks>
-public sealed class MyItem8a : MyItem
+public sealed class MyItem8a(SAV8LA sav, SCBlock block) : MyItem(sav, block.Raw)
 {
-    public MyItem8a(SAV8LA SAV, SCBlock block) : base(SAV, block.Data) { }
-
     public override IReadOnlyList<InventoryPouch> Inventory
     {
         get
         {
-            var access = ((SAV8LA)SAV).Accessor;
+            var access = sav.Accessor;
             var satchel = (uint)access.GetBlock(SaveBlockAccessor8LA.KSatchelUpgrades).GetValue();
             var regularSize = (int)Math.Min(675, satchel + 20);
 
-            var regular = new InventoryPouch8a(InventoryType.Items,    Legal.Pouch_Items_LA , 999, regularSize);
-            var key     = new InventoryPouch8a(InventoryType.KeyItems, Legal.Pouch_Key_LA   ,   1, 100);
-            var stored  = new InventoryPouch8a(InventoryType.PCItems,  Legal.Pouch_Items_LA , 999, 180);
-            var recipe = new InventoryPouch8a(InventoryType.Treasure,  Legal.Pouch_Recipe_LA,   1,  70);
+            var info = ItemStorage8LA.Instance;
+            var regular = new InventoryPouch8a(InventoryType.Items,    info, 999, regularSize);
+            var key     = new InventoryPouch8a(InventoryType.KeyItems, info,   1, 100);
+            var stored  = new InventoryPouch8a(InventoryType.PCItems,  info, 999, 180);
+            var recipe = new InventoryPouch8a(InventoryType.Treasure,  info,   1,  70);
             regular.GetPouch(access.GetBlock(SaveBlockAccessor8LA.KItemRegular).Data);
             key   .GetPouch(access.GetBlock(SaveBlockAccessor8LA.KItemKey).Data);
             stored.GetPouch(access.GetBlock(SaveBlockAccessor8LA.KItemStored).Data);
             recipe.GetPouch(access.GetBlock(SaveBlockAccessor8LA.KItemRecipe).Data);
 
-            var result = new[] { regular, key, stored, recipe };
+            InventoryPouch8a[] result = [ regular, key, stored, recipe ];
             LoadFavorites(result, access);
             return result;
         }
         set
         {
-            var access = ((SAV8LA)SAV).Accessor;
+            var access = sav.Accessor;
             foreach (var p in value)
                 ((InventoryPouch8a)p).SanitizeCounts();
 
@@ -50,14 +49,14 @@ public sealed class MyItem8a : MyItem
 
     private static void LoadFavorites(ReadOnlySpan<InventoryPouch8a> pouches, SCBlockAccessor access)
     {
-        var favorites = access.GetBlock(SaveBlockAccessor8LA.KItemFavorite).Data.AsSpan();
+        var favorites = access.GetBlock(SaveBlockAccessor8LA.KItemFavorite).Data;
         foreach (var arr in pouches)
             LoadFavorites(arr.Items, favorites);
     }
 
     private static void SaveFavorites(ReadOnlySpan<InventoryPouch8a> pouches, SCBlockAccessor access)
     {
-        var favorites = access.GetBlock(SaveBlockAccessor8LA.KItemFavorite).Data.AsSpan();
+        var favorites = access.GetBlock(SaveBlockAccessor8LA.KItemFavorite).Data;
         favorites.Clear();
         foreach (var arr in pouches)
             SaveFavorites(arr.Items, favorites);

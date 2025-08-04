@@ -459,6 +459,7 @@ public partial class InventoryEditorPage : ContentPage
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(50) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
         // Item name and ID display
@@ -583,6 +584,46 @@ public partial class InventoryEditorPage : ContentPage
         }
         Grid.SetColumn(favoriteFlagView, 3);
 
+        // Free space flag indicator
+        View freeSpaceFlagView;
+        CheckBox? freeSpaceCheckBox = null;
+        
+        if (_saveFile != null && _saveFile.Generation >= 8 && !isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
+        {
+            var item = _currentPouch.Items[arrayIndex];
+            if (item is IItemFreeSpace freeSpaceItem)
+            {
+                freeSpaceCheckBox = new CheckBox
+                {
+                    IsChecked = freeSpaceItem.IsFree,
+                    VerticalOptions = LayoutOptions.Center,
+                    HorizontalOptions = LayoutOptions.Center,
+                    Color = Color.FromArgb("#6366F1")
+                };
+                freeSpaceFlagView = freeSpaceCheckBox;
+            }
+            else
+            {
+                freeSpaceFlagView = new Label { Text = "N/A", FontSize = 10, TextColor = Color.FromArgb("#94A3B8"), HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Center };
+            }
+        }
+        else
+        {
+            var badge = new Microsoft.Maui.Controls.Frame
+            {
+                BackgroundColor = isDemo ? Color.FromArgb("#3B82F6") : Color.FromArgb("#94A3B8"),
+                Padding = new Thickness(6, 4),
+                CornerRadius = 6,
+                HasShadow = false,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            var badgeLabel = new Label { Text = isDemo ? "DEMO" : "N/A", FontSize = 9, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+            badge.Content = badgeLabel;
+            freeSpaceFlagView = badge;
+        }
+        Grid.SetColumn(freeSpaceFlagView, 4);
+
         // Action buttons
         var actionStack = new StackLayout
         {
@@ -620,7 +661,7 @@ public partial class InventoryEditorPage : ContentPage
 
         actionStack.Children.Add(editButton);
         actionStack.Children.Add(deleteButton);
-        Grid.SetColumn(actionStack, 4);
+        Grid.SetColumn(actionStack, 5);
 
         // Event handlers for real items
         if (!isDemo && _currentPouch?.Items != null && arrayIndex < _currentPouch.Items.Length)
@@ -631,7 +672,8 @@ public partial class InventoryEditorPage : ContentPage
                 CountEntry = countEntry, 
                 ItemIdEntry = new Microsoft.Maui.Controls.Entry { Text = itemIndex.ToString() }, 
                 NewCheckBox = newCheckBox,
-                FavoriteCheckBox = favoriteCheckBox
+                FavoriteCheckBox = favoriteCheckBox,
+                FreeSpaceCheckBox = freeSpaceCheckBox
             };
 
             countEntry.TextChanged += (s, e) => {
@@ -649,6 +691,11 @@ public partial class InventoryEditorPage : ContentPage
             if (favoriteCheckBox != null)
             {
                 favoriteCheckBox.CheckedChanged += (s, e) => OnFavoriteFlagChanged(itemEntry, e.Value);
+            }
+
+            if (freeSpaceCheckBox != null)
+            {
+                freeSpaceCheckBox.CheckedChanged += (s, e) => OnFreeSpaceFlagChanged(itemEntry, e.Value);
             }
 
             editButton.Clicked += async (s, e) => await OnEditItemClicked(arrayIndex);
@@ -769,19 +816,13 @@ public partial class InventoryEditorPage : ContentPage
         
         try
         {
-            // FIXED: Directly call SaveAll to persist inventory changes to SaveFile.Data
-            // This ensures all pouch modifications (including IsNew, IsUpdated flags) are written to the save data
-            var inventory = _saveFile.Inventory;
-            if (inventory != null && inventory.Count > 0)
-            {
-                // Call SaveAll extension method to write all pouches to SaveFile.Data
-                inventory.SaveAll(_saveFile.Data);
-                System.Diagnostics.Debug.WriteLine("Successfully flushed inventory changes to SaveFile.Data");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("No inventory found to flush");
-            }
+            // Apply the changes using the correct PKHeX Core pattern
+            // This ensures all inventory modifications are properly applied to the save file
+            // Note: The inventory pouches should already be modified in-place,
+            // so we just need to reassign the inventory to trigger any necessary updates
+            _saveFile.Inventory = _saveFile.Inventory;
+            
+            System.Diagnostics.Debug.WriteLine("Successfully applied inventory changes to SaveFile");
         }
         catch (Exception ex)
         {
@@ -1241,6 +1282,41 @@ public partial class InventoryEditorPage : ContentPage
         }
     }
 
+    private void OnFreeSpaceFlagChanged(ItemEntry entry, bool isFree)
+    {
+        if (_currentPouch == null || entry.ItemIndex >= _currentPouch.Items.Length) return;
+
+        try
+        {
+            var item = _currentPouch.Items[entry.ItemIndex];
+            if (item is IItemFreeSpace freeSpaceItem)
+            {
+                freeSpaceItem.IsFree = isFree;
+
+                // CRITICAL: Enable SetNew flag on pouches for Gen8/Gen9 compatibility
+                if (_currentPouch is InventoryPouch8 pouch8)
+                {
+                    pouch8.SetNew = true;
+                }
+                else if (_currentPouch is InventoryPouch9 pouch9)
+                {
+                    pouch9.SetNew = true;
+                }
+
+                // For Gen9, ensure item is marked as updated for proper saving
+                if (item is InventoryItem9 item9 && _currentPouch is InventoryPouch9 p9)
+                {
+                    item9.IsUpdated = true;
+                    item9.Pouch = p9.PouchIndex;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayAlert("Error", $"Failed to update free space flag: {ex.Message}", "OK");
+        }
+    }
+
     private string GetItemName(int itemIndex)
     {
         if (_saveFile == null || itemIndex == 0) 
@@ -1360,21 +1436,26 @@ public partial class InventoryEditorPage : ContentPage
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        if (_saveFile == null) return;
+        if (_saveFile == null) 
+        {
+            await DisplayAlert("Error", "Save file is null.", "OK");
+            return;
+        }
 
         try
         {
-            // Flush inventory changes to SaveFile.Data
-            FlushInventoryChanges();
+            // Apply inventory changes using PKHeX Core pattern
+            // The inventory modifications should already be applied to the pouches in-place
+            // We just need to ensure the save file recognizes the changes
             
-            // Mark the save file as edited
+            // Mark the save file as edited so changes are properly tracked
             _saveFile.State.Edited = true;
             
             // Mark changes as unsaved in PageManager
             PageManager.MarkChangesUnsaved();
             
             await DisplayAlert("Success", 
-                "Inventory changes saved to memory!\n\n" +
+                "Inventory changes saved!\n\n" +
                 "To persist changes permanently:\n" +
                 "1. Go back to Main Page\n" +
                 "2. Click 'Export Save' button\n" +
@@ -1395,5 +1476,6 @@ public partial class InventoryEditorPage : ContentPage
         public Microsoft.Maui.Controls.Entry ItemIdEntry { get; set; } = null!;
         public CheckBox? NewCheckBox { get; set; }
         public CheckBox? FavoriteCheckBox { get; set; }
+        public CheckBox? FreeSpaceCheckBox { get; set; }
     }
 }

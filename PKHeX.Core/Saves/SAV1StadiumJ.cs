@@ -13,16 +13,16 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
     public override string SaveRevisionString => "0"; // so we're different from Japanese SAV1Stadium naming...
 
     public override PersonalTable1 Personal => PersonalTable.Y;
-    public override int MaxEV => ushort.MaxValue;
-    public override ReadOnlySpan<ushort> HeldItems => Array.Empty<ushort>();
-    public override GameVersion Version { get; protected set; } = GameVersion.StadiumJ;
+    public override int MaxEV => EffortValues.Max12;
+    public override ReadOnlySpan<ushort> HeldItems => [];
+    public override GameVersion Version { get => GameVersion.StadiumJ; set { } }
 
-    protected override SAV1StadiumJ CloneInternal() => new((byte[])Data.Clone());
+    protected override SAV1StadiumJ CloneInternal() => new(Data.ToArray());
 
-    public override int Generation => 1;
+    public override byte Generation => 1;
     public override EntityContext Context => EntityContext.Gen1;
     private const int StringLength = 6; // Japanese Only
-    public override int MaxStringLengthOT => StringLength;
+    public override int MaxStringLengthTrainer => StringLength;
     public override int MaxStringLengthNickname => StringLength;
     public override int BoxCount => 4; // 8 boxes stored sequentially; latter 4 are backups
     public override int BoxSlotCount => 30;
@@ -47,7 +47,7 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
     private const int BoxSizeJ = 0x560;
     private const int BoxStart = 0x2500;
 
-    public SAV1StadiumJ(byte[] data) : base(data, true, GetIsSwap(data))
+    public SAV1StadiumJ(Memory<byte> data) : base(data, true, GetIsSwap(data.Span))
     {
         Box = BoxStart;
     }
@@ -62,8 +62,8 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
     {
         var boxOfs = GetBoxOffset(box) - ListHeaderSize;
         const int size = BoxSizeJ - 2;
-        var chk = Checksums.CheckSum16(new ReadOnlySpan<byte>(Data, boxOfs, size));
-        var actual = ReadUInt16BigEndian(Data.AsSpan(boxOfs + size));
+        var chk = Checksums.CheckSum16(Data.Slice(boxOfs, size));
+        var actual = ReadUInt16BigEndian(Data[(boxOfs + size)..]);
         return chk == actual;
     }
 
@@ -71,8 +71,8 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
     {
         var boxOfs = GetBoxOffset(box) - ListHeaderSize;
         const int size = BoxSizeJ - 2;
-        var chk = Checksums.CheckSum16(new ReadOnlySpan<byte>(Data, boxOfs, size));
-        WriteUInt16BigEndian(Data.AsSpan(boxOfs + size), chk);
+        var chk = Checksums.CheckSum16(Data.Slice(boxOfs, size));
+        WriteUInt16BigEndian(Data[(boxOfs + size)..], chk);
     }
 
     protected override void SetBoxMetadata(int box)
@@ -85,10 +85,10 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
         const int len = StringLength;
         var nick = data.AsSpan(0x21, len);
         var ot = data.AsSpan(0x21 + len, len);
-        data = data.Slice(0, 0x21);
+        data = data[..0x21];
         var pk1 = new PK1(data, true);
-        nick.CopyTo(pk1.RawNickname);
-        ot.CopyTo(pk1.RawOT);
+        nick.CopyTo(pk1.NicknameTrash);
+        ot.CopyTo(pk1.OriginalTrainerTrash);
         return pk1;
     }
 
@@ -99,9 +99,9 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
 
         var data = pk.Data;
         const int len = StringLength;
-        data.CopyTo(result, 0);
-        gb.RawNickname.CopyTo(result, PokeCrypto.SIZE_1STORED);
-        gb.RawOT.CopyTo(result, PokeCrypto.SIZE_1STORED + len);
+        data.CopyTo(result);
+        gb.NicknameTrash.CopyTo(result.AsSpan(PokeCrypto.SIZE_1STORED));
+        gb.OriginalTrainerTrash.CopyTo(result.AsSpan(PokeCrypto.SIZE_1STORED + len));
         return result;
     }
 
@@ -117,10 +117,10 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
         var name = $"Team {team + 1}";
 
         var ofs = GetTeamOffset(team);
-        var str = GetString(Data.AsSpan(ofs + 2, 5));
+        var str = GetString(Data.Slice(ofs + 2, 5));
         if (string.IsNullOrWhiteSpace(str))
             return name;
-        var id = ReadUInt16BigEndian(Data.AsSpan(ofs + 8));
+        var id = ReadUInt16BigEndian(Data[(ofs + 8)..]);
         return $"{name} [{id:D5}:{str}]";
     }
 
@@ -135,9 +135,9 @@ public sealed class SAV1StadiumJ : SAV_STADIUM
         for (int i = 0; i < 6; i++)
         {
             var rel = ofs + ListHeaderSize + (i * SIZE_STORED);
-            members[i] = (PK1)GetStoredSlot(Data.AsSpan(rel));
+            members[i] = (PK1)GetStoredSlot(Data[rel..]);
         }
-        return new SlotGroup(name, members);
+        return new SlotGroup(name, members, StorageSlotType.Box);
     }
 
     public override void WriteSlotFormatStored(PKM pk, Span<byte> data)

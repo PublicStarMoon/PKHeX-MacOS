@@ -1,9 +1,8 @@
 using System.Collections.Generic;
-using System.Linq;
 
 namespace PKHeX.Core;
 
-public sealed class MyItem8 : MyItem
+public sealed class MyItem8(SAV8SWSH SAV, SCBlock block) : MyItem(SAV, block.Raw)
 {
     public const int Medicine = 0;
     public const int Balls = Medicine + (4 * PouchSize8.Medicine);
@@ -15,24 +14,23 @@ public sealed class MyItem8 : MyItem
     public const int Ingredients = Treasures + (4 * PouchSize8.Treasures);
     public const int Key = Ingredients + (4 * PouchSize8.Ingredients);
 
-    public MyItem8(SaveFile SAV, SCBlock block) : base(SAV, block.Data) { }
-
     public override IReadOnlyList<InventoryPouch> Inventory
     {
         get
         {
+            var info = ItemStorage8SWSH.Instance;
             InventoryPouch8[] pouch =
-            {
-                new(InventoryType.Medicine, Legal.Pouch_Medicine_SWSH, 999, Medicine, PouchSize8.Medicine, IsItemLegal),
-                new(InventoryType.Balls, Legal.Pouch_Ball_SWSH, 999, Balls, PouchSize8.Balls, IsItemLegal),
-                new(InventoryType.BattleItems, Legal.Pouch_Battle_SWSH, 999, Battle, PouchSize8.Battle, IsItemLegal),
-                new(InventoryType.Berries, Legal.Pouch_Berries_SWSH, 999, Berries, PouchSize8.Berries, IsItemLegal),
-                new(InventoryType.Items, Legal.Pouch_Regular_SWSH, 999, Items, PouchSize8.Items, IsItemLegal),
-                new(InventoryType.TMHMs, Legal.Pouch_TMHM_SWSH, 999, TMs, PouchSize8.TMs, IsItemLegal),
-                new(InventoryType.Treasure, Legal.Pouch_Treasure_SWSH, 999, Treasures, PouchSize8.Treasures, IsItemLegal),
-                new(InventoryType.Candy, Legal.Pouch_Ingredients_SWSH, 999, Ingredients, PouchSize8.Ingredients, IsItemLegal),
-                new(InventoryType.KeyItems, Legal.Pouch_Key_SWSH, 1, Key, PouchSize8.Key),
-            };
+            [
+                new(InventoryType.Medicine, info, 999, Medicine, PouchSize8.Medicine),
+                new(InventoryType.Balls, info, 999, Balls, PouchSize8.Balls),
+                new(InventoryType.BattleItems, info, 999, Battle, PouchSize8.Battle),
+                new(InventoryType.Berries, info, 999, Berries, PouchSize8.Berries),
+                new(InventoryType.Items, info, 999, Items, PouchSize8.Items),
+                new(InventoryType.TMHMs, info, 999, TMs, PouchSize8.TMs),
+                new(InventoryType.Treasure, info, 999, Treasures, PouchSize8.Treasures),
+                new(InventoryType.Candy, info, 999, Ingredients, PouchSize8.Ingredients),
+                new(InventoryType.KeyItems, info, 1, Key, PouchSize8.Key),
+            ];
             return pouch.LoadAll(Data);
         }
         set
@@ -41,14 +39,5 @@ public sealed class MyItem8 : MyItem
                 ((InventoryPouch8)p).SanitizeCounts();
             value.SaveAll(Data);
         }
-    }
-
-    public static bool IsItemLegal(ushort item)
-    {
-        if (Legal.IsDynamaxCrystal(item))
-            return Legal.IsDynamaxCrystalAvailable(item);
-        if (!Legal.HeldItems_SWSH.Contains(item))
-            return true;
-        return Legal.ReleasedHeldItems_8[item];
     }
 }

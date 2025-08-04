@@ -1,55 +1,74 @@
 using System;
-using System.Collections.Generic;
 
 namespace PKHeX.Core;
 
 /// <summary>
 /// Level Up Learn Movepool Information
 /// </summary>
-public sealed class Learnset
+public sealed class Learnset(ushort[] Moves, byte[] Levels)
 {
     /// <summary>
     /// Moves that can be learned.
     /// </summary>
-    internal readonly ushort[] Moves;
+    private readonly ushort[] Moves = Moves;
 
     /// <summary>
     /// Levels at which a move at a given index can be learned.
     /// </summary>
-    private readonly byte[] Levels;
+    private readonly byte[] Levels = Levels;
 
-    public Learnset(ushort[] moves, byte[] levels)
-    {
-        Moves = moves;
-        Levels = levels;
-    }
+    private const byte MagicEvolutionMoveLevel = 0;
 
-    public (bool HasMoves, int Start, int End) GetMoveRange(int maxLevel, int minLevel = 0)
+    public ReadOnlySpan<ushort> GetAllMoves() => Moves;
+
+    public ReadOnlySpan<ushort> GetMoveRange(byte maxLevel, byte minLevel = 0)
     {
-        if (minLevel <= 1 && maxLevel >= 100)
-            return (true, 0, Moves.Length - 1);
+        if (minLevel <= Experience.MinLevel && maxLevel >= Experience.MaxLevel) // out of range, return all
+            return Moves;
         if (minLevel > maxLevel)
             return default;
-        int start = Array.FindIndex(Levels, z => z >= minLevel);
+        int start = FindGrq(minLevel);
         if (start < 0)
             return default;
-        int end = Array.FindLastIndex(Levels, z => z <= maxLevel);
+        int end = FindLastLeq(maxLevel);
         if (end < 0)
             return default;
 
-        return (true, start, end);
+        var length = end - start + 1;
+        return Moves.AsSpan(start, length);
     }
 
-    /// <summary>Returns the moves a Pokémon would have if it were encountered at the specified level.</summary>
-    /// <remarks>In Generation 1, it is not possible to learn any moves lower than these encounter moves.</remarks>
-    /// <param name="level">The level the Pokémon was encountered at.</param>
-    /// <returns>Array of Move IDs</returns>
-    public ushort[] GetEncounterMoves(int level)
+    private int FindGrq(byte level, int start = 0)
     {
-        const int count = 4;
-        var moves = new ushort[count];
-        SetEncounterMoves(level, moves);
-        return moves;
+        var levels = Levels;
+        for (int i = start; i < levels.Length; i++)
+        {
+            if (levels[i] >= level)
+                return i;
+        }
+        return -1;
+    }
+
+    private int FindGr(byte level, int start)
+    {
+        var levels = Levels;
+        for (int i = start; i < levels.Length; i++)
+        {
+            if (levels[i] >= level)
+                return i;
+        }
+        return -1;
+    }
+
+    private int FindLastLeq(byte level, int end = 0)
+    {
+        var levels = Levels;
+        for (int i = levels.Length - 1; i >= end; i--)
+        {
+            if (levels[i] <= level)
+                return i;
+        }
+        return -1;
     }
 
     /// <summary>Returns the moves a Pokémon would have if it were encountered at the specified level.</summary>
@@ -58,25 +77,47 @@ public sealed class Learnset
     /// <param name="moves">Move array to write to</param>
     /// <param name="ctr">Starting index to begin overwriting at</param>
     /// <returns>Array of Move IDs</returns>
-    public void SetEncounterMoves(int level, Span<ushort> moves, int ctr = 0)
+    public void SetEncounterMoves(byte level, Span<ushort> moves, int ctr = 0)
     {
         for (int i = 0; i < Moves.Length; i++)
         {
             if (Levels[i] > level)
                 break;
 
-            var move = Moves[i];
-            if (moves.Contains(move))
-                continue;
+            AddMoveShiftLater(moves, ref ctr, Moves[i]);
+        }
+        RectifyOrderShift(moves, ctr);
+    }
 
-            moves[ctr++] = move;
-            ctr &= 3;
+    private static void AddMoveShiftLater(Span<ushort> moves, ref int ctr, ushort move)
+    {
+        if (!moves.Contains(move))
+            moves[(ctr++) & 3] = move;
+    }
+
+    private static void RectifyOrderShift(Span<ushort> moves, int ctr)
+    {
+        // Perform (n & 3) rotations as if we were inserting moves, but a minimal amount of times.
+        // This skips the rotation for when moves are inserted and then overwritten by later inserted moves.
+        if (ctr <= moves.Length)
+            return;
+        var rotation = ctr & 3;
+        if (rotation == 0)
+            return;
+
+        // rotate n times in-place
+        for (int i = 0; i < rotation; i++)
+        {
+            var move = moves[0];
+            for (int j = 0; j < 3; j++)
+                moves[j] = moves[j + 1];
+            moves[3] = move;
         }
     }
 
-    public void SetEncounterMovesBackwards(int level, Span<ushort> moves, int ctr = 0)
+    public void SetEncounterMovesBackwards(byte level, Span<ushort> moves, int ctr = 0)
     {
-        int index = Array.FindLastIndex(Levels, z => z <= level);
+        int index = FindLastLeq(level);
 
         while (true)
         {
@@ -104,20 +145,18 @@ public sealed class Learnset
     }
 
     /// <summary>Adds the learned moves by level up to the specified level.</summary>
-    public void SetLevelUpMoves(int startLevel, int endLevel, Span<ushort> moves, int ctr = 0)
+    public void SetLevelUpMoves(byte startLevel, byte endLevel, Span<ushort> moves, int ctr = 0)
     {
-        int startIndex = Array.FindIndex(Levels, z => z >= startLevel);
-        int endIndex = Array.FindIndex(Levels, z => z > endLevel);
-        for (int i = startIndex; i < endIndex; i++)
-        {
-            var move = Moves[i];
-            bool alreadyHasMove = moves.IndexOf(move) >= 0;
-            if (alreadyHasMove)
-                continue;
+        int startIndex = FindGrq(startLevel);
+        if (startIndex == -1)
+            return;
+        int endIndex = FindGr(endLevel, startIndex);
+        if (endIndex == -1)
+            endIndex = Levels.Length;
 
-            moves[ctr++] = move;
-            ctr &= 3;
-        }
+        for (int i = startIndex; i < endIndex; i++)
+            AddMoveShiftLater(moves, ref ctr, Moves[i]);
+        RectifyOrderShift(moves, ctr);
     }
 
     /// <summary>Adds the moves that are gained upon evolving.</summary>
@@ -125,43 +164,35 @@ public sealed class Learnset
     /// <param name="ctr">Starting index to begin overwriting at</param>
     public void SetEvolutionMoves(Span<ushort> moves, int ctr = 0)
     {
+        // Evolution moves are always at the lowest indexes of the learnset.
         for (int i = 0; i < Moves.Length; i++)
         {
-            if (Levels[i] != 0)
+            if (Levels[i] != MagicEvolutionMoveLevel)
                 break;
 
-            var move = Moves[i];
-            bool alreadyHasMove = moves.IndexOf(move) >= 0;
-            if (alreadyHasMove)
-                continue;
-
-            moves[ctr++] = move;
-            ctr &= 3;
+            AddMoveShiftLater(moves, ref ctr, Moves[i]);
         }
+        RectifyOrderShift(moves, ctr);
     }
 
     /// <summary>Adds the learned moves by level up to the specified level.</summary>
-    public void SetLevelUpMoves(int startLevel, int endLevel, Span<ushort> moves, ReadOnlySpan<ushort> ignore, int ctr = 0)
+    public void SetLevelUpMoves(byte startLevel, byte endLevel, Span<ushort> moves, ReadOnlySpan<ushort> ignore, int ctr = 0)
     {
-        int startIndex = Array.FindIndex(Levels, z => z >= startLevel);
+        int startIndex = FindGrq(startLevel);
         if (startIndex == -1)
             return; // No more remain
-        int endIndex = Array.FindIndex(Levels, z => z > endLevel);
+        int endIndex = FindGr(endLevel, startIndex);
         if (endIndex == -1)
             endIndex = Levels.Length;
         for (int i = startIndex; i < endIndex; i++)
         {
             var move = Moves[i];
-            if (ignore.IndexOf(move) >= 0)
+            if (ignore.Contains(move))
                 continue;
 
-            bool alreadyHasMove = moves.IndexOf(move) >= 0;
-            if (alreadyHasMove)
-                continue;
-
-            moves[ctr++] = move;
-            ctr &= 3;
+            AddMoveShiftLater(moves, ref ctr, move);
         }
+        RectifyOrderShift(moves, ctr);
     }
 
     /// <summary>Adds the moves that are gained upon evolving.</summary>
@@ -172,86 +203,47 @@ public sealed class Learnset
     {
         for (int i = 0; i < Moves.Length; i++)
         {
-            if (Levels[i] != 0)
+            if (Levels[i] != MagicEvolutionMoveLevel)
                 break;
 
             var move = Moves[i];
-            if (ignore.IndexOf(move) >= 0)
+            if (ignore.Contains(move))
                 continue;
 
-            bool alreadyHasMove = moves.IndexOf(move) >= 0;
-            if (alreadyHasMove)
-                continue;
-
-            moves[ctr++] = move;
-            ctr &= 3;
+            AddMoveShiftLater(moves, ref ctr, move);
         }
+        RectifyOrderShift(moves, ctr);
     }
 
-    /// <summary>Returns the index of the lowest level move if the Pokémon were encountered at the specified level.</summary>
-    /// <remarks>Helps determine the minimum level an encounter can be at.</remarks>
-    /// <param name="level">The level the Pokémon was encountered at.</param>
-    /// <returns>Array of Move IDs</returns>
-    public int GetMinMoveLevel(int level)
-    {
-        if (Levels.Length == 0)
-            return 1;
+    /// <summary>
+    /// Checks if the specified move is learned by level up.
+    /// </summary>
+    /// <param name="move">Move ID</param>
+    public bool GetIsLearn(ushort move) => Moves.AsSpan().Contains(move);
 
-        int end = Array.FindLastIndex(Levels, z => z <= level);
-        return Math.Max(end - 4, 1);
-    }
-
-    public int GetMoveLevel(ushort move)
+    /// <summary>
+    /// Checks if the specified move is learned by level up.
+    /// </summary>
+    /// <param name="move">Move ID</param>
+    /// <param name="level">Level at which the move is learned</param>
+    /// <returns>True if the move is learned by level up, false otherwise.</returns>
+    public bool TryGetLevelLearnMove(ushort move, out byte level)
     {
-        var index = Array.LastIndexOf(Moves, move);
+        var index = Array.IndexOf(Moves, move);
         if (index == -1)
-            return -1;
-        return Levels[index];
-    }
-
-    private Dictionary<ushort, byte>? Learn;
-
-    private Dictionary<ushort, byte> GetDictionary()
-    {
-        // Create a dictionary, with the move as the key and the level as the value.
-        // Due to the ordering of the object, this will result in fetching the lowest level for a move.
-        var dict = new Dictionary<ushort, byte>(Moves.Length);
-        for (int i = Moves.Length - 1; i >= 0; i--)
-            dict[Moves[i]] = Levels[i];
-        return dict;
-    }
-
-    /// <summary>Returns the level that a Pokémon can learn the specified move.</summary>
-    /// <param name="move">Move ID</param>
-    /// <returns>Level the move is learned at. If the result is below 0, the move cannot be learned by leveling up.</returns>
-    public int GetLevelLearnMove(ushort move)
-    {
-        return (Learn ??= GetDictionary()).TryGetValue(move, out var level) ? level : -1;
-    }
-
-    /// <summary>Returns the level that a Pokémon can learn the specified move.</summary>
-    /// <param name="move">Move ID</param>
-    /// <param name="min">Minimum level to start looking at.</param>
-    /// <returns>Level the move is learned at. If the result is below 0, the move cannot be learned by leveling up.</returns>
-    public int GetLevelLearnMove(ushort move, int min)
-    {
-        for (int i = 0; i < Moves.Length; i++)
         {
-            if (move != Moves[i])
-                continue;
-
-            var lv = Levels[i];
-            if (lv >= min)
-                return lv;
+            level = 0;
+            return false;
         }
-        return -1;
+        level = Levels[index];
+        return true;
     }
 
-    public ReadOnlySpan<ushort> GetBaseEggMoves(int level)
+    public ReadOnlySpan<ushort> GetBaseEggMoves(byte level)
     {
         // Count moves <= level
         var count = 0;
-        foreach (var x in Levels)
+        foreach (ref readonly var x in Levels.AsSpan())
         {
             if (x > level)
                 break;
@@ -260,7 +252,7 @@ public sealed class Learnset
 
         // Return a slice containing the moves <= level.
         if (count == 0)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
 
         int start = 0;
         if (count > 4)

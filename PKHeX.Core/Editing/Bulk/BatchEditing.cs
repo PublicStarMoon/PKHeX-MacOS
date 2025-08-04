@@ -16,38 +16,38 @@ namespace PKHeX.Core;
 public static class BatchEditing
 {
     public static readonly Type[] Types =
-    {
+    [
         typeof (PK9),
         typeof (PK8), typeof (PA8), typeof (PB8),
         typeof (PB7),
         typeof (PK7), typeof (PK6), typeof (PK5), typeof (PK4), typeof(BK4), typeof(RK4),
         typeof (PK3), typeof (XK3), typeof (CK3),
         typeof (PK2), typeof (SK2), typeof (PK1),
-    };
+    ];
 
     /// <summary>
     /// Extra properties to show in the list of selectable properties (GUI)
     /// </summary>
-    public static readonly List<string> CustomProperties = new()
-    {
+    private static readonly string[] CustomProperties =
+    [
         PROP_LEGAL, PROP_TYPENAME, PROP_RIBBONS, PROP_CONTESTSTATS, PROP_MOVEMASTERY,
+        PROP_TYPE1, PROP_TYPE2, PROP_TYPEEITHER,
         IdentifierContains, nameof(ISlotInfo.Slot), nameof(SlotInfoBox.Box),
-    };
+    ];
 
     /// <summary>
     /// Property names, indexed by <see cref="Types"/>.
     /// </summary>
     public static string[][] Properties => GetProperties.Value;
 
-    private static readonly Lazy<string[][]> GetProperties = new(() => GetPropArray(Types, CustomProperties));
+    private static readonly Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>>[] Props = GetPropertyDictionaries(Types);
+    private static readonly Lazy<string[][]> GetProperties = new(() => GetPropArray(Props, CustomProperties));
 
-    private static readonly Dictionary<string, PropertyInfo>[] Props = GetPropertyDictionaries(Types);
-
-    private static Dictionary<string, PropertyInfo>[] GetPropertyDictionaries(IReadOnlyList<Type> types)
+    private static Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>>[] GetPropertyDictionaries(IReadOnlyList<Type> types)
     {
-        var result = new Dictionary<string, PropertyInfo>[types.Count];
+        var result = new Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>>[types.Count];
         for (int i = 0; i < types.Count; i++)
-            result[i] = GetPropertyDictionary(types[i], ReflectUtil.GetAllPropertyInfoPublic);
+            result[i] = GetPropertyDictionary(types[i], ReflectUtil.GetAllPropertyInfoPublic).GetAlternateLookup<ReadOnlySpan<char>>();
         return result;
     }
 
@@ -70,21 +70,27 @@ public static class BatchEditing
 
     internal const string PROP_LEGAL = "Legal";
     internal const string PROP_TYPENAME = "ObjectType";
+    internal const string PROP_TYPEEITHER = "HasType";
+    internal const string PROP_TYPE1 = "PersonalType1";
+    internal const string PROP_TYPE2 = "PersonalType2";
     internal const string PROP_RIBBONS = "Ribbons";
     internal const string PROP_EVS = "EVs";
     internal const string PROP_CONTESTSTATS = "ContestStats";
     internal const string PROP_MOVEMASTERY = "MoveMastery";
     internal const string IdentifierContains = nameof(IdentifierContains);
 
-    private static string[][] GetPropArray(IReadOnlyList<Type> types, IReadOnlyList<string> extra)
+    private static string[][] GetPropArray<T>(Dictionary<string, T>.AlternateLookup<ReadOnlySpan<char>>[] types, ReadOnlySpan<string> extra)
     {
-        var result = new string[types.Count + 2][];
-        var p = result.AsSpan(1, types.Count);
+        // Create a list for all types, [inAny, ..types, inAll]
+        var result = new string[types.Length + 2][];
+        var p = result.AsSpan(1, types.Length);
 
         for (int i = 0; i < p.Length; i++)
         {
-            var props = ReflectUtil.GetPropertiesPublic(types[i]);
-            p[i] = props.Concat(extra).OrderBy(a => a).ToArray();
+            var type = types[i].Dictionary;
+            string[] combine = [..type.Keys, ..extra];
+            Array.Sort(combine);
+            p[i] = combine;
         }
 
         // Properties for any PKM
@@ -92,14 +98,20 @@ public static class BatchEditing
         var first = p[0];
         var any = new HashSet<string>(first);
         var all = new HashSet<string>(first);
-        for (int i = 1; i < p.Length; i++)
+        foreach (var set in p[1..])
         {
-            any.UnionWith(p[i]);
-            all.IntersectWith(p[i]);
+            any.UnionWith(set);
+            all.IntersectWith(set);
         }
 
-        result[0] = any.OrderBy(z => z).ToArray();
-        result[^1] = all.OrderBy(z => z).ToArray();
+        var arrAny = any.ToArray();
+        Array.Sort(arrAny);
+        result[0] = arrAny;
+
+        var arrAll = all.ToArray();
+        Array.Sort(arrAll);
+        result[^1] = arrAll;
+
         return result;
     }
 
@@ -109,8 +121,8 @@ public static class BatchEditing
     /// <param name="pk">Pokémon to check</param>
     /// <param name="name">Property Name to check</param>
     /// <param name="pi">Property Info retrieved (if any).</param>
-    /// <returns>True if has property, false if does not.</returns>
-    public static bool TryGetHasProperty(PKM pk, string name, [NotNullWhen(true)] out PropertyInfo? pi)
+    /// <returns>True if it has property, false if it does not.</returns>
+    public static bool TryGetHasProperty(PKM pk, ReadOnlySpan<char> name, [NotNullWhen(true)] out PropertyInfo? pi)
     {
         var type = pk.GetType();
         return TryGetHasProperty(type, name, out pi);
@@ -122,8 +134,8 @@ public static class BatchEditing
     /// <param name="type">Type to check</param>
     /// <param name="name">Property Name to check</param>
     /// <param name="pi">Property Info retrieved (if any).</param>
-    /// <returns>True if has property, false if does not.</returns>
-    public static bool TryGetHasProperty(Type type, string name, [NotNullWhen(true)] out PropertyInfo? pi)
+    /// <returns>True if it has property, false if it does not.</returns>
+    public static bool TryGetHasProperty(Type type, ReadOnlySpan<char> name, [NotNullWhen(true)] out PropertyInfo? pi)
     {
         var index = Array.IndexOf(Types, type);
         if (index < 0)
@@ -154,28 +166,38 @@ public static class BatchEditing
     /// Gets the type of the <see cref="PKM"/> property using the saved cache of properties.
     /// </summary>
     /// <param name="propertyName">Property Name to fetch the type for</param>
-    /// <param name="typeIndex">Type index (within <see cref="Types"/>. Leave empty (0) for a nonspecific format.</param>
+    /// <param name="result">Type name of the property</param>
+    /// <param name="typeIndex">Type index (within <see cref="Types"/>). Leave empty (0) for a nonspecific format.</param>
     /// <returns>Short name of the property's type.</returns>
-    public static string? GetPropertyType(string propertyName, int typeIndex = 0)
+    public static bool TryGetPropertyType(string propertyName, [NotNullWhen(true)] out string? result, int typeIndex = 0)
     {
         if (CustomProperties.Contains(propertyName))
-            return "Custom";
+        {
+            result ="Custom";
+            return true;
+        }
 
+        result = null;
         if (typeIndex == 0) // Any
         {
             foreach (var p in Props)
             {
-                if (p.TryGetValue(propertyName, out var pi))
-                    return pi.PropertyType.Name;
+                if (!p.TryGetValue(propertyName, out var pi))
+                    continue;
+                result = pi.PropertyType.Name;
+                return true;
             }
-            return null;
+            return false;
         }
 
-        int index = typeIndex - 1 >= Props.Length ? 0 : typeIndex - 1; // All vs Specific
+        int index = typeIndex - 1;
+        if ((uint)index >= Props.Length)
+            index = 0; // All vs Specific
         var pr = Props[index];
         if (!pr.TryGetValue(propertyName, out var info))
-            return null;
-        return info.PropertyType.Name;
+            return false;
+        result = info.PropertyType.Name;
+        return true;
     }
 
     /// <summary>
@@ -184,14 +206,20 @@ public static class BatchEditing
     /// <param name="il">Instructions to initialize.</param>
     public static void ScreenStrings(IEnumerable<StringInstruction> il)
     {
-        foreach (var i in il.Where(i => !i.PropertyValue.All(char.IsDigit)))
+        foreach (var i in il)
         {
-            string pv = i.PropertyValue;
+            var pv = i.PropertyValue;
+            if (pv.All(char.IsDigit))
+                continue;
+
             if (pv.StartsWith(CONST_SPECIAL) && !pv.StartsWith(CONST_BYTES, StringComparison.Ordinal))
             {
                 var str = pv.AsSpan(1);
                 if (StringInstruction.IsRandomRange(str))
+                {
                     i.SetRandomRange(str);
+                    continue;
+                }
             }
 
             SetInstructionScreenedValue(i);
@@ -204,18 +232,29 @@ public static class BatchEditing
     /// <param name="i">Instruction to initialize.</param>
     private static void SetInstructionScreenedValue(StringInstruction i)
     {
+        ReadOnlySpan<string> set;
         switch (i.PropertyName)
         {
-            case nameof(PKM.Species): i.SetScreenedValue(GameInfo.Strings.specieslist); return;
-            case nameof(PKM.HeldItem): i.SetScreenedValue(GameInfo.Strings.itemlist); return;
-            case nameof(PKM.Ability): i.SetScreenedValue(GameInfo.Strings.abilitylist); return;
-            case nameof(PKM.Nature): i.SetScreenedValue(GameInfo.Strings.natures); return;
-            case nameof(PKM.Ball): i.SetScreenedValue(GameInfo.Strings.balllist); return;
+            case nameof(PKM.Species):  set = GameInfo.Strings.specieslist; break;
+            case nameof(PKM.HeldItem): set = GameInfo.Strings.itemlist;    break;
+            case nameof(PKM.Ability):  set = GameInfo.Strings.abilitylist; break;
+            case nameof(PKM.Nature):   set = GameInfo.Strings.natures;  break;
+            case nameof(PKM.Ball):     set = GameInfo.Strings.balllist; break;
 
             case nameof(PKM.Move1) or nameof(PKM.Move2) or nameof(PKM.Move3) or nameof(PKM.Move4):
             case nameof(PKM.RelearnMove1) or nameof(PKM.RelearnMove2) or nameof(PKM.RelearnMove3) or nameof(PKM.RelearnMove4):
-                i.SetScreenedValue(GameInfo.Strings.movelist); return;
+                set = GameInfo.Strings.movelist; break;
+            default:
+                return;
         }
+        i.SetScreenedValue(set);
+    }
+
+    private static Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>> GetProps(PKM pk)
+    {
+        var type = pk.GetType();
+        var typeIndex = Array.IndexOf(Types, type);
+        return Props[typeIndex];
     }
 
     /// <summary>
@@ -224,7 +263,16 @@ public static class BatchEditing
     /// <param name="filters">Filters which must be satisfied.</param>
     /// <param name="pk">Object to check.</param>
     /// <returns>True if <see cref="pk"/> matches all filters.</returns>
-    public static bool IsFilterMatch(IEnumerable<StringInstruction> filters, PKM pk) => filters.All(z => IsFilterMatch(z, pk, Props[Array.IndexOf(Types, pk.GetType())]));
+    public static bool IsFilterMatch(IEnumerable<StringInstruction> filters, PKM pk)
+    {
+        var props = GetProps(pk);
+        foreach (var filter in filters)
+        {
+            if (!IsFilterMatch(filter, pk, props))
+                return false;
+        }
+        return true;
+    }
 
     /// <summary>
     /// Checks if the object is filtered by the provided <see cref="filters"/>.
@@ -262,7 +310,9 @@ public static class BatchEditing
         {
             if (cmd.PropertyName is PROP_TYPENAME)
             {
-                if (!cmd.Comparer.IsCompareEquivalence(cmd.PropertyValue == obj.GetType().Name))
+                var type = obj.GetType();
+                var typeName = type.Name;
+                if (!cmd.Comparer.IsCompareEquivalence(cmd.PropertyValue == typeName))
                     return false;
                 continue;
             }
@@ -308,15 +358,15 @@ public static class BatchEditing
     internal static ModifyResult TryModifyPKM(PKM pk, IEnumerable<StringInstruction> filters, IEnumerable<StringInstruction> modifications)
     {
         if (!pk.ChecksumValid || pk.Species == 0)
-            return ModifyResult.Invalid;
+            return ModifyResult.Skipped;
 
         var info = new BatchInfo(pk);
-        var pi = Props[Array.IndexOf(Types, pk.GetType())];
+        var props = GetProps(pk);
         foreach (var cmd in filters)
         {
             try
             {
-                if (!IsFilterMatch(cmd, info, pi))
+                if (!IsFilterMatch(cmd, info, props))
                     return ModifyResult.Filtered;
             }
             // Swallow any error because this can be malformed user input.
@@ -327,32 +377,38 @@ public static class BatchEditing
             }
         }
 
-        ModifyResult result = ModifyResult.Modified;
+        var error = false;
+        var result = ModifyResult.Skipped;
         foreach (var cmd in modifications)
         {
             try
             {
-                var tmp = SetPKMProperty(cmd, info, pi);
-                if (tmp != ModifyResult.Modified)
+                var tmp = SetPKMProperty(cmd, info, props);
+                if (tmp == ModifyResult.Error)
+                    error = true;
+                else if (tmp != ModifyResult.Skipped)
                     result = tmp;
             }
             // Swallow any error because this can be malformed user input.
             catch (Exception ex)
             {
                 Debug.WriteLine(MsgBEModifyFail + " " + ex.Message, cmd.PropertyName, cmd.PropertyValue);
+                error = true;
             }
         }
+        if (error)
+            result |= ModifyResult.Error;
         return result;
     }
 
     /// <summary>
-    /// Sets the if the <see cref="BatchInfo"/> should be filtered due to the <see cref="StringInstruction"/> provided.
+    /// Sets the property if the <see cref="BatchInfo"/> should be filtered due to the <see cref="StringInstruction"/> provided.
     /// </summary>
     /// <param name="cmd">Command Filter</param>
     /// <param name="info">Pokémon to check.</param>
     /// <param name="props">PropertyInfo cache (optional)</param>
     /// <returns>True if filtered, else false.</returns>
-    private static ModifyResult SetPKMProperty(StringInstruction cmd, BatchInfo info, IReadOnlyDictionary<string, PropertyInfo> props)
+    private static ModifyResult SetPKMProperty(StringInstruction cmd, BatchInfo info, Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>> props)
     {
         var pk = info.Entity;
         if (cmd.PropertyValue.StartsWith(CONST_BYTES, StringComparison.Ordinal))
@@ -375,7 +431,7 @@ public static class BatchEditing
         object val;
         if (cmd.Random)
             val = cmd.RandomValue;
-        else if (cmd.PropertyValue.StartsWith(CONST_POINTER) && props.TryGetValue(cmd.PropertyValue[1..], out var opi))
+        else if (cmd.PropertyValue.StartsWith(CONST_POINTER) && props.TryGetValue(cmd.PropertyValue.AsSpan(1), out var opi))
             val = opi.GetValue(pk) ?? throw new NullReferenceException();
         else
             val = cmd.PropertyValue;
@@ -391,10 +447,10 @@ public static class BatchEditing
     /// <param name="info">Pokémon to check.</param>
     /// <param name="props">PropertyInfo cache (optional)</param>
     /// <returns>True if filter matches, else false.</returns>
-    private static bool IsFilterMatch(StringInstruction cmd, BatchInfo info, IReadOnlyDictionary<string, PropertyInfo> props)
+    private static bool IsFilterMatch(StringInstruction cmd, BatchInfo info, Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>> props)
     {
         var match = BatchFilters.FilterMods.Find(z => z.IsMatch(cmd.PropertyName));
-        if (match != null)
+        if (match is not null)
             return match.IsFiltered(info, cmd);
         return IsPropertyFiltered(cmd, info.Entity, props);
     }
@@ -406,10 +462,10 @@ public static class BatchEditing
     /// <param name="pk">Pokémon to check.</param>
     /// <param name="props">PropertyInfo cache (optional)</param>
     /// <returns>True if filter matches, else false.</returns>
-    private static bool IsFilterMatch(StringInstruction cmd, PKM pk, IReadOnlyDictionary<string, PropertyInfo> props)
+    private static bool IsFilterMatch(StringInstruction cmd, PKM pk, Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>> props)
     {
         var match = BatchFilters.FilterMods.Find(z => z.IsMatch(cmd.PropertyName));
-        if (match != null)
+        if (match is not null)
             return match.IsFiltered(pk, cmd);
         return IsPropertyFiltered(cmd, pk, props);
     }
@@ -421,13 +477,20 @@ public static class BatchEditing
     /// <param name="pk">Pokémon to check.</param>
     /// <param name="props">PropertyInfo cache</param>
     /// <returns>True if filtered, else false.</returns>
-    private static bool IsPropertyFiltered(StringInstruction cmd, PKM pk, IReadOnlyDictionary<string, PropertyInfo> props)
+    private static bool IsPropertyFiltered(StringInstruction cmd, PKM pk, Dictionary<string, PropertyInfo>.AlternateLookup<ReadOnlySpan<char>> props)
     {
         if (!props.TryGetValue(cmd.PropertyName, out var pi))
             return false;
         if (!pi.CanRead)
             return false;
-        return cmd.Comparer.IsCompareOperator(pi.CompareTo(pk, cmd.PropertyValue));
+
+        var val = cmd.PropertyValue;
+        if (val.StartsWith(CONST_POINTER) && props.TryGetValue(val.AsSpan(1), out var opi))
+        {
+            var result = opi.GetValue(pk) ?? throw new NullReferenceException();
+            return cmd.Comparer.IsCompareOperator(pi.CompareTo(pk, result));
+        }
+        return cmd.Comparer.IsCompareOperator(pi.CompareTo(pk, val));
     }
 
     /// <summary>
@@ -436,11 +499,13 @@ public static class BatchEditing
     /// <param name="name">Property to modify.</param>
     /// <param name="info">Cached info storing Legal data.</param>
     /// <param name="propValue">Suggestion string which starts with <see cref="CONST_SUGGEST"/></param>
-    private static ModifyResult SetSuggestedPKMProperty(string name, BatchInfo info, string propValue)
+    private static ModifyResult SetSuggestedPKMProperty(ReadOnlySpan<char> name, BatchInfo info, ReadOnlySpan<char> propValue)
     {
-        var first = BatchMods.SuggestionMods.Find(z => z.IsMatch(name, propValue, info));
-        if (first != null)
-            return first.Modify(name, propValue, info);
+        foreach (var mod in BatchMods.SuggestionMods)
+        {
+            if (mod.IsMatch(name, propValue, info))
+                return mod.Modify(name, propValue, info);
+        }
         return ModifyResult.Error;
     }
 
@@ -451,14 +516,18 @@ public static class BatchEditing
     /// <param name="cmd">Modification</param>
     private static ModifyResult SetByteArrayProperty(PKM pk, StringInstruction cmd)
     {
+        Span<byte> dest;
         switch (cmd.PropertyName)
         {
-            case nameof(PKM.Nickname_Trash): StringUtil.LoadHexBytesTo(cmd.PropertyValue.AsSpan(CONST_BYTES.Length), pk.Nickname_Trash, 3); return ModifyResult.Modified;
-            case nameof(PKM.OT_Trash):       StringUtil.LoadHexBytesTo(cmd.PropertyValue.AsSpan(CONST_BYTES.Length), pk.OT_Trash, 3);       return ModifyResult.Modified;
-            case nameof(PKM.HT_Trash):       StringUtil.LoadHexBytesTo(cmd.PropertyValue.AsSpan(CONST_BYTES.Length), pk.HT_Trash, 3);       return ModifyResult.Modified;
+            case nameof(PKM.NicknameTrash) or nameof(PKM.Nickname): dest = pk.NicknameTrash; break;
+            case nameof(PKM.OriginalTrainerTrash): dest = pk.OriginalTrainerTrash; break;
+            case nameof(PKM.HandlingTrainerTrash): dest = pk.HandlingTrainerTrash; break;
             default:
                 return ModifyResult.Error;
         }
+        var src = cmd.PropertyValue.AsSpan(CONST_BYTES.Length); // skip prefix
+        StringUtil.LoadHexBytesTo(src, dest, 3);
+        return ModifyResult.Modified;
     }
 
     /// <summary>
@@ -469,34 +538,74 @@ public static class BatchEditing
     /// <returns>True if modified, false if no modifications done.</returns>
     private static bool SetComplexProperty(PKM pk, StringInstruction cmd)
     {
-        if (cmd.PropertyName.StartsWith("IV", StringComparison.Ordinal) && cmd.PropertyValue == CONST_RAND)
+        ReadOnlySpan<char> name = cmd.PropertyName;
+        ReadOnlySpan<char> value = cmd.PropertyValue;
+
+        if (name.StartsWith("IV") && value is CONST_RAND)
         {
-            SetRandomIVs(pk, cmd);
+            SetRandomIVs(pk, name);
             return true;
         }
 
-        var match = BatchMods.ComplexMods.Find(z => z.IsMatch(cmd.PropertyName, cmd.PropertyValue));
-        if (match == null)
-            return false;
-
-        match.Modify(pk, cmd);
-        return true;
+        foreach (var mod in BatchMods.ComplexMods)
+        {
+            if (!mod.IsMatch(name, value))
+                continue;
+            mod.Modify(pk, cmd);
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
     /// Sets the <see cref="PKM"/> IV(s) to a random value.
     /// </summary>
     /// <param name="pk">Pokémon to modify.</param>
-    /// <param name="cmd">Modification</param>
-    private static void SetRandomIVs(PKM pk, StringInstruction cmd)
+    /// <param name="propertyName">Property to modify</param>
+    private static void SetRandomIVs(PKM pk, ReadOnlySpan<char> propertyName)
     {
-        if (cmd.PropertyName == nameof(PKM.IVs))
+        if (propertyName is nameof(PKM.IVs))
         {
-            pk.SetRandomIVs();
+            var la = new LegalityAnalysis(pk);
+            var enc = la.EncounterMatch;
+            if (enc is IFlawlessIVCount { FlawlessIVCount: not 0 } fc)
+                pk.SetRandomIVs(fc.FlawlessIVCount);
+            else if (enc is IFixedIVSet { IVs: {IsSpecified: true} iv})
+                pk.SetRandomIVs(iv);
+            else if (enc is IFlawlessIVCountConditional c && c.GetFlawlessIVCount(pk) is { Max: not 0 } x)
+                pk.SetRandomIVs(Util.Rand.Next(x.Min, x.Max + 1));
+            else
+                pk.SetRandomIVs();
             return;
         }
 
-        if (TryGetHasProperty(pk, cmd.PropertyName, out var pi))
-            ReflectUtil.SetValue(pi, pk, Util.Rand.Next(pk.MaxIV + 1));
+        if (TryGetHasProperty(pk, propertyName, out var pi))
+        {
+            const string IV32 = nameof(PK9.IV32);
+            if (propertyName is IV32)
+            {
+                var value = (uint)Util.Rand.Next(0x3FFFFFFF + 1);
+                if (pk is BK4 bk) // Big Endian, reverse IV ordering
+                {
+                    value <<= 2; // flags are the lowest bits, and our random value is still fine.
+                    value |= bk.IV32 & 3; // preserve the flags
+                    bk.IV32 = value;
+                    return;
+                }
+
+                var exist = ReflectUtil.GetValue(pk, IV32);
+                value |= exist switch
+                {
+                    uint iv => iv & (3u << 30), // preserve the flags
+                    _ => 0,
+                };
+                ReflectUtil.SetValue(pi, pk, value);
+            }
+            else
+            {
+                var value = Util.Rand.Next(pk.MaxIV + 1);
+                ReflectUtil.SetValue(pi, pk, value);
+            }
+        }
     }
 }
