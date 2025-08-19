@@ -43,6 +43,27 @@
     <Compile Remove="Legality\Encounters\EncounterSlot\**" />
     <!-- Exclude specific duplicate files in root Data directory -->
     <Compile Remove="Legality\Encounters\Data\Encounters9.cs" />
+    <!-- Exclude old encounter structure directories that have duplicates in Templates -->
+    <Compile Remove="Legality\Encounters\EncounterStatic\**" />
+    <Compile Remove="Legality\Encounters\EncounterTrade\**" />
+    <Compile Remove="Legality\Encounters\EncounterMisc\**" />
+    <!-- Exclude duplicate interface files at root level -->
+    <Compile Remove="Legality\Encounters\IEncounterable.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterMatch.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterTemplate.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterConvertible.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterInfo.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterFormRandom.cs" />
+    <Compile Remove="Legality\Encounters\EncounterMatchRating.cs" />
+    <!-- Exclude old structure files that duplicate Templates/Interfaces/Properties -->
+    <Compile Remove="Legality\Structures\ILocation.cs" />
+    <Compile Remove="Legality\Structures\IFixedAbilityNumber.cs" />
+    <Compile Remove="Legality\Structures\IFixedBall.cs" />
+    <Compile Remove="Legality\Structures\IMoveset.cs" />
+    <Compile Remove="Legality\Structures\IRelearn.cs" />
+    <Compile Remove="Legality\Structures\IShinyPotential.cs" />
+    <Compile Remove="Legality\Structures\IndividualValueSet.cs" />
+    <Compile Remove="Legality\Structures\Moveset.cs" />
   </ItemGroup>
 
 </Project>
