@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "project": "PKHeX.Core",
+  "description": "Machine-readable index of key domains, entry points, and representative files in PKHeX.Core.",
+  "domains": [
+    {
+      "id": "editing",
+      "title": "Editing Helpers",
+      "path": "Editing/",
+      "entryPoints": [
+        {"name": "CommonEdits", "file": "Editing/CommonEdits.cs", "keys": ["ApplySetDetails","SetRandomEC","SetAbility"]},
+        {"name": "HiddenPower", "file": "Editing/HiddenPower.cs"},
+        {"name": "LocationEdits", "file": "Editing/LocationEdits.cs"},
+        {"name": "IBattleTemplate", "file": "Editing/IBattleTemplate.cs"}
+      ],
+      "notes": "Primary safe mutation surface for PKM objects. Use instead of raw byte edits." 
+    },
+    {
+      "id": "pkm",
+      "title": "PKM Base & Formats",
+      "path": "PKM/",
+      "entryPoints": [
+        {"name": "PKM Base", "file": "PKM/PKM.cs", "keys": ["byte[] Data","IsShiny","ResetPartyStats"]},
+        {"name": "PK1", "file": "PKM/PK1.cs"},
+        {"name": "PK2", "file": "PKM/PK2.cs"},
+        {"name": "PK3", "file": "PKM/PK3.cs"},
+        {"name": "PK4", "file": "PKM/PK4.cs"},
+        {"name": "PK5", "file": "PKM/PK5.cs"},
+        {"name": "PK6", "file": "PKM/PK6.cs"},
+        {"name": "PK7", "file": "PKM/PK7.cs"},
+        {"name": "PK8", "file": "PKM/PK8.cs"},
+        {"name": "PK9", "file": "PKM/PK9.cs"},
+        {"name": "EntityPID", "file": "PKM/Util/EntityPID.cs", "keys": ["GetRandomPID"]}
+      ],
+      "notes": "Concrete per-generation Pokémon data implementations." 
+    },
+    {
+      "id": "saves",
+      "title": "Save File Formats",
+      "path": "Saves/",
+      "entryPoints": [
+        {"name": "SaveFile Base", "file": "Saves/SaveFile.cs", "keys": ["SetPartySlotAtIndex","SetChecksums","UpdatePKM"]}
+      ],
+      "notes": "Abstract + concrete save parsing & serialization. Use public APIs for mutation." 
+    },
+    {
+      "id": "legality",
+      "title": "Legality Engine",
+      "path": "Legality/",
+      "entryPoints": [
+        {"name": "LegalityAnalysis", "file": "Legality/LegalityAnalysis.cs", "keys": ["Parsed","Valid"]},
+        {"name": "Core", "file": "Legality/Core.cs"},
+        {"name": "Legal Constants", "file": "Legality/Legal.cs", "keys": ["MaxSpeciesID_*","MaxGameID_*"]}
+      ],
+      "notes": "Encounter resolution and multi-stage verifiers." 
+    },
+    {
+      "id": "game",
+      "title": "Game Metadata & Mapping",
+      "path": "Game/",
+      "entryPoints": [
+        {"name": "GameUtil", "file": "Game/GameUtil.cs", "keys": ["GetGeneration","GetVersion","GetMaxSpeciesID"]},
+        {"name": "ComboItem", "file": "Game/ComboItem.cs"}
+      ],
+      "notes": "Version↔generation logic and lookups used across domains." 
+    },
+    {
+      "id": "personal-info",
+      "title": "Per-Species Metadata",
+      "path": "PersonalInfo/",
+      "entryPoints": [
+        {"name": "PersonalInfo", "file": "PersonalInfo/PersonalInfo.cs"},
+        {"name": "PersonalTable", "file": "PersonalInfo/PersonalTable.cs"}
+      ],
+      "notes": "Stats, abilities, forms — authoritative species data." 
+    },
+    {
+      "id": "moves",
+      "title": "Move Metadata",
+      "path": "Moves/",
+      "entryPoints": [
+        {"name": "MoveInfo Base", "file": "Moves/MoveInfo.cs"},
+        {"name": "Gen9 MoveInfo", "file": "Moves/MoveInfo9.cs"}
+      ],
+      "notes": "Per-generation move properties used for legality & UI." 
+    },
+    {
+      "id": "mystery-gifts",
+      "title": "Mystery Gift Formats",
+      "path": "MysteryGifts/",
+      "entryPoints": [
+        {"name": "MysteryGift", "file": "MysteryGifts/MysteryGift.cs"},
+        {"name": "MysteryUtil", "file": "MysteryGifts/MysteryUtil.cs"}
+      ],
+      "notes": "Detection, compatibility checks, and gift parsing." 
+    },
+    {
+      "id": "items",
+      "title": "Item Storage",
+      "path": "Items/",
+      "entryPoints": [
+        {"name": "IItemStorage", "file": "Items/IItemStorage.cs"},
+        {"name": "ItemStorage9SV", "file": "Items/ItemStorage9SV.cs"}
+      ],
+      "notes": "Per-generation item collection structures." 
+    },
+    {
+      "id": "util",
+      "title": "Utilities & Shared",
+      "path": "Util/",
+      "entryPoints": [],
+      "notes": "Helper utilities (RNG, converters, misc)." 
+    }
+  ],
+  "crossCutting": {
+    "entityImportSettings": "Save insertion/update pipeline flags (PKM adaptation, Pokédex, Records).",
+    "specialEC": "CommonEdits.GetComplicatedEC handles Wurmple & rare form correlations.",
+    "pidRerollRule": "Use EntityPID.GetRandomPID for Gen3-5 to preserve legality bits.",
+    "partyInsertFlow": "SetPartySlotAtIndex → SetPartySlot → SetSlotFormatParty → UpdatePKM → SetPartyValues → WritePartySlot → (later) SetChecksums"
+  },
+  "keywords": [
+    "PKM","SaveFile","LegalityAnalysis","EntityImportSettings","GameUtil","CommonEdits","EntityPID","ResetPartyStats","GetComplicatedEC","ApplySetDetails"
+  ],
+  "updateWhen": [
+    "New generation/game introduced",
+    "Interface additions to PKM or SaveFile",
+    "Save insertion pipeline changes",
+    "Legality constants (MaxSpeciesID, MaxGameID) updated"
+  ]
+}
