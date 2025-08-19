@@ -5,13 +5,21 @@ using PKHeX.Drawing.PokeSprite;
 
 namespace PKHeX.Drawing.Misc;
 
+/// <summary>
+/// Provides utility methods for retrieving and composing sprites for Mystery Gifts.
+/// </summary>
 public static class MysteryGiftSpriteUtil
 {
-    public static Image Sprite(this MysteryGift gift) => GetSprite(gift);
+    /// <summary>
+    /// Gets the sprite image for the specified <see cref="MysteryGift"/>.
+    /// </summary>
+    /// <param name="gift">The mystery gift to get the sprite for.</param>
+    /// <returns>A <see cref="Bitmap"/> representing the sprite image.</returns>
+    public static Bitmap Sprite(this MysteryGift gift) => GetSprite(gift);
 
-    private static Image GetSprite(MysteryGift gift)
+    private static Bitmap GetSprite(MysteryGift gift)
     {
-        if (gift.Empty)
+        if (gift.IsEmpty)
             return SpriteUtil.Spriter.None;
 
         var img = GetBaseImage(gift);
@@ -22,7 +30,7 @@ public static class MysteryGiftSpriteUtil
         return img;
     }
 
-    private static Image GetBaseImage(MysteryGift gift)
+    private static Bitmap GetBaseImage(MysteryGift gift)
     {
         if (gift is { IsEgg: true, Species: (int)Species.Manaphy }) // Manaphy Egg
             return SpriteUtil.GetMysteryGiftPreviewPoke(gift);
@@ -32,7 +40,7 @@ public static class MysteryGiftSpriteUtil
         if (gift.IsItem)
         {
             var item = (ushort)gift.ItemID;
-            if (Legal.ZCrystalDictionary.TryGetValue(item, out var value))
+            if (ItemStorage7USUM.GetCrystalHeld(item, out var value))
                 item = value;
             return SpriteUtil.GetItemSprite(item) ?? Resources.Bag_Key;
         }

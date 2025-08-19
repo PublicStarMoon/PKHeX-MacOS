@@ -28,13 +28,13 @@ public static class PokeSizeDetailedUtil
     public static PokeSizeDetailed GetSizeRating(byte scalar) => scalar switch
     {
              0 => XXXS, //  1:256
-        <=  30 => XXS,  // 29:256
-        <=  60 => XS,   // 30:256
-        <  100 => S,    // 39:256
-        <= 160 => AV,   // 61:256
-        <= 195 => L,    // 35:256
-        <= 241 => XL,   // 44:256
-        <  255 => XXL,  // 13:256
+        <   25 => XXS,  // 23:256
+        <   60 => XS,   // 35:256
+        <  100 => S,    // 40:256
+        <= 155 => AV,   // 56:256
+        <= 195 => L,    // 40:256
+        <= 230 => XL,   // 35:256
+        <  255 => XXL,  // 23:256
              _ => XXXL, //  1:256
     };
 }

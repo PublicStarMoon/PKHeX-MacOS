@@ -1,44 +1,71 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace PKHeX.Core;
 
 /// <summary>
-/// Object storing a reversal path for evolution nodes.
+/// Provides a reverse lookup mechanism for managing and retrieving evolution data based on species and form
+/// identifiers.
 /// </summary>
-public sealed class EvolutionReverseLookup : IEvolutionLookup
+/// <remarks>This class is designed to efficiently store and retrieve evolution links for a large number of
+/// species and forms. It supports registering evolution links and accessing them using species and form identifiers.
+/// The lookup is optimized for performance and memory usage by leveraging internal indexing and key mapping.</remarks>
+/// <param name="MaxSpecies">Maximum number of species supported by the lookup, matching the game context it provides for.</param>
+public sealed class EvolutionReverseLookup(ushort MaxSpecies) : IEvolutionLookup
 {
-    private readonly EvolutionNode[] Nodes;
-    private readonly int MaxSpecies;
-    private readonly Dictionary<int, int> KeyLookup;
+    private const int ExtraBufferFraction = 3; // magic number that gives a minimal-ish allocation
+    private readonly EvolutionNode[] Nodes = new EvolutionNode[MaxSpecies + (MaxSpecies >> ExtraBufferFraction)];
+    private readonly Dictionary<int, int> KeyLookup = new(MaxSpecies >> ExtraBufferFraction);
 
-    public EvolutionReverseLookup(IEnumerable<(int Key, EvolutionLink Value)> links, int maxSpecies)
+    private void Register(in EvolutionLink link, int index)
     {
-        MaxSpecies = maxSpecies;
-        KeyLookup = new Dictionary<int, int>(maxSpecies);
-        var nodes = new EvolutionNode[maxSpecies * 2];
-        int ctr = maxSpecies + 1;
-        foreach (var (key, value) in links)
+        ref var node = ref Nodes[index];
+        node.Add(link);
+    }
+
+    /// <summary>
+    /// Registers an evolution link for a specific species and form.
+    /// </summary>
+    /// <remarks>
+    /// If the specified form is 0, the method delegates to an overload that registers the link without considering the form.
+    /// Otherwise, the species and form combination is used to  determine or create an index for registration.
+    /// </remarks>
+    /// <param name="link">The evolution link to register.</param>
+    /// <param name="species">The species identifier associated with the evolution link.</param>
+    /// <param name="form">The form identifier of the species.</param>
+    public void Register(in EvolutionLink link, ushort species, byte form)
+    {
+        if (form == 0)
         {
-            var index = key <= MaxSpecies ? key : KeyLookup.TryGetValue(key, out var x) ? x : KeyLookup[key] = ctr++;
-            ref var node = ref nodes[index];
-            node.Add(value);
+            Register(link, species);
+            return;
         }
-        Nodes = nodes;
-        Debug.Assert(KeyLookup.Count < maxSpecies);
+
+        int index = GetOrAppendIndex(species, form);
+        Register(link, index);
     }
 
-    private int GetIndex(int key)
+    private int GetOrAppendIndex(ushort species, byte form)
     {
-        if (key <= MaxSpecies)
-            return key;
-        return KeyLookup.TryGetValue(key, out var index) ? index : 0;
+        int key = GetKey(species, form);
+        if (KeyLookup.TryGetValue(key, out var index))
+            return index;
+
+        index = Nodes.Length - KeyLookup.Count - 1;
+        KeyLookup.Add(key, index);
+        return index;
     }
 
-    public ref EvolutionNode this[int key] => ref Nodes[GetIndex(key)];
-}
+    private int GetIndex(ushort species, byte form)
+    {
+        if (species > MaxSpecies)
+            return 0;
+        if (form == 0)
+            return species;
+        int key = GetKey(species, form);
+        return KeyLookup.GetValueOrDefault(key, 0);
+    }
 
-public interface IEvolutionLookup
-{
-    ref EvolutionNode this[int key] { get; }
+    private static int GetKey(ushort species, byte form) => species | form << 11;
+
+    public ref readonly EvolutionNode this[ushort species, byte form] => ref Nodes[GetIndex(species, form)];
 }

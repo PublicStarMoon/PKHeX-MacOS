@@ -98,8 +98,6 @@ public static partial class Extensions
     /// <summary>
     /// Checks if all Geolocation tuples are valid.
     /// </summary>
-    /// <param name="g"></param>
-    /// <returns></returns>
     public static bool GetIsValid(this IGeoTrack g) => g.GetValidity() == GeoValid.Valid;
 
     /// <summary>
@@ -120,7 +118,7 @@ public static partial class Extensions
         if ((result = UpdateCheck(g.Geo5_Country, g.Geo5_Region, ref end)) != GeoValid.Valid)
             return result;
 
-        return result;
+        return GeoValid.Valid;
 
         static GeoValid UpdateCheck(byte country, byte region, ref bool end)
         {

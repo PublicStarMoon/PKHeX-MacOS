@@ -23,15 +23,16 @@ public static class SlotInfoLoader
         AddExtraData(sav, db);
     }
 
-    public static void AddFromLocalFile(string file, ConcurrentBag<SlotCache> db, ITrainerInfo dest, ICollection<string> validExtensions)
+    public static void AddFromLocalFile(string file, ConcurrentBag<SlotCache> db, ITrainerInfo dest, IReadOnlySet<string> validExtensions)
     {
         var fi = new FileInfo(file);
         if (!validExtensions.Contains(fi.Extension) || !EntityDetection.IsSizePlausible(fi.Length))
             return;
 
         var data = File.ReadAllBytes(file);
-        _ = FileUtil.TryGetPKM(data, out var pk, fi.Extension, dest);
-        if (pk?.Species is not > 0)
+        if (!FileUtil.TryGetPKM(data, out var pk, fi.Extension, dest))
+            return;
+        if (pk.Species is 0)
             return;
 
         var info = new SlotInfoFile(file);
@@ -58,6 +59,8 @@ public static class SlotInfoLoader
     private static void AddPartyData(SaveFile sav, ConcurrentBag<SlotCache> db)
     {
         var count = sav.PartyCount;
+        if ((uint)count > 6)
+            count = 6;
         for (var index = 0; index < count; index++)
         {
             var pk = sav.GetPartySlotAtIndex(index);

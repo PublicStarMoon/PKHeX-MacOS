@@ -2,39 +2,123 @@
 <ContentPage x:Class="PKHeX.MAUI.Views.InventoryEditorPage"
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             Title="Inventory Editor"
-             BackgroundColor="{DynamicResource PageBackgroundColor}">
+             Title="Inventory Editor">
 
-    <Grid Padding="20">
+    <Grid BackgroundColor="#F8F9FA">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Label Grid.Row="0" 
-               Text="Inventory Editor" 
-               FontSize="24" 
-               FontAttributes="Bold" 
-               HorizontalOptions="Center"/>
+        <!-- Top Menu Bar -->
+        <Grid Grid.Row="0" BackgroundColor="#2C3E50" Padding="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <Button Grid.Column="0" Text="🔙 Back" Clicked="OnBackClicked" 
+                    Margin="0,0,15,0" BackgroundColor="#34495E" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="8"/>
+            <StackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label x:Name="HeaderLabel" Text="🎒 Inventory Editor" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+                <Label x:Name="GenerationLabel" Text="Generation: Unknown" FontSize="12" TextColor="#BDC3C7"/>
+            </StackLayout>
+            <Button Grid.Column="2" Text="💾 Save" Clicked="OnSaveClicked" 
+                    BackgroundColor="#27AE60" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="8"/>
+        </Grid>
 
-        <!-- Content -->
-        <StackLayout Grid.Row="1" Spacing="20" VerticalOptions="Center">
-            <Label x:Name="StatusLabel" Text="Inventory Editor" HorizontalOptions="Center"/>
-            <Label x:Name="ItemCountLabel" Text="Items: 0" HorizontalOptions="Center"/>
-            <Label Text="⚠️ Full inventory editor implementation coming soon" 
-                   HorizontalOptions="Center" 
-                   TextColor="Orange"/>
-        </StackLayout>
+        <!-- Main Content -->
+        <ScrollView Grid.Row="1" Padding="20">
+            <StackLayout Spacing="20">
+                <!-- Pouch Selection Card -->
+                <Frame BackgroundColor="White" Padding="20" CornerRadius="12">
+                    <StackLayout>
+                        <Label Text="📦 Select Pouch" FontSize="16" FontAttributes="Bold" TextColor="#2C3E50" Margin="0,0,0,10"/>
+                        <ScrollView Orientation="Horizontal" BackgroundColor="#F8F9FA" HeightRequest="80" Padding="8,4">
+                            <StackLayout x:Name="PouchContainer" Orientation="Horizontal" Spacing="12" Padding="4,8"/>
+                        </ScrollView>
+                    </StackLayout>
+                </Frame>
 
-        <!-- Footer -->
-        <Button Grid.Row="2"
-                Text="Back"
-                BackgroundColor="{DynamicResource PrimaryColor}"
-                TextColor="White"
-                CornerRadius="10"
-                HeightRequest="50"
-                Clicked="OnBackClicked"/>
+                <!-- Current Pouch Info Card -->
+                <Frame BackgroundColor="#3498DB" Padding="20" CornerRadius="12" 
+                       x:Name="PouchInfoFrame" IsVisible="False">
+                    <StackLayout>
+                        <Label x:Name="PouchNameLabel" Text="Pouch: None" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                        <Label x:Name="PouchStatsLabel" Text="Items: 0/0" FontSize="14" TextColor="#EBF5FF"/>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Tools Card -->
+                <Frame BackgroundColor="White" Padding="20" CornerRadius="12" 
+                       x:Name="ToolsFrame" IsVisible="False">
+                    <StackLayout>
+                        <Label Text="🛠️ Tools" FontSize="16" FontAttributes="Bold" TextColor="#2C3E50" Margin="0,0,0,15"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Button Grid.Row="0" Grid.Column="0" Text="⬆️ Max All" Clicked="OnMaxAllClicked" 
+                                    Margin="0,0,8,8" BackgroundColor="#27AE60" TextColor="White" 
+                                    FontSize="14" FontAttributes="Bold" CornerRadius="8" HeightRequest="45"/>
+                            <Button Grid.Row="0" Grid.Column="1" Text="🗑️ Clear All" Clicked="OnClearAllClicked" 
+                                    Margin="8,0,0,8" BackgroundColor="#E74C3C" TextColor="White" 
+                                    FontSize="14" FontAttributes="Bold" CornerRadius="8" HeightRequest="45"/>
+                            <Button Grid.Row="1" Grid.Column="0" Text="⚖️ Give All Legal" Clicked="OnGiveAllLegalClicked" 
+                                    Margin="0,8,8,0" BackgroundColor="#9B59B6" TextColor="White" 
+                                    FontSize="14" FontAttributes="Bold" CornerRadius="8" HeightRequest="45"/>
+                            <Button Grid.Row="1" Grid.Column="1" Text="🔢 Sort by ID" Clicked="OnSortByIndexClicked" 
+                                    Margin="8,8,0,0" BackgroundColor="#34495E" TextColor="White" 
+                                    FontSize="14" FontAttributes="Bold" CornerRadius="8" HeightRequest="45"/>
+                        </Grid>
+                    </StackLayout>
+                </Frame>
+
+                <!-- Items List Card -->
+                <Frame BackgroundColor="White" Padding="20" CornerRadius="12" 
+                       x:Name="ItemsFrame" IsVisible="False">
+                    <StackLayout>
+                        <!-- Header with Add Button and Search -->
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Text="📋 道具列表" FontSize="16" FontAttributes="Bold" TextColor="#2C3E50" VerticalOptions="Center"/>
+                            <Button Grid.Column="1" Text="➕ 添加新道具" Clicked="OnAddNewItemClicked" 
+                                    BackgroundColor="#27AE60" TextColor="White" 
+                                    FontSize="12" FontAttributes="Bold" CornerRadius="6" 
+                                    HeightRequest="35" WidthRequest="120"/>
+                        </Grid>
+                        
+                        <!-- Search Bar -->
+                        <SearchBar x:Name="ItemSearchBar" 
+                                   Placeholder="搜索道具名称或ID..." 
+                                   TextChanged="OnItemSearchChanged"
+                                   BackgroundColor="#F8F9FA"
+                                   TextColor="#2C3E50"
+                                   PlaceholderColor="#7F8C8D"
+                                   Margin="0,0,0,15"
+                                   HeightRequest="45" />
+                        
+                        <!-- Items List with ScrollView -->
+                        <Frame BackgroundColor="#FAFBFC" Padding="0" CornerRadius="8" HasShadow="False" HeightRequest="600">
+                            <ScrollView VerticalScrollBarVisibility="Always" HorizontalScrollBarVisibility="Never">
+                                <StackLayout x:Name="ItemsContainer" Spacing="3" Padding="10"/>
+                            </ScrollView>
+                        </Frame>
+                    </StackLayout>
+                </Frame>
+            </StackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>

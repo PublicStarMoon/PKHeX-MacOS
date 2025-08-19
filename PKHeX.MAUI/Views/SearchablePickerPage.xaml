@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="PKHeX.MAUI.Views.SearchablePickerPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:PKHeX.MAUI.Views.Components"
+             Title="{Binding PageTitle}"
+             BackgroundColor="#F5F5F5">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Label Grid.Row="0" 
+               Text="{Binding PageTitle}" 
+               FontSize="24" 
+               FontAttributes="Bold" 
+               HorizontalOptions="Center" 
+               Margin="10"
+               TextColor="#1A1A1A" />
+        
+        <!-- Search Box -->
+        <SearchBar Grid.Row="1" 
+                   x:Name="SearchBar"
+                   Placeholder="Search by name or ID..." 
+                   TextChanged="OnSearchTextChanged"
+                   BackgroundColor="White"
+                   PlaceholderColor="#999999"
+                   TextColor="#333333"
+                   Margin="10,0" />
+        
+        <!-- Search Info Label -->
+        <Label Grid.Row="2"
+               x:Name="SearchInfoLabel"
+               FontSize="12"
+               TextColor="#666666"
+               HorizontalOptions="Center"
+               Margin="10,5"
+               IsVisible="False" />
+        
+        <!-- List View -->
+        <CollectionView Grid.Row="3" 
+                        x:Name="ItemsCollectionView"
+                        ItemsSource="{Binding FilteredItems}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnSelectionChanged"
+                        BackgroundColor="White"
+                        Margin="5">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="10" Margin="5">
+                        <Frame BackgroundColor="White"
+                               Padding="15"
+                               CornerRadius="8"
+                               BorderColor="#E2E8F0"
+                               HasShadow="False">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- ID Badge -->
+                                <Frame Grid.Column="0"
+                                       BackgroundColor="#1976D2"
+                                       WidthRequest="50"
+                                       HeightRequest="32"
+                                       CornerRadius="16"
+                                       HasShadow="False"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center">
+                                    <Label Text="{Binding Id}" 
+                                           FontSize="14" 
+                                           FontAttributes="Bold"
+                                           TextColor="White"
+                                           VerticalOptions="Center"
+                                           HorizontalOptions="Center" />
+                                </Frame>
+                                
+                                <!-- Display Name -->
+                                <Label Grid.Column="1" 
+                                       Text="{Binding DisplayName}" 
+                                       FontSize="16" 
+                                       FontAttributes="Bold"
+                                       TextColor="#0F172A"
+                                       VerticalOptions="Center" 
+                                       Margin="15,0,0,0" />
+                            </Grid>
+                        </Frame>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        
+        <!-- Action Buttons -->
+        <StackLayout Grid.Row="4" 
+                     Orientation="Horizontal" 
+                     HorizontalOptions="Center" 
+                     Margin="10"
+                     Spacing="20">
+            <Button Text="Cancel" 
+                    Clicked="OnCancelClicked" 
+                    BackgroundColor="#757575" 
+                    TextColor="White" 
+                    WidthRequest="120"
+                    HeightRequest="44"
+                    CornerRadius="22"
+                    FontAttributes="Bold"
+                    FontSize="16" />
+            <Button Text="OK" 
+                    Clicked="OnOkClicked" 
+                    BackgroundColor="#2196F3" 
+                    TextColor="White" 
+                    WidthRequest="120"
+                    HeightRequest="44" 
+                    CornerRadius="22"
+                    FontAttributes="Bold"
+                    FontSize="16" />
+        </StackLayout>
+    </Grid>
+</ContentPage>
+

@@ -5,16 +5,37 @@ using static PKHeX.Core.GameVersion;
 
 namespace PKHeX.Drawing.Misc;
 
+/// <summary>
+/// Provides utility methods for retrieving and composing wallpaper images for Pokémon storage boxes.
+/// </summary>
 public static class WallpaperUtil
 {
-    public static Image WallpaperImage(this SaveFile sav, int box) => GetWallpaper(sav, box);
+    private static Bitmap DefaultWallpaper => Resources.box_wp16xy;
 
-    private static Image GetWallpaper(SaveFile sav, int box)
+    /// <summary>
+    /// Gets the wallpaper image for the specified save file and box index.
+    /// </summary>
+    /// <param name="sav">The save file to get the wallpaper for.</param>
+    /// <param name="box">The box index.</param>
+    /// <returns>A <see cref="Bitmap"/> representing the wallpaper image.</returns>
+    public static Bitmap WallpaperImage(this SaveFile sav, int box) => GetWallpaper(sav, box);
+
+    private static Bitmap GetWallpaper(SaveFile sav, int box)
     {
-        string s = GetWallpaperResourceName(sav.Version, sav.GetBoxWallpaper(box));
-        return (Bitmap?)Resources.ResourceManager.GetObject(s) ?? Resources.box_wp16xy;
+        if (sav is not IBoxDetailWallpaper wp)
+            return DefaultWallpaper;
+
+        int wallpaper = wp.GetBoxWallpaper(box);
+        string s = GetWallpaperResourceName(sav.Version, wallpaper);
+        return (Bitmap?)Resources.ResourceManager.GetObject(s) ?? DefaultWallpaper;
     }
 
+    /// <summary>
+    /// Gets the resource name for the wallpaper image based on game version and index.
+    /// </summary>
+    /// <param name="version">The game version.</param>
+    /// <param name="index">The wallpaper index.</param>
+    /// <returns>The resource name for the wallpaper image.</returns>
     public static string GetWallpaperResourceName(GameVersion version, int index)
     {
         index++; // start indexes at 1

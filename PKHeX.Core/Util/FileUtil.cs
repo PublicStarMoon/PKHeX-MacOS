@@ -15,8 +15,8 @@ public static class FileUtil
     /// <summary>
     /// Attempts to get a binary object from the provided path.
     /// </summary>
-    /// <param name="path"></param>
-    /// <param name="reference">Reference savefile used for PC Binary compatibility checks.</param>
+    /// <param name="path">Path to the file.</param>
+    /// <param name="reference">Reference SaveFile used for PC Binary compatibility checks.</param>
     /// <returns>Supported file object reference, null if none found.</returns>
     public static object? GetSupportedFile(string path, SaveFile? reference = null)
     {
@@ -27,7 +27,7 @@ public static class FileUtil
                 return null;
 
             var data = File.ReadAllBytes(path);
-            var ext = Path.GetExtension(path);
+            var ext = Path.GetExtension(path.AsSpan());
             return GetSupportedFile(data, ext, reference);
         }
         // User input data can be fuzzed; if anything blows up, just fail safely.
@@ -44,9 +44,9 @@ public static class FileUtil
     /// </summary>
     /// <param name="data">Binary data for the file.</param>
     /// <param name="ext">File extension used as a hint.</param>
-    /// <param name="reference">Reference savefile used for PC Binary compatibility checks.</param>
+    /// <param name="reference">Reference SaveFile used for PC Binary compatibility checks.</param>
     /// <returns>Supported file object reference, null if none found.</returns>
-    public static object? GetSupportedFile(byte[] data, ReadOnlySpan<char> ext, SaveFile? reference = null)
+    public static object? GetSupportedFile(Memory<byte> data, ReadOnlySpan<char> ext, SaveFile? reference = null)
     {
         if (TryGetSAV(data, out var sav))
             return sav;
@@ -54,8 +54,8 @@ public static class FileUtil
             return mc;
         if (TryGetPKM(data, out var pk, ext))
             return pk;
-        if (TryGetPCBoxBin(data, out IEnumerable<byte[]> pks, reference))
-            return pks;
+        if (TryGetPCBoxBin(data, out var concat, reference))
+            return concat;
         if (TryGetBattleVideo(data, out var bv))
             return bv;
         if (TryGetMysteryGift(data, out var g, ext))
@@ -73,28 +73,69 @@ public static class FileUtil
         catch { return true; }
     }
 
-    public static int GetFileSize(string path)
+    public static long GetFileSize(string path)
     {
         try
         {
-            var size = new FileInfo(path).Length;
+            var fi = new FileInfo(path);
+            var size = fi.Length;
             if (size > int.MaxValue)
                 return -1;
-            return (int)size;
+            return size;
         }
         catch { return -1; } // Bad File / Locked
     }
 
-    private static bool TryGetGP1(byte[] data, [NotNullWhen(true)] out GP1? gp1)
+    /// <summary>
+    /// Safely iterates over the elements of the specified <see cref="IEnumerable{T}"/>, handling exceptions during enumeration.
+    /// </summary>
+    /// <remarks>
+    /// This method ensures that exceptions thrown during enumeration do not terminate the iteration prematurely.
+    /// Instead, it logs the exception (if a <paramref name="log"/> action is provided) and continues iterating until the specified <paramref name="failOut"/> limit is reached.
+    /// If the limit is exceeded, the iteration stops.
+    /// </remarks>
+    /// <typeparam name="T">The type of elements in the source collection.</typeparam>
+    /// <param name="source">The source collection to iterate over. Cannot be <see langword="null"/>.</param>
+    /// <param name="failOut">
+    /// The maximum number of consecutive exceptions allowed before the iteration is terminated.
+    /// Must be greater than or equal to 0.
+    /// </param>
+    /// <param name="log">An optional action to log or handle exceptions that occur during enumeration. If <see langword="null"/>, exceptions are ignored.</param>
+    /// <returns>An <see cref="IEnumerable{T}"/> that yields elements from the source collection, skipping over elements that cause exceptions.</returns>
+    public static IEnumerable<T> IterateSafe<T>(this IEnumerable<T> source, int failOut = 10, Action<Exception>? log = null)
+    {
+        using var enumerator = source.GetEnumerator();
+        int ctr = 0;
+        while (true)
+        {
+            try
+            {
+                var next = enumerator.MoveNext();
+                if (!next)
+                    yield break;
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke(ex);
+                if (++ctr >= failOut)
+                    yield break;
+                continue;
+            }
+            ctr = 0;
+            yield return enumerator.Current;
+        }
+    }
+
+    private static bool TryGetGP1(Memory<byte> data, [NotNullWhen(true)] out GP1? gp1)
     {
         gp1 = null;
-        if (data.Length != GP1.SIZE || ReadUInt32LittleEndian(data.AsSpan(0x28)) == 0)
+        if (data.Length != GP1.SIZE || ReadUInt32LittleEndian(data.Span[0x28..]) == 0)
             return false;
         gp1 = new GP1(data);
         return true;
     }
 
-    private static bool TryGetBundle(byte[] data, [NotNullWhen(true)] out IPokeGroup? result)
+    private static bool TryGetBundle(Memory<byte> data, [NotNullWhen(true)] out IPokeGroup? result)
     {
         result = null;
         if (RentalTeam8.IsRentalTeam(data))
@@ -139,26 +180,26 @@ public static class FileUtil
     public static bool IsFileTooSmall(long length) => length < 0x20; // bigger than PK1
 
     /// <summary>
-    /// Tries to get an <see cref="SaveFile"/> object from the input parameters.
+    /// Tries to get a <see cref="SaveFile"/> object from the input parameters.
     /// </summary>
     /// <param name="data">Binary data</param>
     /// <param name="sav">Output result</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetSAV(byte[] data, [NotNullWhen(true)] out SaveFile? sav)
+    public static bool TryGetSAV(Memory<byte> data, [NotNullWhen(true)] out SaveFile? sav)
     {
         sav = SaveUtil.GetVariantSAV(data);
-        return sav != null;
+        return sav is not null;
     }
 
     /// <summary>
-    /// Tries to get an <see cref="SAV3GCMemoryCard"/> object from the input parameters.
+    /// Tries to get a <see cref="SAV3GCMemoryCard"/> object from the input parameters.
     /// </summary>
     /// <param name="data">Binary data</param>
     /// <param name="memcard">Output result</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetMemoryCard(byte[] data, [NotNullWhen(true)] out SAV3GCMemoryCard? memcard)
+    public static bool TryGetMemoryCard(Memory<byte> data, [NotNullWhen(true)] out SAV3GCMemoryCard? memcard)
     {
-        if (!SAV3GCMemoryCard.IsMemoryCardSize(data))
+        if (!SAV3GCMemoryCard.IsMemoryCardSize(data.Span) || IsNoDataPresent(data.Span))
         {
             memcard = null;
             return false;
@@ -167,47 +208,79 @@ public static class FileUtil
         return true;
     }
 
+    /// <inheritdoc cref="TryGetMemoryCard(Memory{byte}, out SAV3GCMemoryCard?)"/>
+    public static bool TryGetMemoryCard(string file, [NotNullWhen(true)] out SAV3GCMemoryCard? memcard)
+    {
+        if (!File.Exists(file))
+        {
+            memcard = null;
+            return false;
+        }
+        var data = File.ReadAllBytes(file);
+        return TryGetMemoryCard(data, out memcard);
+    }
+
     /// <summary>
-    /// Tries to get an <see cref="PKM"/> object from the input parameters.
+    /// Tries to get a <see cref="PKM"/> object from the input parameters.
     /// </summary>
     /// <param name="data">Binary data</param>
     /// <param name="pk">Output result</param>
     /// <param name="ext">Format hint</param>
-    /// <param name="sav">Reference savefile used for PC Binary compatibility checks.</param>
+    /// <param name="sav">Reference save file used for PC Binary compatibility checks.</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetPKM(byte[] data, [NotNullWhen(true)] out PKM? pk, ReadOnlySpan<char> ext, ITrainerInfo? sav = null)
+    public static bool TryGetPKM(Memory<byte> data, [NotNullWhen(true)] out PKM? pk, ReadOnlySpan<char> ext, ITrainerInfo? sav = null)
     {
-        if (ext == ".pgt") // size collision with pk6
+        if (ext.EndsWith("pgt")) // size collision with pk6
         {
             pk = null;
             return false;
         }
         var format = EntityFileExtension.GetContextFromExtension(ext, sav?.Context ?? EntityContext.Gen6);
         pk = EntityFormat.GetFromBytes(data, prefer: format);
-        return pk != null;
+        return pk is not null;
     }
 
     /// <summary>
-    /// Tries to get an <see cref="IEnumerable{T}"/> object from the input parameters.
+    /// Tries to get a <see cref="IEnumerable{T}"/> object from the input parameters.
     /// </summary>
     /// <param name="data">Binary data</param>
-    /// <param name="pkms">Output result</param>
-    /// <param name="sav">Reference savefile used for PC Binary compatibility checks.</param>
+    /// <param name="result">Output result</param>
+    /// <param name="sav">Reference SaveFile used for PC Binary compatibility checks.</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetPCBoxBin(byte[] data, out IEnumerable<byte[]> pkms, SaveFile? sav)
+    public static bool TryGetPCBoxBin(Memory<byte> data, [NotNullWhen(true)] out ConcatenatedEntitySet? result, SaveFile? sav)
     {
-        if (sav == null)
-        {
-            pkms = Array.Empty<byte[]>();
+        result = null;
+        if (sav is null || IsNoDataPresent(data.Span))
             return false;
-        }
-        var length = data.Length;
-        if (EntityDetection.IsSizePlausible(length / sav.SlotCount) || EntityDetection.IsSizePlausible(length / sav.BoxSlotCount))
+
+        // Only return if the size is one of the save file's data chunk formats.
+        var expect = sav.SIZE_BOXSLOT;
+
+        // Check if it's the entire PC data.
+        var countPC = sav.SlotCount;
+        if (expect * countPC == data.Length)
         {
-            pkms = ArrayUtil.EnumerateSplit(data, length);
+            result = new(data, countPC);
             return true;
         }
-        pkms = Array.Empty<byte[]>();
+
+        // Check if it's a single box data.
+        var countBox = sav.BoxSlotCount;
+        if (expect * countBox == data.Length)
+        {
+            result = new(data, countBox);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsNoDataPresent(ReadOnlySpan<byte> data)
+    {
+        if (!data.ContainsAnyExcept<byte>(0xFF))
+            return true;
+        if (!data.ContainsAnyExcept<byte>(0x00))
+            return true;
         return false;
     }
 
@@ -217,10 +290,10 @@ public static class FileUtil
     /// <param name="data">Binary data</param>
     /// <param name="bv">Output result</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetBattleVideo(byte[] data, [NotNullWhen(true)] out BattleVideo? bv)
+    public static bool TryGetBattleVideo(Memory<byte> data, [NotNullWhen(true)] out IBattleVideo? bv)
     {
         bv = BattleVideo.GetVariantBattleVideo(data);
-        return bv != null;
+        return bv is not null;
     }
 
     /// <summary>
@@ -230,10 +303,12 @@ public static class FileUtil
     /// <param name="mg">Output result</param>
     /// <param name="ext">Format hint</param>
     /// <returns>True if file object reference is valid, false if none found.</returns>
-    public static bool TryGetMysteryGift(byte[] data, [NotNullWhen(true)] out MysteryGift? mg, ReadOnlySpan<char> ext)
+    public static bool TryGetMysteryGift(Memory<byte> data, [NotNullWhen(true)] out MysteryGift? mg, ReadOnlySpan<char> ext)
     {
-        mg = MysteryGift.GetMysteryGift(data, ext);
-        return mg != null;
+        mg = ext.Length == 0
+            ? MysteryGift.GetMysteryGift(data)
+            : MysteryGift.GetMysteryGift(data, ext);
+        return mg is not null;
     }
 
     /// <summary>
@@ -247,7 +322,7 @@ public static class FileUtil
         string fn = pk.FileNameWithoutExtension;
         string filename = fn + (encrypt ? $".ek{pk.Format}" : $".{pk.Extension}");
 
-        return Path.Combine(Path.GetTempPath(), Util.CleanFileName(filename));
+        return Path.Combine(Path.GetTempPath(), PathUtil.CleanFileName(filename));
     }
 
     /// <summary>
@@ -262,16 +337,42 @@ public static class FileUtil
         if (!fi.Exists)
             return null;
         if (fi.Length == GP1.SIZE && TryGetGP1(File.ReadAllBytes(file), out var gp1))
-            return gp1.ConvertToPB7(sav);
+            return gp1.ConvertToPKM(sav);
         if (!EntityDetection.IsSizePlausible(fi.Length) && !MysteryGift.IsMysteryGift(fi.Length))
             return null;
         var data = File.ReadAllBytes(file);
         var ext = fi.Extension;
         var mg = MysteryGift.GetMysteryGift(data, ext);
         var gift = mg?.ConvertToPKM(sav);
-        if (gift != null)
+        if (gift is not null)
             return gift;
         _ = TryGetPKM(data, out var pk, ext, sav);
         return pk;
+    }
+}
+
+/// <summary>
+/// Represents a set of concatenated <see cref="PKM"/> data.
+/// </summary>
+/// <param name="Data">Object data</param>
+/// <param name="Count">Count of objects</param>
+public sealed record ConcatenatedEntitySet(Memory<byte> Data, int Count)
+{
+    /// <summary>
+    /// Size of each Entity in bytes.
+    /// </summary>
+    public int SlotSize => Data.Length / Count;
+
+    /// <summary>
+    /// Retrieves a specific slot of data from the concatenated set.
+    /// </summary>
+    /// <param name="index">Slot index to retrieve.</param>
+    public Span<byte> GetSlot(int index)
+    {
+        var size = SlotSize;
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)size);
+
+        var offset = index * size;
+        return Data.Span.Slice(offset, size);
     }
 }

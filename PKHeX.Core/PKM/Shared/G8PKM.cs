@@ -5,37 +5,33 @@ using static System.Buffers.Binary.BinaryPrimitives;
 namespace PKHeX.Core;
 
 /// <summary> Generation 8 <see cref="PKM"/> format. </summary>
-public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
-    ITechRecord, ISociability, IContestStats, IHyperTrain, IScaledSize, IGigantamax, IFavorite, IDynamaxLevel, IHandlerLanguage, IFormArgument, IHomeTrack, IBattleVersion, ITrainerMemories,
-    IRibbonIndex, IRibbonSetAffixed, IRibbonSetRibbons, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetMemory6, IRibbonSetCommon7, IRibbonSetCommon8, IRibbonSetMarks, IRibbonSetMark8
+public abstract class G8PKM : PKM, ISanityChecksum,
+    ITechRecord, ISociability, IContestStats, IHyperTrain, IScaledSize, IGigantamax, IFavorite, IDynamaxLevel, IHandlerLanguage, IFormArgument, IHomeTrack, IBattleVersion, ITrainerMemories, IPokerusStatus, IAppliedMarkings7, IFullnessEnjoyment,
+    IRibbonIndex, IRibbonSetAffixed, IRibbonSetRibbons, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetMemory6, IRibbonSetCommon7, IRibbonSetCommon8,  IRibbonSetCommon9, IRibbonSetMarks, IRibbonSetMark8, IRibbonSetMark9
 {
     protected G8PKM() : base(PokeCrypto.SIZE_8PARTY) { }
-    protected G8PKM(byte[] data) : base(DecryptParty(data)) { }
+    protected G8PKM(Memory<byte> data) : base(DecryptParty(data)) { }
 
-    public abstract void ResetMoves();
-
-    private static byte[] DecryptParty(byte[] data)
+    private static Memory<byte> DecryptParty(Memory<byte> data)
     {
         PokeCrypto.DecryptIfEncrypted8(ref data);
-        Array.Resize(ref data, PokeCrypto.SIZE_8PARTY);
-        return data;
+        if (data.Length >= PokeCrypto.SIZE_8PARTY)
+            return data;
+
+        var result = new byte[PokeCrypto.SIZE_8PARTY];
+        data.Span.CopyTo(result);
+        return result;
     }
 
-    private ushort CalculateChecksum()
-    {
-        ushort chk = 0;
-        for (int i = 8; i < PokeCrypto.SIZE_8STORED; i += 2)
-            chk += ReadUInt16LittleEndian(Data.AsSpan(i));
-        return chk;
-    }
+    private ushort CalculateChecksum() => Checksums.Add16(Data[8..PokeCrypto.SIZE_8STORED]);
 
     // Simple Generated Attributes
     public abstract IPermitRecord Permit { get; } // PersonalInfo derived metadata
 
-    public override int CurrentFriendship
+    public override byte CurrentFriendship
     {
-        get => CurrentHandler == 0 ? OT_Friendship : HT_Friendship;
-        set { if (CurrentHandler == 0) OT_Friendship = value; else HT_Friendship = value; }
+        get => CurrentHandler == 0 ? OriginalTrainerFriendship : HandlingTrainerFriendship;
+        set { if (CurrentHandler == 0) OriginalTrainerFriendship = value; else HandlingTrainerFriendship = value; }
     }
 
     public override int SIZE_PARTY => PokeCrypto.SIZE_8PARTY;
@@ -46,37 +42,24 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     public sealed override bool Valid { get => Sanity == 0 && ChecksumValid; set { if (!value) return; Sanity = 0; RefreshChecksum(); } }
 
     // Trash Bytes
-    public override Span<byte> Nickname_Trash => Data.AsSpan(0x58, 26);
-    public override Span<byte> HT_Trash => Data.AsSpan(0xA8, 26);
-    public override Span<byte> OT_Trash => Data.AsSpan(0xF8, 26);
+    public override Span<byte> NicknameTrash => Data.Slice(0x58, 26);
+    public override Span<byte> HandlingTrainerTrash => Data.Slice(0xA8, 26);
+    public override Span<byte> OriginalTrainerTrash => Data.Slice(0xF8, 26);
+    public override int TrashCharCountTrainer => 13;
+    public override int TrashCharCountNickname => 13;
 
     // Maximums
     public override int MaxIV => 31;
-    public override int MaxEV => 252;
-    public override int MaxStringLengthOT => 12;
+    public override int MaxEV => EffortValues.Max252;
+    public override int MaxStringLengthTrainer => 12;
     public override int MaxStringLengthNickname => 12;
 
     public override uint PSV => ((PID >> 16) ^ (PID & 0xFFFF)) >> 4;
     public override uint TSV => (uint)(TID16 ^ SID16) >> 4;
-    public override bool IsUntraded => Data[0xA8] == 0 && Data[0xA8 + 1] == 0 && Format == Generation; // immediately terminated HT_Name data (\0)
+    public override bool IsUntraded => Data[0xA8] == 0 && Data[0xA8 + 1] == 0 && Format == Generation; // immediately terminated HandlingTrainerName data (\0)
 
     // Complex Generated Attributes
-    public override int Characteristic
-    {
-        get
-        {
-            int pm6 = (int)(EncryptionConstant % 6);
-            int maxIV = MaximumIV;
-            int pm6stat = 0;
-            for (int i = 0; i < 6; i++)
-            {
-                pm6stat = (pm6 + i) % 6;
-                if (GetIV(pm6stat) == maxIV)
-                    break;
-            }
-            return (pm6stat * 5) + (maxIV % 5);
-        }
-    }
+    public override int Characteristic => EntityCharacteristic.GetCharacteristicInit0(EncryptionConstant, IV32);
 
     // Methods
     protected override byte[] Encrypt()
@@ -110,50 +93,50 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
         }
     }
 
-    public override uint EncryptionConstant { get => ReadUInt32LittleEndian(Data.AsSpan(0x00)); set => WriteUInt32LittleEndian(Data.AsSpan(0x00), value); }
-    public ushort Sanity { get => ReadUInt16LittleEndian(Data.AsSpan(0x04)); set => WriteUInt16LittleEndian(Data.AsSpan(0x04), value); }
-    public ushort Checksum { get => ReadUInt16LittleEndian(Data.AsSpan(0x06)); set => WriteUInt16LittleEndian(Data.AsSpan(0x06), value); }
+    public override uint EncryptionConstant { get => ReadUInt32LittleEndian(Data); set => WriteUInt32LittleEndian(Data, value); }
+    public ushort Sanity { get => ReadUInt16LittleEndian(Data[0x04..]); set => WriteUInt16LittleEndian(Data[0x04..], value); }
+    public ushort Checksum { get => ReadUInt16LittleEndian(Data[0x06..]); set => WriteUInt16LittleEndian(Data[0x06..], value); }
 
     // Structure
     #region Block A
-    public override ushort Species { get => ReadUInt16LittleEndian(Data.AsSpan(0x08)); set => WriteUInt16LittleEndian(Data.AsSpan(0x08), value); }
-    public override int HeldItem { get => ReadUInt16LittleEndian(Data.AsSpan(0x0A)); set => WriteUInt16LittleEndian(Data.AsSpan(0x0A), (ushort)value); }
-    public override uint ID32 { get => ReadUInt32LittleEndian(Data.AsSpan(0x0C)); set => WriteUInt32LittleEndian(Data.AsSpan(0x0C), value); }
-    public override ushort TID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x0C)); set => WriteUInt16LittleEndian(Data.AsSpan(0x0C), value); }
-    public override ushort SID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x0E)); set => WriteUInt16LittleEndian(Data.AsSpan(0x0E), value); }
-    public override uint EXP { get => ReadUInt32LittleEndian(Data.AsSpan(0x10)); set => WriteUInt32LittleEndian(Data.AsSpan(0x10), value); }
-    public override int Ability { get => ReadUInt16LittleEndian(Data.AsSpan(0x14)); set => WriteUInt16LittleEndian(Data.AsSpan(0x14), (ushort)value); }
+    public override ushort Species { get => ReadUInt16LittleEndian(Data[0x08..]); set => WriteUInt16LittleEndian(Data[0x08..], value); }
+    public override int HeldItem { get => ReadUInt16LittleEndian(Data[0x0A..]); set => WriteUInt16LittleEndian(Data[0x0A..], (ushort)value); }
+    public override uint ID32 { get => ReadUInt32LittleEndian(Data[0x0C..]); set => WriteUInt32LittleEndian(Data[0x0C..], value); }
+    public override ushort TID16 { get => ReadUInt16LittleEndian(Data[0x0C..]); set => WriteUInt16LittleEndian(Data[0x0C..], value); }
+    public override ushort SID16 { get => ReadUInt16LittleEndian(Data[0x0E..]); set => WriteUInt16LittleEndian(Data[0x0E..], value); }
+    public override uint EXP { get => ReadUInt32LittleEndian(Data[0x10..]); set => WriteUInt32LittleEndian(Data[0x10..], value); }
+    public override int Ability { get => ReadUInt16LittleEndian(Data[0x14..]); set => WriteUInt16LittleEndian(Data[0x14..], (ushort)value); }
     public override int AbilityNumber { get => Data[0x16] & 7; set => Data[0x16] = (byte)((Data[0x16] & ~7) | (value & 7)); }
     public bool IsFavorite { get => (Data[0x16] & 8) != 0; set => Data[0x16] = (byte)((Data[0x16] & ~8) | ((value ? 1 : 0) << 3)); } // unused, was in LGP/E but not in SW/SH
     public bool CanGigantamax { get => (Data[0x16] & 16) != 0; set => Data[0x16] = (byte)((Data[0x16] & ~16) | (value ? 16 : 0)); }
     // 0x17 alignment unused
-    public override int MarkValue { get => ReadUInt16LittleEndian(Data.AsSpan(0x18)); set => WriteUInt16LittleEndian(Data.AsSpan(0x18), (ushort)value); }
+    public ushort MarkingValue { get => ReadUInt16LittleEndian(Data[0x18..]); set => WriteUInt16LittleEndian(Data[0x18..], value); }
     // 0x1A alignment unused
     // 0x1B alignment unused
-    public override uint PID { get => ReadUInt32LittleEndian(Data.AsSpan(0x1C)); set => WriteUInt32LittleEndian(Data.AsSpan(0x1C), value); }
-    public override int Nature { get => Data[0x20]; set => Data[0x20] = (byte)value; }
-    public override int StatNature { get => Data[0x21]; set => Data[0x21] = (byte)value; }
+    public override uint PID { get => ReadUInt32LittleEndian(Data[0x1C..]); set => WriteUInt32LittleEndian(Data[0x1C..], value); }
+    public override Nature Nature { get => (Nature)Data[0x20]; set => Data[0x20] = (byte)value; }
+    public override Nature StatNature { get => (Nature)Data[0x21]; set => Data[0x21] = (byte)value; }
     public override bool FatefulEncounter { get => (Data[0x22] & 1) == 1; set => Data[0x22] = (byte)((Data[0x22] & ~0x01) | (value ? 1 : 0)); }
     public bool Flag2 { get => (Data[0x22] & 2) == 2; set => Data[0x22] = (byte)((Data[0x22] & ~0x02) | (value ? 2 : 0)); }
-    public override int Gender { get => (Data[0x22] >> 2) & 0x3; set => Data[0x22] = (byte)((Data[0x22] & 0xF3) | (value << 2)); }
+    public override byte Gender { get => (byte)((Data[0x22] >> 2) & 0x3); set => Data[0x22] = (byte)((Data[0x22] & 0xF3) | (value << 2)); }
     // 0x23 alignment unused
 
-    public override byte Form { get => Data[0x24]; set => WriteUInt16LittleEndian(Data.AsSpan(0x24), value); }
+    public override byte Form { get => Data[0x24]; set => WriteUInt16LittleEndian(Data[0x24..], value); }
     public override int EV_HP { get => Data[0x26]; set => Data[0x26] = (byte)value; }
     public override int EV_ATK { get => Data[0x27]; set => Data[0x27] = (byte)value; }
     public override int EV_DEF { get => Data[0x28]; set => Data[0x28] = (byte)value; }
     public override int EV_SPE { get => Data[0x29]; set => Data[0x29] = (byte)value; }
     public override int EV_SPA { get => Data[0x2A]; set => Data[0x2A] = (byte)value; }
     public override int EV_SPD { get => Data[0x2B]; set => Data[0x2B] = (byte)value; }
-    public byte CNT_Cool { get => Data[0x2C]; set => Data[0x2C] = value; }
-    public byte CNT_Beauty { get => Data[0x2D]; set => Data[0x2D] = value; }
-    public byte CNT_Cute { get => Data[0x2E]; set => Data[0x2E] = value; }
-    public byte CNT_Smart { get => Data[0x2F]; set => Data[0x2F] = value; }
-    public byte CNT_Tough { get => Data[0x30]; set => Data[0x30] = value; }
-    public byte CNT_Sheen { get => Data[0x31]; set => Data[0x31] = value; }
-    private byte PKRS { get => Data[0x32]; set => Data[0x32] = value; }
-    public override int PKRS_Days { get => PKRS & 0xF; set => PKRS = (byte)((PKRS & ~0xF) | value); }
-    public override int PKRS_Strain { get => PKRS >> 4; set => PKRS = (byte)((PKRS & 0xF) | (value << 4)); }
+    public byte ContestCool { get => Data[0x2C]; set => Data[0x2C] = value; }
+    public byte ContestBeauty { get => Data[0x2D]; set => Data[0x2D] = value; }
+    public byte ContestCute { get => Data[0x2E]; set => Data[0x2E] = value; }
+    public byte ContestSmart { get => Data[0x2F]; set => Data[0x2F] = value; }
+    public byte ContestTough { get => Data[0x30]; set => Data[0x30] = value; }
+    public byte ContestSheen { get => Data[0x31]; set => Data[0x31] = value; }
+    public byte PokerusState { get => Data[0x32]; set => Data[0x32] = value; }
+    public override int PokerusDays { get => PokerusState & 0xF; set => PokerusState = (byte)((PokerusState & ~0xF) | value); }
+    public override int PokerusStrain { get => PokerusState >> 4; set => PokerusState = (byte)((PokerusState & 0xF) | (value << 4)); }
     // 0x33 unused padding
 
     // ribbon u32
@@ -272,22 +255,22 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     public bool RibbonMarkThorny { get => FlagUtil.GetFlag(Data, 0x43, 7); set => FlagUtil.SetFlag(Data, 0x43, 7, value); }
     // 0x44 Ribbon 2
 
-    public bool RibbonMarkVigor { get => FlagUtil.GetFlag(Data, 0x44, 0); set => FlagUtil.SetFlag(Data, 0x44, 0, value); }
-    public bool RibbonMarkSlump { get => FlagUtil.GetFlag(Data, 0x44, 1); set => FlagUtil.SetFlag(Data, 0x44, 1, value); }
-    public bool RibbonHisui { get => FlagUtil.GetFlag(Data, 0x44, 2); set => FlagUtil.SetFlag(Data, 0x44, 2, value); }
-    public bool RibbonTwinklingStar { get => FlagUtil.GetFlag(Data, 0x44, 3); set => FlagUtil.SetFlag(Data, 0x44, 3, value); }
-    public bool RIB44_4 { get => FlagUtil.GetFlag(Data, 0x44, 4); set => FlagUtil.SetFlag(Data, 0x44, 4, value); }
-    public bool RIB44_5 { get => FlagUtil.GetFlag(Data, 0x44, 5); set => FlagUtil.SetFlag(Data, 0x44, 5, value); }
-    public bool RIB44_6 { get => FlagUtil.GetFlag(Data, 0x44, 6); set => FlagUtil.SetFlag(Data, 0x44, 6, value); }
-    public bool RIB44_7 { get => FlagUtil.GetFlag(Data, 0x44, 7); set => FlagUtil.SetFlag(Data, 0x44, 7, value); }
+    public bool RibbonMarkVigor       { get => FlagUtil.GetFlag(Data, 0x44, 0); set => FlagUtil.SetFlag(Data, 0x44, 0, value); }
+    public bool RibbonMarkSlump       { get => FlagUtil.GetFlag(Data, 0x44, 1); set => FlagUtil.SetFlag(Data, 0x44, 1, value); }
+    public bool RibbonHisui           { get => FlagUtil.GetFlag(Data, 0x44, 2); set => FlagUtil.SetFlag(Data, 0x44, 2, value); }
+    public bool RibbonTwinklingStar   { get => FlagUtil.GetFlag(Data, 0x44, 3); set => FlagUtil.SetFlag(Data, 0x44, 3, value); }
+    public bool RibbonChampionPaldea  { get => FlagUtil.GetFlag(Data, 0x44, 4); set => FlagUtil.SetFlag(Data, 0x44, 4, value); }
+    public bool RibbonMarkJumbo       { get => FlagUtil.GetFlag(Data, 0x44, 5); set => FlagUtil.SetFlag(Data, 0x44, 5, value); }
+    public bool RibbonMarkMini        { get => FlagUtil.GetFlag(Data, 0x44, 6); set => FlagUtil.SetFlag(Data, 0x44, 6, value); }
+    public bool RibbonMarkItemfinder  { get => FlagUtil.GetFlag(Data, 0x44, 7); set => FlagUtil.SetFlag(Data, 0x44, 7, value); }
 
-    public bool RIB45_0 { get => FlagUtil.GetFlag(Data, 0x45, 0); set => FlagUtil.SetFlag(Data, 0x45, 0, value); }
-    public bool RIB45_1 { get => FlagUtil.GetFlag(Data, 0x45, 1); set => FlagUtil.SetFlag(Data, 0x45, 1, value); }
-    public bool RIB45_2 { get => FlagUtil.GetFlag(Data, 0x45, 2); set => FlagUtil.SetFlag(Data, 0x45, 2, value); }
-    public bool RIB45_3 { get => FlagUtil.GetFlag(Data, 0x45, 3); set => FlagUtil.SetFlag(Data, 0x45, 3, value); }
-    public bool RIB45_4 { get => FlagUtil.GetFlag(Data, 0x45, 4); set => FlagUtil.SetFlag(Data, 0x45, 4, value); }
-    public bool RIB45_5 { get => FlagUtil.GetFlag(Data, 0x45, 5); set => FlagUtil.SetFlag(Data, 0x45, 5, value); }
-    public bool RIB45_6 { get => FlagUtil.GetFlag(Data, 0x45, 6); set => FlagUtil.SetFlag(Data, 0x45, 6, value); }
+    public bool RibbonMarkPartner     { get => FlagUtil.GetFlag(Data, 0x45, 0); set => FlagUtil.SetFlag(Data, 0x45, 0, value); }
+    public bool RibbonMarkGourmand    { get => FlagUtil.GetFlag(Data, 0x45, 1); set => FlagUtil.SetFlag(Data, 0x45, 1, value); }
+    public bool RibbonOnceInALifetime { get => FlagUtil.GetFlag(Data, 0x45, 2); set => FlagUtil.SetFlag(Data, 0x45, 2, value); }
+    public bool RibbonMarkAlpha       { get => FlagUtil.GetFlag(Data, 0x45, 3); set => FlagUtil.SetFlag(Data, 0x45, 3, value); }
+    public bool RibbonMarkMightiest   { get => FlagUtil.GetFlag(Data, 0x45, 4); set => FlagUtil.SetFlag(Data, 0x45, 4, value); }
+    public bool RibbonMarkTitan       { get => FlagUtil.GetFlag(Data, 0x45, 5); set => FlagUtil.SetFlag(Data, 0x45, 5, value); }
+    public bool RibbonPartner         { get => FlagUtil.GetFlag(Data, 0x45, 6); set => FlagUtil.SetFlag(Data, 0x45, 6, value); }
     public bool RIB45_7 { get => FlagUtil.GetFlag(Data, 0x45, 7); set => FlagUtil.SetFlag(Data, 0x45, 7, value); }
 
     public bool RIB46_0 { get => FlagUtil.GetFlag(Data, 0x46, 0); set => FlagUtil.SetFlag(Data, 0x46, 0, value); }
@@ -308,16 +291,18 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     public bool RIB47_6 { get => FlagUtil.GetFlag(Data, 0x47, 6); set => FlagUtil.SetFlag(Data, 0x47, 6, value); }
     public bool RIB47_7 { get => FlagUtil.GetFlag(Data, 0x47, 7); set => FlagUtil.SetFlag(Data, 0x47, 7, value); }
 
-    public int RibbonCount     => BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x34)) & 0b00000000_00011111__11111111_11111111__11111111_11111111__11111111_11111111)
-                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x40)) & 0b00000000_00000000__00000000_00001100__00000000_00000000__00000000_00000000);
-    public int MarkCount       => BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x34)) & 0b11111111_11100000__00000000_00000000__00000000_00000000__00000000_00000000)
-                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x40)) & 0b00000000_00000000__00000000_00000011__11111111_11111111__11111111_11111111);
-    public int RibbonMarkCount => BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x34)) & 0b11111111_11111111__11111111_11111111__11111111_11111111__11111111_11111111)
-                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data.AsSpan(0x40)) & 0b00000000_00000000__00000000_00001111__11111111_11111111__11111111_11111111);
+    public int RibbonCount     => BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x34..]) & 0b00000000_00011111__11111111_11111111__11111111_11111111__11111111_11111111)
+                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x40..]) & 0b00000000_00000000__00000100_00011100__00000000_00000000__00000000_00000000);
+    public int MarkCount       => BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x34..]) & 0b11111111_11100000__00000000_00000000__00000000_00000000__00000000_00000000)
+                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x40..]) & 0b00000000_00000000__00111011_11100011__11111111_11111111__11111111_11111111);
+    public int RibbonMarkCount => BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x34..]) & 0b11111111_11111111__11111111_11111111__11111111_11111111__11111111_11111111)
+                                + BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x40..]) & 0b00000000_00000000__00111111_11111111__11111111_11111111__11111111_11111111);
 
-    public bool HasMarkEncounter8 => MarkCount != 0;
+    public bool HasMarkEncounter8 => BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x34..]) & 0b11111111_11100000__00000000_00000000__00000000_00000000__00000000_00000000)
+                                   + BitOperations.PopCount(ReadUInt64LittleEndian(Data[0x40..]) & 0b00000000_00000000__00000000_00000011__11111111_11111111__11111111_11111111) != 0;
+    public bool HasMarkEncounter9 => (Data[0x45] & 0b00111000) != 0;
 
-    public uint Sociability { get => ReadUInt32LittleEndian(Data.AsSpan(0x48)); set => WriteUInt32LittleEndian(Data.AsSpan(0x48), value); }
+    public uint Sociability { get => ReadUInt32LittleEndian(Data[0x48..]); set => WriteUInt32LittleEndian(Data[0x48..], value); }
 
     // 0x4C-0x4F unused
 
@@ -330,16 +315,16 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     #region Block B
     public override string Nickname
     {
-        get => StringConverter8.GetString(Nickname_Trash);
-        set => StringConverter8.SetString(Nickname_Trash, value, 12, StringConverterOption.None);
+        get => StringConverter8.GetString(NicknameTrash);
+        set => StringConverter8.SetString(NicknameTrash, value, 12, StringConverterOption.None);
     }
 
     // 2 bytes for \0, automatically handled above
 
-    public override ushort Move1 { get => ReadUInt16LittleEndian(Data.AsSpan(0x72)); set => WriteUInt16LittleEndian(Data.AsSpan(0x72), value); }
-    public override ushort Move2 { get => ReadUInt16LittleEndian(Data.AsSpan(0x74)); set => WriteUInt16LittleEndian(Data.AsSpan(0x74), value); }
-    public override ushort Move3 { get => ReadUInt16LittleEndian(Data.AsSpan(0x76)); set => WriteUInt16LittleEndian(Data.AsSpan(0x76), value); }
-    public override ushort Move4 { get => ReadUInt16LittleEndian(Data.AsSpan(0x78)); set => WriteUInt16LittleEndian(Data.AsSpan(0x78), value); }
+    public override ushort Move1 { get => ReadUInt16LittleEndian(Data[0x72..]); set => WriteUInt16LittleEndian(Data[0x72..], value); }
+    public override ushort Move2 { get => ReadUInt16LittleEndian(Data[0x74..]); set => WriteUInt16LittleEndian(Data[0x74..], value); }
+    public override ushort Move3 { get => ReadUInt16LittleEndian(Data[0x76..]); set => WriteUInt16LittleEndian(Data[0x76..], value); }
+    public override ushort Move4 { get => ReadUInt16LittleEndian(Data[0x78..]); set => WriteUInt16LittleEndian(Data[0x78..], value); }
 
     public override int Move1_PP { get => Data[0x7A]; set => Data[0x7A] = (byte)value; }
     public override int Move2_PP { get => Data[0x7B]; set => Data[0x7B] = (byte)value; }
@@ -350,14 +335,14 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     public override int Move3_PPUps { get => Data[0x80]; set => Data[0x80] = (byte)value; }
     public override int Move4_PPUps { get => Data[0x81]; set => Data[0x81] = (byte)value; }
 
-    public override ushort RelearnMove1 { get => ReadUInt16LittleEndian(Data.AsSpan(0x82)); set => WriteUInt16LittleEndian(Data.AsSpan(0x82), value); }
-    public override ushort RelearnMove2 { get => ReadUInt16LittleEndian(Data.AsSpan(0x84)); set => WriteUInt16LittleEndian(Data.AsSpan(0x84), value); }
-    public override ushort RelearnMove3 { get => ReadUInt16LittleEndian(Data.AsSpan(0x86)); set => WriteUInt16LittleEndian(Data.AsSpan(0x86), value); }
-    public override ushort RelearnMove4 { get => ReadUInt16LittleEndian(Data.AsSpan(0x88)); set => WriteUInt16LittleEndian(Data.AsSpan(0x88), value); }
+    public override ushort RelearnMove1 { get => ReadUInt16LittleEndian(Data[0x82..]); set => WriteUInt16LittleEndian(Data[0x82..], value); }
+    public override ushort RelearnMove2 { get => ReadUInt16LittleEndian(Data[0x84..]); set => WriteUInt16LittleEndian(Data[0x84..], value); }
+    public override ushort RelearnMove3 { get => ReadUInt16LittleEndian(Data[0x86..]); set => WriteUInt16LittleEndian(Data[0x86..], value); }
+    public override ushort RelearnMove4 { get => ReadUInt16LittleEndian(Data[0x88..]); set => WriteUInt16LittleEndian(Data[0x88..], value); }
 
-    public override int Stat_HPCurrent { get => ReadUInt16LittleEndian(Data.AsSpan(0x8A)); set => WriteUInt16LittleEndian(Data.AsSpan(0x8A), (ushort)value); }
+    public override int Stat_HPCurrent { get => ReadUInt16LittleEndian(Data[0x8A..]); set => WriteUInt16LittleEndian(Data[0x8A..], (ushort)value); }
 
-    private uint IV32 { get => ReadUInt32LittleEndian(Data.AsSpan(0x8C)); set => WriteUInt32LittleEndian(Data.AsSpan(0x8C), value); }
+    public uint IV32 { get => ReadUInt32LittleEndian(Data[0x8C..]); set => WriteUInt32LittleEndian(Data[0x8C..], value); }
     public override int IV_HP { get => (int)(IV32 >> 00) & 0x1F; set => IV32 = (IV32 & ~(0x1Fu << 00)) | ((value > 31 ? 31u : (uint)value) << 00); }
     public override int IV_ATK { get => (int)(IV32 >> 05) & 0x1F; set => IV32 = (IV32 & ~(0x1Fu << 05)) | ((value > 31 ? 31u : (uint)value) << 05); }
     public override int IV_DEF { get => (int)(IV32 >> 10) & 0x1F; set => IV32 = (IV32 & ~(0x1Fu << 10)) | ((value > 31 ? 31u : (uint)value) << 10); }
@@ -371,59 +356,45 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
 
     // 0x91-0x93 unused
 
-    public override int Status_Condition { get => ReadInt32LittleEndian(Data.AsSpan(0x94)); set => WriteInt32LittleEndian(Data.AsSpan(0x94), value); }
-    public int Palma { get => ReadInt32LittleEndian(Data.AsSpan(0x98)); set => WriteInt32LittleEndian(Data.AsSpan(0x98), value); }
+    public override int Status_Condition { get => ReadInt32LittleEndian(Data[0x94..]); set => WriteInt32LittleEndian(Data[0x94..], value); }
+    public int Palma { get => ReadInt32LittleEndian(Data[0x98..]); set => WriteInt32LittleEndian(Data[0x98..], value); }
 
     // 0x9C-0xA7 unused
 
     #endregion
     #region Block C
-    public override string HT_Name
+    public override string HandlingTrainerName
     {
-        get => StringConverter8.GetString(HT_Trash);
-        set => StringConverter8.SetString(HT_Trash, value, 12, StringConverterOption.None);
+        get => StringConverter8.GetString(HandlingTrainerTrash);
+        set => StringConverter8.SetString(HandlingTrainerTrash, value, 12, StringConverterOption.None);
     }
 
-    public override int HT_Gender { get => Data[0xC2]; set => Data[0xC2] = (byte)value; }
-    public byte HT_Language { get => Data[0xC3]; set => Data[0xC3] = value; }
-    public override int CurrentHandler { get => Data[0xC4]; set => Data[0xC4] = (byte)value; }
+    public override byte HandlingTrainerGender { get => Data[0xC2]; set => Data[0xC2] = value; }
+    public byte HandlingTrainerLanguage { get => Data[0xC3]; set => Data[0xC3] = value; }
+    public override byte CurrentHandler { get => Data[0xC4]; set => Data[0xC4] = value; }
     // 0xC5 unused (alignment)
-    public int HT_TrainerID { get => ReadUInt16LittleEndian(Data.AsSpan(0xC6)); set => WriteUInt16LittleEndian(Data.AsSpan(0xC6), (ushort)value); } // unused?
-    public override int HT_Friendship { get => Data[0xC8]; set => Data[0xC8] = (byte)value; }
-    public byte HT_Intensity { get => Data[0xC9]; set => Data[0xC9] = value; }
-    public byte HT_Memory { get => Data[0xCA]; set => Data[0xCA] = value; }
-    public byte HT_Feeling { get => Data[0xCB]; set => Data[0xCB] = value; }
-    public ushort HT_TextVar { get => ReadUInt16LittleEndian(Data.AsSpan(0xCC)); set => WriteUInt16LittleEndian(Data.AsSpan(0xCC), value); }
+    public ushort HandlingTrainerID { get => ReadUInt16LittleEndian(Data[0xC6..]); set => WriteUInt16LittleEndian(Data[0xC6..], value); } // unused?
+    public override byte HandlingTrainerFriendship { get => Data[0xC8]; set => Data[0xC8] = value; }
+    public byte HandlingTrainerMemoryIntensity { get => Data[0xC9]; set => Data[0xC9] = value; }
+    public byte HandlingTrainerMemory { get => Data[0xCA]; set => Data[0xCA] = value; }
+    public byte HandlingTrainerMemoryFeeling { get => Data[0xCB]; set => Data[0xCB] = value; }
+    public ushort HandlingTrainerMemoryVariable { get => ReadUInt16LittleEndian(Data[0xCC..]); set => WriteUInt16LittleEndian(Data[0xCC..], value); }
 
-    public bool GetPokeJobFlag(int index)
-    {
-        if ((uint)index > 112) // 14 bytes, 8 bits
-            throw new ArgumentOutOfRangeException(nameof(index));
-        int ofs = index >> 3;
-        return FlagUtil.GetFlag(Data, 0xCE + ofs, index & 7);
-    }
+    public Span<byte> PokeJob => Data.Slice(0xCE, 14);
+    public bool GetPokeJobFlag(int index) => FlagUtil.GetFlag(PokeJob, index >> 3, index & 7);
+    public void SetPokeJobFlag(int index, bool value) => FlagUtil.SetFlag(PokeJob, index >> 3, index & 7, value);
+    public bool GetPokeJobFlagAny() => PokeJob.ContainsAnyExcept<byte>(0);
+    public void ClearPokeJobFlags() => PokeJob.Clear();
 
-    public void SetPokeJobFlag(int index, bool value)
-    {
-        if ((uint)index > 112) // 14 bytes, 8 bits
-            throw new ArgumentOutOfRangeException(nameof(index));
-        int ofs = index >> 3;
-        FlagUtil.SetFlag(Data, 0xCE + ofs, index & 7, value);
-    }
-
-    public bool GetPokeJobFlagAny() => Array.FindIndex(Data, 0xCE, 14, static z => z != 0) >= 0;
-
-    public void ClearPokeJobFlags() => Data.AsSpan(0xCE, 14).Clear();
-
-    public override byte Fullness { get => Data[0xDC]; set => Data[0xDC] = value; }
-    public override byte Enjoyment { get => Data[0xDD]; set => Data[0xDD] = value; }
-    public override int Version { get => Data[0xDE]; set => Data[0xDE] = (byte)value; }
-    public byte BattleVersion { get => Data[0xDF]; set => Data[0xDF] = value; }
+    public byte Fullness { get => Data[0xDC]; set => Data[0xDC] = value; }
+    public byte Enjoyment { get => Data[0xDD]; set => Data[0xDD] = value; }
+    public override GameVersion Version { get => (GameVersion)Data[0xDE]; set => Data[0xDE] = (byte)value; }
+    public GameVersion BattleVersion { get => (GameVersion)Data[0xDF]; set => Data[0xDF] = (byte)value; }
     // public override byte Region { get => Data[0xE0]; set => Data[0xE0] = (byte)value; }
     // public override byte ConsoleRegion { get => Data[0xE1]; set => Data[0xE1] = (byte)value; }
     public override int Language { get => Data[0xE2]; set => Data[0xE2] = (byte)value; }
     // 0xE3 alignment
-    public uint FormArgument { get => ReadUInt32LittleEndian(Data.AsSpan(0xE4)); set => WriteUInt32LittleEndian(Data.AsSpan(0xE4), value); }
+    public uint FormArgument { get => ReadUInt32LittleEndian(Data[0xE4..]); set => WriteUInt32LittleEndian(Data[0xE4..], value); }
     public byte FormArgumentRemain { get => (byte)FormArgument; set => FormArgument = (FormArgument & ~0xFFu) | value; }
     public byte FormArgumentElapsed { get => (byte)(FormArgument >> 8); set => FormArgument = (FormArgument & ~0xFF00u) | (uint)(value << 8); }
     public byte FormArgumentMaximum { get => (byte)(FormArgument >> 16); set => FormArgument = (FormArgument & ~0xFF0000u) | (uint)(value << 16); }
@@ -432,30 +403,30 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
 
     #endregion
     #region Block D
-    public override string OT_Name
+    public override string OriginalTrainerName
     {
-        get => StringConverter8.GetString(OT_Trash);
-        set => StringConverter8.SetString(OT_Trash, value, 12, StringConverterOption.None);
+        get => StringConverter8.GetString(OriginalTrainerTrash);
+        set => StringConverter8.SetString(OriginalTrainerTrash, value, 12, StringConverterOption.None);
     }
 
-    public override int OT_Friendship { get => Data[0x112]; set => Data[0x112] = (byte)value; }
-    public byte OT_Intensity { get => Data[0x113]; set => Data[0x113] = value; }
-    public byte OT_Memory { get => Data[0x114]; set => Data[0x114] = value; }
+    public override byte OriginalTrainerFriendship { get => Data[0x112]; set => Data[0x112] = value; }
+    public byte OriginalTrainerMemoryIntensity { get => Data[0x113]; set => Data[0x113] = value; }
+    public byte OriginalTrainerMemory { get => Data[0x114]; set => Data[0x114] = value; }
     // 0x115 unused align
-    public ushort OT_TextVar { get => ReadUInt16LittleEndian(Data.AsSpan(0x116)); set => WriteUInt16LittleEndian(Data.AsSpan(0x116), value); }
-    public byte OT_Feeling { get => Data[0x118]; set => Data[0x118] = value; }
-    public override int Egg_Year { get => Data[0x119]; set => Data[0x119] = (byte)value; }
-    public override int Egg_Month { get => Data[0x11A]; set => Data[0x11A] = (byte)value; }
-    public override int Egg_Day { get => Data[0x11B]; set => Data[0x11B] = (byte)value; }
-    public override int Met_Year { get => Data[0x11C]; set => Data[0x11C] = (byte)value; }
-    public override int Met_Month { get => Data[0x11D]; set => Data[0x11D] = (byte)value; }
-    public override int Met_Day { get => Data[0x11E]; set => Data[0x11E] = (byte)value; }
+    public ushort OriginalTrainerMemoryVariable { get => ReadUInt16LittleEndian(Data[0x116..]); set => WriteUInt16LittleEndian(Data[0x116..], value); }
+    public byte OriginalTrainerMemoryFeeling { get => Data[0x118]; set => Data[0x118] = value; }
+    public override byte EggYear { get => Data[0x119]; set => Data[0x119] = value; }
+    public override byte EggMonth { get => Data[0x11A]; set => Data[0x11A] = value; }
+    public override byte EggDay { get => Data[0x11B]; set => Data[0x11B] = value; }
+    public override byte MetYear { get => Data[0x11C]; set => Data[0x11C] = value; }
+    public override byte MetMonth { get => Data[0x11D]; set => Data[0x11D] = value; }
+    public override byte MetDay { get => Data[0x11E]; set => Data[0x11E] = value; }
     // 0x11F unused align
-    public override int Egg_Location { get => ReadUInt16LittleEndian(Data.AsSpan(0x120)); set => WriteUInt16LittleEndian(Data.AsSpan(0x120), (ushort)value); }
-    public override int Met_Location { get => ReadUInt16LittleEndian(Data.AsSpan(0x122)); set => WriteUInt16LittleEndian(Data.AsSpan(0x122), (ushort)value); }
-    public override int Ball { get => Data[0x124]; set => Data[0x124] = (byte)value; }
-    public override int Met_Level { get => Data[0x125] & ~0x80; set => Data[0x125] = (byte)((Data[0x125] & 0x80) | value); }
-    public override int OT_Gender { get => Data[0x125] >> 7; set => Data[0x125] = (byte)((Data[0x125] & ~0x80) | (value << 7)); }
+    public override ushort EggLocation { get => ReadUInt16LittleEndian(Data[0x120..]); set => WriteUInt16LittleEndian(Data[0x120..], value); }
+    public override ushort MetLocation { get => ReadUInt16LittleEndian(Data[0x122..]); set => WriteUInt16LittleEndian(Data[0x122..], value); }
+    public override byte Ball { get => Data[0x124]; set => Data[0x124] = value; }
+    public override byte MetLevel { get => (byte)(Data[0x125] & ~0x80); set => Data[0x125] = (byte)((Data[0x125] & 0x80) | value); }
+    public override byte OriginalTrainerGender { get => (byte)(Data[0x125] >> 7); set => Data[0x125] = (byte)((Data[0x125] & ~0x80) | (value << 7)); }
     public byte HyperTrainFlags { get => Data[0x126]; set => Data[0x126] = value; }
     public bool HT_HP  { get => ((HyperTrainFlags >> 0) & 1) == 1; set => HyperTrainFlags = (byte)((HyperTrainFlags & ~(1 << 0)) | ((value ? 1 : 0) << 0)); }
     public bool HT_ATK { get => ((HyperTrainFlags >> 1) & 1) == 1; set => HyperTrainFlags = (byte)((HyperTrainFlags & ~(1 << 1)) | ((value ? 1 : 0) << 1)); }
@@ -464,61 +435,52 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
     public bool HT_SPD { get => ((HyperTrainFlags >> 4) & 1) == 1; set => HyperTrainFlags = (byte)((HyperTrainFlags & ~(1 << 4)) | ((value ? 1 : 0) << 4)); }
     public bool HT_SPE { get => ((HyperTrainFlags >> 5) & 1) == 1; set => HyperTrainFlags = (byte)((HyperTrainFlags & ~(1 << 5)) | ((value ? 1 : 0) << 5)); }
 
-    public bool GetMoveRecordFlag(int index)
-    {
-        if ((uint)index > 112) // 14 bytes, 8 bits
-            throw new ArgumentOutOfRangeException(nameof(index));
-        int ofs = index >> 3;
-        return FlagUtil.GetFlag(Data, 0x127 + ofs, index & 7);
-    }
-
-    public void SetMoveRecordFlag(int index, bool value = true)
-    {
-        if ((uint)index > 112) // 14 bytes, 8 bits
-            throw new ArgumentOutOfRangeException(nameof(index));
-        int ofs = index >> 3;
-        FlagUtil.SetFlag(Data, 0x127 + ofs, index & 7, value);
-    }
-
-    public bool GetMoveRecordFlagAny() => Array.FindIndex(Data, 0x127, 14, static z => z != 0) >= 0;
-
-    public void ClearMoveRecordFlags() => Data.AsSpan(0x127, 14).Clear();
+    public Span<byte> RecordFlags => Data.Slice(0x127, 14);
+    public bool GetMoveRecordFlag(int index) => FlagUtil.GetFlag(RecordFlags, index >> 3, index & 7);
+    public void SetMoveRecordFlag(int index, bool value) => FlagUtil.SetFlag(RecordFlags, index >> 3, index & 7, value);
+    public bool GetMoveRecordFlagAny() => RecordFlags.ContainsAnyExcept<byte>(0);
+    public void ClearMoveRecordFlags() => RecordFlags.Clear();
 
     // Why did you mis-align this field, GameFreak?
     public ulong Tracker
     {
-        get => ReadUInt64LittleEndian(Data.AsSpan(0x135));
-        set => WriteUInt64LittleEndian(Data.AsSpan(0x135), value);
+        get => ReadUInt64LittleEndian(Data[0x135..]);
+        set => WriteUInt64LittleEndian(Data[0x135..], value);
     }
 
     #endregion
     #region Battle Stats
-    public override int Stat_Level { get => Data[0x148]; set => Data[0x148] = (byte)value; }
+    public override byte Stat_Level { get => Data[0x148]; set => Data[0x148] = value; }
     // 0x149 unused alignment
-    public override int Stat_HPMax { get => ReadUInt16LittleEndian(Data.AsSpan(0x14A)); set => WriteUInt16LittleEndian(Data.AsSpan(0x14A), (ushort)value); }
-    public override int Stat_ATK   { get => ReadUInt16LittleEndian(Data.AsSpan(0x14C)); set => WriteUInt16LittleEndian(Data.AsSpan(0x14C), (ushort)value); }
-    public override int Stat_DEF   { get => ReadUInt16LittleEndian(Data.AsSpan(0x14E)); set => WriteUInt16LittleEndian(Data.AsSpan(0x14E), (ushort)value); }
-    public override int Stat_SPE   { get => ReadUInt16LittleEndian(Data.AsSpan(0x150)); set => WriteUInt16LittleEndian(Data.AsSpan(0x150), (ushort)value); }
-    public override int Stat_SPA   { get => ReadUInt16LittleEndian(Data.AsSpan(0x152)); set => WriteUInt16LittleEndian(Data.AsSpan(0x152), (ushort)value); }
-    public override int Stat_SPD   { get => ReadUInt16LittleEndian(Data.AsSpan(0x154)); set => WriteUInt16LittleEndian(Data.AsSpan(0x154), (ushort)value); }
+    public override int Stat_HPMax { get => ReadUInt16LittleEndian(Data[0x14A..]); set => WriteUInt16LittleEndian(Data[0x14A..], (ushort)value); }
+    public override int Stat_ATK   { get => ReadUInt16LittleEndian(Data[0x14C..]); set => WriteUInt16LittleEndian(Data[0x14C..], (ushort)value); }
+    public override int Stat_DEF   { get => ReadUInt16LittleEndian(Data[0x14E..]); set => WriteUInt16LittleEndian(Data[0x14E..], (ushort)value); }
+    public override int Stat_SPE   { get => ReadUInt16LittleEndian(Data[0x150..]); set => WriteUInt16LittleEndian(Data[0x150..], (ushort)value); }
+    public override int Stat_SPA   { get => ReadUInt16LittleEndian(Data[0x152..]); set => WriteUInt16LittleEndian(Data[0x152..], (ushort)value); }
+    public override int Stat_SPD   { get => ReadUInt16LittleEndian(Data[0x154..]); set => WriteUInt16LittleEndian(Data[0x154..], (ushort)value); }
     #endregion
 
-    public override int MarkingCount => 6;
+    public int MarkingCount => 6;
 
-    public override int GetMarking(int index)
+    public MarkingColor GetMarking(int index)
     {
-        if ((uint)index >= MarkingCount)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        return (MarkValue >> (index * 2)) & 3;
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)MarkingCount);
+        return (MarkingColor)((MarkingValue >> (index * 2)) & 3);
     }
 
-    public override void SetMarking(int index, int value)
+    public void SetMarking(int index, MarkingColor value)
     {
-        if ((uint)index >= MarkingCount)
-            throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)MarkingCount);
         var shift = index * 2;
-        MarkValue = (MarkValue & ~(0b11 << shift)) | ((value & 3) << shift);
+        MarkingValue = (ushort)((MarkingValue & ~(0b11 << shift)) | (((byte)value & 3) << shift));
     }
+
+    public MarkingColor MarkingCircle   { get => GetMarking(0); set => SetMarking(0, value); }
+    public MarkingColor MarkingTriangle { get => GetMarking(1); set => SetMarking(1, value); }
+    public MarkingColor MarkingSquare   { get => GetMarking(2); set => SetMarking(2, value); }
+    public MarkingColor MarkingHeart    { get => GetMarking(3); set => SetMarking(3, value); }
+    public MarkingColor MarkingStar     { get => GetMarking(4); set => SetMarking(4, value); }
+    public MarkingColor MarkingDiamond  { get => GetMarking(5); set => SetMarking(5, value); }
 
     public bool GetRibbon(int index) => FlagUtil.GetFlag(Data, GetRibbonByte(index), index & 7);
     public void SetRibbon(int index, bool value = true) => FlagUtil.SetFlag(Data, GetRibbonByte(index), index & 7, value);
@@ -531,228 +493,5 @@ public abstract class G8PKM : PKM, ISanityChecksum, IMoveReset,
             return 0x34 + (index >> 3);
         index -= 64;
         return 0x40 + (index >> 3);
-    }
-
-    protected T ConvertTo<T>() where T : G8PKM, new()
-    {
-        var pk = new T();
-        Data.AsSpan().CopyTo(pk.Data);
-        pk.Move1_PPUps = pk.Move2_PPUps = pk.Move3_PPUps = pk.Move4_PPUps = 0;
-        pk.RelearnMove1 = pk.RelearnMove2 = pk.RelearnMove3 = pk.RelearnMove4 = 0;
-        pk.ClearMoveRecordFlags();
-        pk.ClearPokeJobFlags();
-
-        pk.CanGigantamax = false;
-        pk.DynamaxLevel = 0;
-        pk.Sociability = 0;
-        pk.Fullness = 0;
-        pk.Data[0x52] = 0;
-
-        pk.ResetMoves();
-        pk.ResetPartyStats();
-        pk.RefreshChecksum();
-
-        return pk;
-    }
-
-    public virtual PA8 ConvertToPA8()
-    {
-        var pk = new PA8
-        {
-            EncryptionConstant = EncryptionConstant,
-            PID = PID,
-            Species = Species,
-            Form = Form,
-            FormArgument = FormArgument,
-            Gender = Gender,
-            Nature = Nature,
-            StatNature = StatNature,
-
-            TID16 = TID16,
-            SID16 = SID16,
-            EXP = EXP,
-            Ability = Ability,
-            AbilityNumber = AbilityNumber,
-            Language = Language,
-            Version = Version,
-
-            IV_HP = IV_HP,
-            IV_ATK = IV_ATK,
-            IV_DEF = IV_DEF,
-            IV_SPE = IV_SPE,
-            IV_SPA = IV_SPA,
-            IV_SPD = IV_SPD,
-            IsEgg = IsEgg,
-            EV_HP = EV_HP,
-            EV_ATK = EV_ATK,
-            EV_DEF = EV_DEF,
-            EV_SPE = EV_SPE,
-            EV_SPA = EV_SPA,
-            EV_SPD = EV_SPD,
-
-            OT_Gender = OT_Gender,
-            OT_Friendship = OT_Friendship,
-            OT_Intensity = OT_Intensity,
-            OT_Memory = OT_Memory,
-            OT_TextVar = OT_TextVar,
-            OT_Feeling = OT_Feeling,
-            Egg_Year = Egg_Year,
-            Egg_Month = Egg_Month,
-            Egg_Day = Egg_Day,
-            Met_Year = Met_Year,
-            Met_Month = Met_Month,
-            Met_Day = Met_Day,
-            Ball = Ball,
-            Egg_Location = Egg_Location,
-            Met_Location = Met_Location,
-            Met_Level = Met_Level,
-            Tracker = Tracker,
-
-            IsNicknamed = IsNicknamed,
-            CurrentHandler = CurrentHandler,
-            HT_Gender = HT_Gender,
-            HT_Language = HT_Language,
-            HT_Friendship = HT_Friendship,
-            HT_Intensity = HT_Intensity,
-            HT_Memory = HT_Memory,
-            HT_Feeling = HT_Feeling,
-            HT_TextVar = HT_TextVar,
-
-            FatefulEncounter = FatefulEncounter,
-            CNT_Cool = CNT_Cool,
-            CNT_Beauty = CNT_Beauty,
-            CNT_Cute = CNT_Cute,
-            CNT_Smart = CNT_Smart,
-            CNT_Tough = CNT_Tough,
-            CNT_Sheen = CNT_Sheen,
-
-            RibbonChampionKalos = RibbonChampionKalos,
-            RibbonChampionG3 = RibbonChampionG3,
-            RibbonChampionSinnoh = RibbonChampionSinnoh,
-            RibbonBestFriends = RibbonBestFriends,
-            RibbonTraining = RibbonTraining,
-            RibbonBattlerSkillful = RibbonBattlerSkillful,
-            RibbonBattlerExpert = RibbonBattlerExpert,
-            RibbonEffort = RibbonEffort,
-            RibbonAlert = RibbonAlert,
-            RibbonShock = RibbonShock,
-            RibbonDowncast = RibbonDowncast,
-            RibbonCareless = RibbonCareless,
-            RibbonRelax = RibbonRelax,
-            RibbonSnooze = RibbonSnooze,
-            RibbonSmile = RibbonSmile,
-            RibbonGorgeous = RibbonGorgeous,
-            RibbonRoyal = RibbonRoyal,
-            RibbonGorgeousRoyal = RibbonGorgeousRoyal,
-            RibbonArtist = RibbonArtist,
-            RibbonFootprint = RibbonFootprint,
-            RibbonRecord = RibbonRecord,
-            RibbonLegend = RibbonLegend,
-            RibbonCountry = RibbonCountry,
-            RibbonNational = RibbonNational,
-            RibbonEarth = RibbonEarth,
-            RibbonWorld = RibbonWorld,
-            RibbonClassic = RibbonClassic,
-            RibbonPremier = RibbonPremier,
-            RibbonEvent = RibbonEvent,
-            RibbonBirthday = RibbonBirthday,
-            RibbonSpecial = RibbonSpecial,
-            RibbonSouvenir = RibbonSouvenir,
-            RibbonWishing = RibbonWishing,
-            RibbonChampionBattle = RibbonChampionBattle,
-            RibbonChampionRegional = RibbonChampionRegional,
-            RibbonChampionNational = RibbonChampionNational,
-            RibbonChampionWorld = RibbonChampionWorld,
-            HasContestMemoryRibbon = HasContestMemoryRibbon,
-            HasBattleMemoryRibbon = HasBattleMemoryRibbon,
-            RibbonChampionG6Hoenn = RibbonChampionG6Hoenn,
-            RibbonContestStar = RibbonContestStar,
-            RibbonMasterCoolness = RibbonMasterCoolness,
-            RibbonMasterBeauty = RibbonMasterBeauty,
-            RibbonMasterCuteness = RibbonMasterCuteness,
-            RibbonMasterCleverness = RibbonMasterCleverness,
-            RibbonMasterToughness = RibbonMasterToughness,
-            RibbonChampionAlola = RibbonChampionAlola,
-            RibbonBattleRoyale = RibbonBattleRoyale,
-            RibbonBattleTreeGreat = RibbonBattleTreeGreat,
-            RibbonBattleTreeMaster = RibbonBattleTreeMaster,
-            RibbonChampionGalar = RibbonChampionGalar,
-            RibbonTowerMaster = RibbonTowerMaster,
-            RibbonMasterRank = RibbonMasterRank,
-
-            RibbonMarkLunchtime = RibbonMarkLunchtime,
-            RibbonMarkSleepyTime = RibbonMarkSleepyTime,
-            RibbonMarkDusk = RibbonMarkDusk,
-            RibbonMarkDawn = RibbonMarkDawn,
-            RibbonMarkCloudy = RibbonMarkCloudy,
-            RibbonMarkRainy = RibbonMarkRainy,
-            RibbonMarkStormy = RibbonMarkStormy,
-            RibbonMarkSnowy = RibbonMarkSnowy,
-            RibbonMarkBlizzard = RibbonMarkBlizzard,
-            RibbonMarkDry = RibbonMarkDry,
-            RibbonMarkSandstorm = RibbonMarkSandstorm,
-            RibbonCountMemoryContest = RibbonCountMemoryContest,
-            RibbonCountMemoryBattle = RibbonCountMemoryBattle,
-            RibbonMarkMisty = RibbonMarkMisty,
-            RibbonMarkDestiny = RibbonMarkDestiny,
-            RibbonMarkFishing = RibbonMarkFishing,
-            RibbonMarkCurry = RibbonMarkCurry,
-            RibbonMarkUncommon = RibbonMarkUncommon,
-            RibbonMarkRare = RibbonMarkRare,
-            RibbonMarkRowdy = RibbonMarkRowdy,
-            RibbonMarkAbsentMinded = RibbonMarkAbsentMinded,
-            RibbonMarkJittery = RibbonMarkJittery,
-            RibbonMarkExcited = RibbonMarkExcited,
-            RibbonMarkCharismatic = RibbonMarkCharismatic,
-            RibbonMarkCalmness = RibbonMarkCalmness,
-            RibbonMarkIntense = RibbonMarkIntense,
-            RibbonMarkZonedOut = RibbonMarkZonedOut,
-            RibbonMarkJoyful = RibbonMarkJoyful,
-            RibbonMarkAngry = RibbonMarkAngry,
-            RibbonMarkSmiley = RibbonMarkSmiley,
-            RibbonMarkTeary = RibbonMarkTeary,
-            RibbonMarkUpbeat = RibbonMarkUpbeat,
-            RibbonMarkPeeved = RibbonMarkPeeved,
-            RibbonMarkIntellectual = RibbonMarkIntellectual,
-            RibbonMarkFerocious = RibbonMarkFerocious,
-            RibbonMarkCrafty = RibbonMarkCrafty,
-            RibbonMarkScowling = RibbonMarkScowling,
-            RibbonMarkKindly = RibbonMarkKindly,
-            RibbonMarkFlustered = RibbonMarkFlustered,
-            RibbonMarkPumpedUp = RibbonMarkPumpedUp,
-            RibbonMarkZeroEnergy = RibbonMarkZeroEnergy,
-            RibbonMarkPrideful = RibbonMarkPrideful,
-            RibbonMarkUnsure = RibbonMarkUnsure,
-            RibbonMarkHumble = RibbonMarkHumble,
-            RibbonMarkThorny = RibbonMarkThorny,
-            RibbonMarkVigor = RibbonMarkVigor,
-            RibbonMarkSlump = RibbonMarkSlump,
-            RibbonHisui = RibbonHisui,
-            RibbonTwinklingStar = RibbonTwinklingStar,
-
-            AffixedRibbon = AffixedRibbon,
-            HyperTrainFlags = HyperTrainFlags,
-
-            BattleVersion = BattleVersion,
-            PKRS_Days = PKRS_Days,
-            PKRS_Strain = PKRS_Strain,
-            HeightScalar = HeightScalar,
-            WeightScalar = WeightScalar,
-
-            IsFavorite = IsFavorite,
-            MarkValue = MarkValue,
-        };
-
-        Nickname_Trash.CopyTo(pk.Nickname_Trash);
-        OT_Trash.CopyTo(pk.OT_Trash);
-        HT_Trash.CopyTo(pk.HT_Trash);
-
-        pk.SanitizeImport();
-
-        pk.ResetMoves();
-        pk.ResetPartyStats();
-        pk.RefreshChecksum();
-
-        return pk;
     }
 }

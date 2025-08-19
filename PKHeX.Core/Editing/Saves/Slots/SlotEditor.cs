@@ -1,20 +1,12 @@
-﻿namespace PKHeX.Core;
+namespace PKHeX.Core;
 
 /// <summary>
 /// Facilitates interaction with a <see cref="SaveFile"/> or other data location's slot data.
 /// </summary>
-public sealed class SlotEditor<T>
+public sealed class SlotEditor<T>(SaveFile SAV)
 {
-    private readonly SaveFile SAV;
-    public readonly SlotChangelog Changelog;
-    public readonly SlotPublisher<T> Publisher;
-
-    public SlotEditor(SaveFile sav)
-    {
-        SAV = sav;
-        Changelog = new SlotChangelog(sav);
-        Publisher = new SlotPublisher<T>();
-    }
+    public readonly SlotChangelog Changelog = new(SAV);
+    public readonly SlotPublisher<T> Publisher = new();
 
     private void NotifySlotChanged(ISlotInfo slot, SlotTouchType type, PKM pk) => Publisher.NotifySlotChanged(slot, type, pk);
 
@@ -44,8 +36,6 @@ public sealed class SlotEditor<T>
             return SlotTouchResult.FailWrite;
 
         WriteSlot(slot, pk, type);
-        NotifySlotChanged(slot, type, pk);
-
         return SlotTouchResult.Success;
     }
 
@@ -59,8 +49,8 @@ public sealed class SlotEditor<T>
         if (!slot.CanWriteTo(SAV))
             return SlotTouchResult.FailDelete;
 
-        var pk = DeleteSlot(slot);
-        NotifySlotChanged(slot, SlotTouchType.Delete, pk);
+        if (!DeleteSlot(slot))
+            return SlotTouchResult.FailDelete;
 
         return SlotTouchResult.Success;
     }
@@ -78,26 +68,29 @@ public sealed class SlotEditor<T>
         if (!dest.CanWriteTo(SAV))
             return SlotTouchResult.FailDestination;
 
-        NotifySlotChanged(source, SlotTouchType.None, source.Read(SAV));
-        NotifySlotChanged(dest, SlotTouchType.Swap, dest.Read(SAV));
+        var settings = EntityImportSettings.None;
+        var s = source.Read(SAV);
+        var d = dest.Read(SAV);
+        WriteSlot(source, s, SlotTouchType.None, settings);
+        WriteSlot(dest, d, SlotTouchType.Swap, settings);
 
         return SlotTouchResult.Success;
     }
 
-    private void WriteSlot(ISlotInfo slot, PKM pk, SlotTouchType type = SlotTouchType.Set)
+    private bool WriteSlot(ISlotInfo slot, PKM pk, SlotTouchType type = SlotTouchType.Set, EntityImportSettings setDetail = default)
     {
         Changelog.AddNewChange(slot);
-        var setDetail = type is SlotTouchType.Swap ? PKMImportSetting.Skip : PKMImportSetting.UseDefault;
         var result = slot.WriteTo(SAV, pk, setDetail);
         if (result)
             NotifySlotChanged(slot, type, pk);
+        return result;
     }
 
-    private PKM DeleteSlot(ISlotInfo slot)
+    private bool DeleteSlot(ISlotInfo slot)
     {
         var pk = SAV.BlankPKM;
-        WriteSlot(slot, pk, SlotTouchType.Delete);
-        return pk;
+        var settings = EntityImportSettings.None;
+        return WriteSlot(slot, pk, SlotTouchType.Delete, settings);
     }
 
     public void Undo()

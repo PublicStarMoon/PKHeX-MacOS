@@ -48,6 +48,8 @@ public static class MessageStrings
     #region Main Window
 
     public static string MsgFileLoad { get; set; } = "File Loaded:";
+    public static string MsgFileLoadAllZero { get; set; } = "File is uninitialized (all zero). Please ensure it was properly saved.";
+    public static string MsgFileLoadAllFFFF { get; set; } = "File is uninitialized (all 0xFF). Please ensure it was properly saved.";
     public static string MsgFileLoadFail { get; set; } = "Unable to load file.";
     public static string MsgFileLoadFailAuto { get; set; } = "An error occurred while attempting to auto-load your save file.";
     public static string MsgFileLoadFailAutoAdvise { get; set; } = "It is advised to manually remove bad filenames from the folder.";
@@ -63,6 +65,11 @@ public static class MessageStrings
     public static string MsgFileLoadSaveSelectVersion { get; set; } = "Select the version.";
     public static string MsgFileLoadSaveSelectGame { get; set; } = "Select a game to edit.";
     public static string MsgFileLoadSaveMultiple { get; set; } = "Multiple games detected";
+
+    public static string MsgFileLoadSelectFileSave { get; set; } = "Select a save file...";
+    public static string MsgFileLoadSelectFileBlock { get; set; } = "Select a save block file...";
+    public static string MsgFileLoadSelectFileSecretBase { get; set; } = "Select a Secret Base file...";
+
     public static string MsgFileGameCubeBad { get; set; } = "Invalid or corrupted GC Memory Card. Aborting.";
     public static string MsgFileGameCubeDuplicate { get; set; } = "GC Memory Card with duplicated game save files. Aborting.";
     public static string MsgFileGameCubeNoGames { get; set; } = "GC Memory Card without any Pokémon save file. Aborting.";
@@ -127,6 +134,8 @@ public static class MessageStrings
     public static string MsgPKMSuggestionMetLocation { get; set; } = "Met Location:";
     public static string MsgPKMSuggestionMetLevel { get; set; } = "Met Level:";
     public static string MsgPKMSuggestionLevel { get; set; } = "Current Level:";
+    public static string MsgPKMNicknameWarn { get; set; } = "The nickname \"{0}\" will be displayed as \"{1}\" in-game.";
+    public static string MsgPKMOTNameWarn { get; set; } = "The OT name \"{0}\" will be displayed as \"{1}\" in-game.";
 
     #endregion
 
@@ -190,6 +199,8 @@ public static class MessageStrings
     public static string MsgSaveGen2RTCResetPassword { get; set; } = "RTC Reset Password: {0:00000}";
     public static string MsgSaveGen2RTCResetBitflag { get; set; } = "Would you like to reset the RTC?";
     public static string MsgSaveJPEGExportFail { get; set; } = "No picture data found in the save file!";
+    public static string MsgSaveGen4ConvertKorean { get; set; } = "Would you like to convert this Japanese/International save file to be playable with Korean games?";
+    public static string MsgSaveGen4ConvertInternational { get; set; } = "Would you like to convert this Korean save file to be playable with Japanese/International games?";
 
     public static string MsgSaveChecksumFailEdited { get; set; } = "Save has been edited. Cannot integrity check.";
     public static string MsgSaveChecksumValid { get; set; } = "Checksums are valid.";
@@ -204,6 +215,11 @@ public static class MessageStrings
     public static string MsgIndexMoveGame { get; set; } = "Game can't obtain move:";
     public static string MsgIndexAbilityRange { get; set; } = "Ability Index beyond range:";
     public static string MsgIndexAbilityGame { get; set; } = "Ability Index beyond range:";
+
+    public static string MsgGeonetPointNone { get; set; } = "None";
+    public static string MsgGeonetPointBlue { get; set; } = "Blue";
+    public static string MsgGeonetPointYellow { get; set; } = "Yellow";
+    public static string MsgGeonetPointRed { get; set; } = "Red";
 
     #endregion
 
@@ -319,7 +335,6 @@ public static class MessageStrings
     #endregion
 
     #region Misc
-
     public static string MsgSaveDifferentTypes { get; set; } = "Save File types are different.";
     public static string MsgSaveDifferentVersions { get; set; } = "Save File versions are not the same.";
     public static string MsgSaveNumberInvalid { get; set; } = "Save File {0} is not valid.";

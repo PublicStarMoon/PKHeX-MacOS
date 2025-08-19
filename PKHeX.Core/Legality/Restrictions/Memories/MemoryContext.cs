@@ -4,8 +4,8 @@ namespace PKHeX.Core;
 
 public abstract class MemoryContext
 {
+    public abstract EntityContext Context { get; }
     public abstract IEnumerable<ushort> GetMemoryItemParams();
-    public abstract IEnumerable<ushort> GetKeyItemParams();
 
     public abstract bool CanUseItemGeneric(int item);
     public abstract bool IsUsedKeyItemUnspecific(int item);
@@ -19,11 +19,11 @@ public abstract class MemoryContext
     public abstract bool CanObtainMemoryOT(GameVersion pkmVersion, byte memory);
     public abstract bool CanObtainMemoryHT(GameVersion pkmVersion, byte memory);
 
-    public abstract bool HasPokeCenter(GameVersion version, int location);
+    public abstract bool HasPokeCenter(GameVersion version, ushort location);
     public abstract bool IsInvalidGeneralLocationMemoryValue(byte memory, ushort variable, IEncounterTemplate enc, PKM pk);
-    public abstract bool IsInvalidMiscMemory(byte memory, ushort variable);
+    public abstract bool IsInvalidMiscMemory(byte memory, ushort variable, Species species, GameVersion version, int handler);
 
     public abstract bool CanHaveIntensity(byte memory, byte intensity);
     public abstract bool CanHaveFeeling(byte memory, byte feeling, ushort argument);
-    public abstract int GetMinimumIntensity(byte memory);
+    public abstract byte GetMinimumIntensity(byte memory);
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -22,13 +23,11 @@ public sealed class SlotCache : IComparable<SlotCache>
     /// </summary>
     public readonly PKM Entity;
 
-    private static readonly FakeSaveFile NoSaveFile = new();
-
     public SlotCache(SlotInfoFile source, PKM entity)
     {
         Source = source;
         Entity = entity;
-        SAV = NoSaveFile;
+        SAV = FakeSaveFile.Default;
     }
 
     public SlotCache(ISlotInfo source, PKM entity, SaveFile sav)
@@ -38,9 +37,11 @@ public sealed class SlotCache : IComparable<SlotCache>
         SAV = sav;
     }
 
+    private string GetBoxName(int box) => SAV is IBoxDetailNameRead r ? r.GetBoxName(box) : BoxDetailNameExtensions.GetDefaultBoxName(box);
+
     public string Identify() => GetFileName() + Source switch
     {
-        SlotInfoBox box => $"[{box.Box + 1:00}] ({SAV.GetBoxName(box.Box)})-{box.Slot + 1:00}: {Entity.FileName}",
+        SlotInfoBox box => $"[{box.Box + 1:00}] ({GetBoxName(box.Box)})-{box.Slot + 1:00}: {Entity.FileName}",
         SlotInfoFile file => $"File: {file.Path}",
         SlotInfoMisc misc => $"{misc.Type}-{misc.Slot}: {Entity.FileName}",
         SlotInfoParty party => $"Party: {party.Slot}: {Entity.FileName}",
@@ -64,7 +65,7 @@ public sealed class SlotCache : IComparable<SlotCache>
         return string.CompareOrdinal(Identify(), other.Identify());
     }
 
-    public override bool Equals(object? obj)
+    public override bool Equals([NotNullWhen(true)] object? obj)
     {
         if (ReferenceEquals(this, obj))
             return true;

@@ -3,12 +3,13 @@ using System;
 namespace PKHeX.Core;
 
 /// <summary>
-/// Group that checks the source of a move in <see cref="GameVersion.Gen3"/>.
+/// Group that checks the source of a move in <see cref="EntityContext.Gen3"/>.
 /// </summary>
 public sealed class LearnGroup3 : ILearnGroup
 {
     public static readonly LearnGroup3 Instance = new();
-    private const int Generation = 3;
+    private const byte Generation = 3;
+    public ushort MaxMoveID => Legal.MaxMoveID_3;
 
     public ILearnGroup? GetPrevious(PKM pk, EvolutionHistory history, IEncounterTemplate enc, LearnOption option) => null; // Gen3 is the end of the line!
     public bool HasVisited(PKM pk, EvolutionHistory history) => history.HasVisitedGen3;
@@ -20,7 +21,7 @@ public sealed class LearnGroup3 : ILearnGroup
         for (var i = 0; i < evos.Length; i++)
             Check(result, current, pk, evos[i], i, types);
 
-        if (types.HasFlag(MoveSourceType.Encounter) && enc is EncounterEgg { Generation: Generation } egg)
+        if (types.HasFlag(MoveSourceType.Encounter) && enc is EncounterEgg3 { Generation: Generation } egg)
             CheckEncounterMoves(result, current, egg);
 
         if (types.HasFlag(MoveSourceType.LevelUp) && enc.Species is (int)Species.Nincada && evos is [{ Species: (int)Species.Shedinja }, _])
@@ -54,51 +55,28 @@ public sealed class LearnGroup3 : ILearnGroup
             if (move == 0)
                 break;
 
-            var level = moves.GetLevelLearnMove(move);
-            if (level == -1 || !nincada.InsideLevelRange(level))
+            if (!moves.TryGetLevelLearnMove(move, out var level))
+                continue;
+            if (!nincada.InsideLevelRange(level))
                 continue;
 
-            var info = new MoveLearnInfo(LearnMethod.ShedinjaEvo, LearnEnvironment.E, (byte)level);
+            var info = new MoveLearnInfo(LearnMethod.ShedinjaEvo, LearnEnvironment.E, level);
             result[i] = new MoveResult(info, 0, Generation);
             break; // Can only have one Ninjask move.
         }
     }
 
-    private static void CheckEncounterMoves(Span<MoveResult> result, ReadOnlySpan<ushort> current, EncounterEgg egg)
+    private static void CheckEncounterMoves(Span<MoveResult> result, ReadOnlySpan<ushort> current, EncounterEgg3 egg)
     {
-        ReadOnlySpan<ushort> eggMoves, levelMoves;
-        if (egg.Version is GameVersion.E)
+        ILearnSource inst = egg.Version switch
         {
-            var inst = LearnSource3E.Instance;
-            eggMoves = inst.GetEggMoves(egg.Species, egg.Form);
-            levelMoves = egg.CanInheritMoves
-                ? inst.GetLearnset(egg.Species, egg.Form).Moves
-                : ReadOnlySpan<ushort>.Empty;
-        }
-        else if (egg.Version is GameVersion.FR)
-        {
-            var inst = LearnSource3FR.Instance;
-            eggMoves = inst.GetEggMoves(egg.Species, egg.Form);
-            levelMoves = egg.CanInheritMoves
-                ? inst.GetLearnset(egg.Species, egg.Form).Moves
-                : ReadOnlySpan<ushort>.Empty;
-        }
-        else if (egg.Version is GameVersion.LG)
-        {
-            var inst = LearnSource3LG.Instance;
-            eggMoves = inst.GetEggMoves(egg.Species, egg.Form);
-            levelMoves = egg.CanInheritMoves
-                ? inst.GetLearnset(egg.Species, egg.Form).Moves
-                : ReadOnlySpan<ushort>.Empty;
-        }
-        else
-        {
-            var inst = LearnSource3RS.Instance;
-            eggMoves = inst.GetEggMoves(egg.Species, egg.Form);
-            levelMoves = egg.CanInheritMoves
-                ? inst.GetLearnset(egg.Species, egg.Form).Moves
-                : ReadOnlySpan<ushort>.Empty;
-        }
+            GameVersion.E => LearnSource3E.Instance,
+            GameVersion.FR => LearnSource3FR.Instance,
+            GameVersion.LG => LearnSource3LG.Instance,
+            _ => LearnSource3RS.Instance,
+        };
+        var eggMoves = inst.GetEggMoves(egg.Species, egg.Form);
+        var levelMoves = inst.GetInheritMoves(egg.Species, egg.Form);
 
         for (var i = result.Length - 1; i >= 0; i--)
         {
@@ -106,11 +84,11 @@ public sealed class LearnGroup3 : ILearnGroup
                 continue;
             var move = current[i];
             if (eggMoves.Contains(move))
-                result[i] = new(LearnMethod.EggMove);
+                result[i] = new(LearnMethod.EggMove, inst.Environment);
             else if (levelMoves.Contains(move))
-                result[i] = new(LearnMethod.InheritLevelUp);
+                result[i] = new(LearnMethod.InheritLevelUp, inst.Environment);
             else if (move is (int)Move.VoltTackle && egg.CanHaveVoltTackle)
-                result[i] = new(LearnMethod.SpecialEgg);
+                result[i] = new(LearnMethod.SpecialEgg, inst.Environment);
         }
     }
 
@@ -172,13 +150,9 @@ public sealed class LearnGroup3 : ILearnGroup
         {
             var shedinja = LearnSource3E.Instance;
             var moves = shedinja.GetLearnset((int)Species.Ninjask, 0);
-            (bool HasMoves, int start, int end) = moves.GetMoveRange(evos[0].LevelMax, 20);
-            if (HasMoves)
-            {
-                var all = moves.Moves;
-                for (int i = start; i < end; i++)
-                    result[all[i]] = true;
-            }
+            var span = moves.GetMoveRange(evos[0].LevelMax, 20);
+            foreach (var move in span)
+                result[move] = true;
         }
     }
 

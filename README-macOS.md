@@ -9,10 +9,13 @@ PKHeX is a Pokémon save file editor for most recent Pokémon games. It allows y
 ## Features
 
 - ✅ **Native macOS App**: Runs natively on Apple Silicon Macs (M1/M2/M3/M4)
-- ✅ **Save File Loading**: Load and parse Pokémon save files
+- ✅ **Save File Loading**: Load and parse Gen 7-9 Pokémon save files
+- ✅ **Pokémon Box Editor**: View and edit Pokémon in boxes and party
+- ✅ **Pokémon Editor**: Comprehensive individual Pokémon editing
+- ✅ **Item Editor**: Manage items, Poké Balls, and inventory
 - ✅ **Cross-Platform**: Built with .NET MAUI for modern app experience
 - ✅ **File Operations**: Import/export save files with macOS file picker
-- 🚧 **Full Editor**: Basic functionality implemented, full editing features in development
+- ✅ **Minimal & Focused**: Streamlined UI for essential editing only
 
 ## Requirements
 
@@ -78,20 +81,23 @@ After building, you can add PKHeX to your Applications folder:
 1. **Launch PKHeX** using one of the methods above
 2. **Load a Save File**:
    - Click "Load Save File" button
-   - Select your Pokémon save file (.sav, .dat, .bin, etc.)
-3. **View Save Information**:
-   - Game version, trainer name, ID, and other details will be displayed
-4. **Export Changes** (when ready):
+   - Select your Gen 7-9 Pokémon save file (.sav, .dat, .bin, etc.)
+3. **Edit Your Game**:
+   - **Pokémon Box Editor**: View boxes, select and edit individual Pokémon
+   - **Item Editor**: Modify your item inventory, including Poké Balls
+   - Use validation tools to ensure legal Pokémon
+4. **Save Changes**:
    - Click "Export Save" to save your modifications
+   - Import the modified save back to your console
 
-## Supported File Formats
+## Supported Games
 
-PKHeX supports save files from most recent Pokémon games:
-- Pokémon Sword/Shield (.sav)
-- Pokémon Scarlet/Violet (.sav)
-- Pokémon BDSP (.sav)
-- Pokémon Legends Arceus (.sav)
-- And many older generations (.sav, .dat, .bin formats)
+PKHeX for macOS focuses on modern Pokémon games (Gen 7-9):
+- **Generation 7**: Sun/Moon, Ultra Sun/Ultra Moon
+- **Generation 8**: Sword/Shield, Brilliant Diamond/Shining Pearl, Legends Arceus
+- **Generation 9**: Scarlet/Violet
+
+Supported file formats: .sav, .dat, .bin
 
 ## Troubleshooting
 
@@ -119,14 +125,33 @@ PKHeX supports save files from most recent Pokémon games:
 
 ## Development Status
 
-This is a functional port with basic save file editing capabilities. Current status:
+This is a fully functional, focused editor for Gen 7-9 Pokémon games. Current status:
 
 - ✅ **Core Engine**: PKHeX.Core library fully functional
-- ✅ **Save Loading**: All supported save formats can be loaded
-- ✅ **Basic UI**: File operations and save info display
+- ✅ **Save Loading**: Gen 7-9 save formats fully supported
+- ✅ **Pokémon Editing**: Complete individual Pokémon editor
+- ✅ **Box Management**: Full box and party editing capabilities
+- ✅ **Item Management**: Comprehensive item and Poké Ball editing
+- ✅ **Minimal UI**: Streamlined, focused interface
 - ✅ **Native Integration**: macOS file picker and app bundle
-- 🚧 **Full Editor UI**: Advanced editing features in development
+- 🔄 **Architecture**: Refactored for maintainability and focus
 - 🚧 **Pokémon Sprites**: Image rendering improvements needed
+
+### Recent Refactor (v2024.1)
+The UI has been completely refactored to focus on essential functionality:
+- Removed 10+ unnecessary editor pages (~4,500 lines of code)
+- Streamlined navigation to Box Editor and Item Editor only
+- Integrated advanced features into main editing flows
+- Improved architecture with clean Core/Drawing separation
+
+## Documentation
+
+For detailed information about using PKHeX for macOS:
+
+- **[UI Workflow Documentation](PKHeX.MAUI/UI_WORKFLOW_DOCUMENTATION.md)**: Complete guide to the user interface, page interactions, and editing workflows
+- **[Navigation Flow Diagram](PKHeX.MAUI/NAVIGATION_FLOW_DIAGRAM.md)**: Visual navigation maps and detailed navigation patterns
+- **[Page State Management](PKHeX.MAUI/PAGE_STATE_MANAGEMENT.md)**: Technical details about state preservation and memory management
+- **[Build & Run Guide](BUILD_RUN_GUIDE.md)**: Comprehensive build and deployment instructions
 
 ## Technical Details
 

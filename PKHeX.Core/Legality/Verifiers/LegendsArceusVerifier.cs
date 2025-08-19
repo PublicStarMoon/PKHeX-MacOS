@@ -1,5 +1,5 @@
 using System;
-using static PKHeX.Core.LegalityCheckStrings;
+using static PKHeX.Core.LegalityCheckResultCode;
 
 namespace PKHeX.Core;
 
@@ -16,9 +16,9 @@ public sealed class LegendsArceusVerifier : Verifier
             return;
 
         if (pa.IsNoble)
-            data.AddLine(GetInvalid(LStatNobleInvalid));
+            data.AddLine(GetInvalid(StatNobleInvalid));
         if (pa.IsAlpha != data.EncounterMatch is IAlphaReadOnly { IsAlpha: true })
-            data.AddLine(GetInvalid(LStatAlphaInvalid));
+            data.AddLine(GetInvalid(StatAlphaInvalid));
 
         CheckScalars(data, pa);
         CheckGanbaru(data, pa);
@@ -36,7 +36,7 @@ public sealed class LegendsArceusVerifier : Verifier
             if (gv <= max)
                 continue;
 
-            data.AddLine(GetInvalid(LGanbaruStatTooHigh, CheckIdentifier.GVs));
+            data.AddLine(GetInvalid(CheckIdentifier.GVs, GanbaruStatLEQ_01, max, (ushort)i));
             return;
         }
     }
@@ -47,27 +47,30 @@ public sealed class LegendsArceusVerifier : Verifier
         if (pa.IsAlpha && data.EncounterMatch is EncounterSlot8a)
         {
             if (pa.HeightScalar != 255)
-                data.AddLine(GetInvalid(LStatIncorrectHeightValue));
+                data.AddLine(GetInvalid(StatIncorrectHeightValue, 255));
             if (pa.WeightScalar != 255)
-                data.AddLine(GetInvalid(LStatIncorrectWeightValue));
+                data.AddLine(GetInvalid(StatIncorrectWeightValue, 255));
         }
 
         // No way to mutate the display height scalar value. Must match!
         if (pa.HeightScalar != pa.Scale)
-            data.AddLine(GetInvalid(LStatIncorrectHeightCopy, CheckIdentifier.Encounter));
+            data.AddLine(GetInvalid(CheckIdentifier.Encounter, StatIncorrectHeightCopy));
     }
 
     private static void CheckLearnset(LegalityAnalysis data, PA8 pa)
     {
-        var moveCount = GetMoveCount(pa);
+        var moveCount = pa.MoveCount;
         if (moveCount == 4)
             return;
+
+        // Flag move slots that are empty.
+        if (pa.Tracker != 0 || !ParseSettings.IgnoreTransferIfNoTracker)
+            return; // Can delete moves in PA8 moveset via HOME.
 
         // Get the bare minimum moveset.
         Span<ushort> expect = stackalloc ushort[4];
         var minMoveCount = LoadBareMinimumMoveset(data.EncounterMatch, data.Info.EvoChainsAllGens, pa, expect);
 
-        // Flag move slots that are empty.
         var moves = data.Info.Moves;
         for (int i = moveCount; i < minMoveCount; i++)
         {
@@ -82,14 +85,12 @@ public sealed class LegendsArceusVerifier : Verifier
     private static int LoadBareMinimumMoveset(ISpeciesForm enc, EvolutionHistory h, PA8 pa, Span<ushort> moves)
     {
         // Get any encounter moves
-        var pt = PersonalTable.LA;
-        var index = pt.GetFormIndex(enc.Species, enc.Form);
-        var learn = Legal.LevelUpLA;
-        var moveset = learn[index];
+        var ls = LearnSource8LA.Instance;
+        var moveset = ls.GetLearnset(enc.Species, enc.Form);
         if (enc is IMasteryInitialMoveShop8 ms)
-            ms.LoadInitialMoveset(pa, moves, moveset, pa.Met_Level);
+            ms.LoadInitialMoveset(pa, moves, moveset, pa.MetLevel);
         else
-            moveset.SetEncounterMoves(pa.Met_Level, moves);
+            moveset.SetEncounterMoves(pa.MetLevel, moves);
         var count = moves.IndexOf((ushort)0);
         if ((uint)count >= 4)
             return 4;
@@ -104,7 +105,7 @@ public sealed class LegendsArceusVerifier : Verifier
 
         // Level up to current level
         var level = pa.CurrentLevel;
-        moveset.SetLevelUpMoves(pa.Met_Level, level, moves, purchased, count);
+        moveset.SetLevelUpMoves(pa.MetLevel, level, moves, purchased, count);
         count = moves.IndexOf((ushort)0);
         if ((uint)count >= 4)
             return 4;
@@ -114,8 +115,7 @@ public sealed class LegendsArceusVerifier : Verifier
         for (int i = 0; i < evos.Length - 1; i++)
         {
             var evo = evos[i];
-            var x = pt.GetFormIndex(evo.Species, evo.Form);
-            var m = learn[x];
+            var m = ls.GetLearnset(evo.Species, evo.Form);
             m.SetEvolutionMoves(moves, purchased, count);
             count = moves.IndexOf((ushort)0);
             if ((uint)count >= 4)
@@ -123,12 +123,11 @@ public sealed class LegendsArceusVerifier : Verifier
         }
 
         // Any tutored moves we don't know about??
-        var currentIndex = pt.GetFormIndex(evos[0].Species, evos[0].Form);
-        var currentLearn = learn[currentIndex];
+        var currentLearn = ls.GetLearnset(evos[0].Species, evos[0].Form);
         return AddMasteredMissing(pa, moves, count, moveset, currentLearn, level);
     }
 
-    private static void LoadPurchasedMoves(IMoveShop8 pa, Span<ushort> result)
+    private static void LoadPurchasedMoves(PA8 pa, Span<ushort> result)
     {
         int ctr = 0;
         var purchased = pa.Permit.RecordPermitIndexes;
@@ -139,7 +138,7 @@ public sealed class LegendsArceusVerifier : Verifier
         }
     }
 
-    private static int AddMasteredMissing(PA8 pa, Span<ushort> current, int ctr, Learnset baseLearn, Learnset currentLearn, int level)
+    private static int AddMasteredMissing(PA8 pa, Span<ushort> current, int ctr, Learnset baseLearn, Learnset currentLearn, byte level)
     {
         var purchased = pa.Permit.RecordPermitIndexes;
         for (int i = 0; i < purchased.Length; i++)
@@ -155,28 +154,16 @@ public sealed class LegendsArceusVerifier : Verifier
 
             // Check if we can swap it into the moveset after it evolves.
             var move = purchased[i];
-            var baseLevel = baseLearn.GetMoveLevel(move);
-            var mustKnow = baseLevel is not -1 && baseLevel <= pa.Met_Level;
-            if (!mustKnow && currentLearn.GetMoveLevel(move) != level)
+            var mustKnow = baseLearn.TryGetLevelLearnMove(move, out var baseLevel) && baseLevel <= pa.MetLevel;
+            if (!mustKnow && currentLearn.TryGetLevelLearnMove(move, out var c2) && c2 != level)
                 continue;
 
-            if (current.IndexOf(move) == -1)
+            if (!current.Contains(move))
                 current[ctr++] = move;
             if (ctr == 4)
                 return 4;
         }
         return ctr;
-    }
-
-    private static int GetMoveCount(PKM pa)
-    {
-        var count = 0;
-        for (int i = 0; i < 4; i++)
-        {
-            if (pa.GetMove(i) is not 0)
-                count++;
-        }
-        return count;
     }
 
     private void CheckMastery(LegalityAnalysis data, PA8 pa)
@@ -201,7 +188,7 @@ public sealed class LegendsArceusVerifier : Verifier
             if (permit.IsRecordPermitted(i))
                 return; // If it has been legally purchased, then any mastery state is legal.
 
-            data.AddLine(GetInvalid(string.Format(LMoveShopPurchaseInvalid_0, ParseSettings.MoveStrings[permit.RecordPermitIndexes[i]])));
+            data.AddLine(GetInvalid(MoveShopPurchaseInvalid_0, permit.RecordPermitIndexes[i]));
             return;
         }
 
@@ -217,9 +204,9 @@ public sealed class LegendsArceusVerifier : Verifier
         if (data.EncounterMatch is (IMoveset m and IMasteryInitialMoveShop8) && m.Moves.Contains(move))
             return; // Previously checked.
         if (!permit.IsRecordPermitted(i))
-            data.AddLine(GetInvalid(string.Format(LMoveShopMasterInvalid_0, ParseSettings.MoveStrings[move])));
+            data.AddLine(GetInvalid(MoveShopMasterInvalid_0, move));
         else if (!CanLearnMoveByLevelUp(data, pa, i, moves))
-            data.AddLine(GetInvalid(string.Format(LMoveShopMasterNotLearned_0, ParseSettings.MoveStrings[move])));
+            data.AddLine(GetInvalid(MoveShopMasterNotLearned_0, move));
     }
 
     private static bool CanLearnMoveByLevelUp(LegalityAnalysis data, PA8 pa, int i, ReadOnlySpan<ushort> moves)
@@ -227,30 +214,27 @@ public sealed class LegendsArceusVerifier : Verifier
         // Check if the move can be learned in the learnset...
         // Changing forms do not have separate tutor permissions, so we don't need to bother with form changes.
         // Level up movepools can grant moves for mastery at lower levels for earlier evolutions... find the minimum.
-        int level = 101;
+        byte level = 101;
         foreach (var evo in data.Info.EvoChainsAllGens.Gen8a)
         {
-            var pt = PersonalTable.LA;
-            var index = pt.GetFormIndex(evo.Species, evo.Form);
-            var moveset = Legal.LevelUpLA[index];
-            var lvl = moveset.GetLevelLearnMove(moves[i]);
-            if (lvl == -1)
+            var moveset = LearnSource8LA.Instance.GetLearnset(evo.Species, evo.Form);
+            if (!moveset.TryGetLevelLearnMove(moves[i], out var lvl))
                 continue; // cannot learn via level up
             level = Math.Min(lvl, level);
         }
-        return pa.CurrentLevel >= level;
+        return level <= pa.CurrentLevel;
     }
 
     private void VerifyAlphaMove(LegalityAnalysis data, PA8 pa, ushort alphaMove, IPermitRecord permit)
     {
-        if (!pa.IsAlpha || data.EncounterMatch is EncounterSlot8a { Type: SlotType.Landmark })
+        if (!pa.IsAlpha || data.EncounterMatch is EncounterSlot8a { Type: SlotType8a.Landmark })
         {
-            data.AddLine(GetInvalid(LMoveShopAlphaMoveShouldBeZero));
+            data.AddLine(GetInvalid(MoveShopAlphaMoveShouldBeZero));
             return;
         }
         if (!CanMasterMoveFromMoveShop(alphaMove, permit))
         {
-            data.AddLine(GetInvalid(LMoveShopAlphaMoveShouldBeOther));
+            data.AddLine(GetInvalid(MoveShopAlphaMoveShouldBeOther));
             return;
         }
 
@@ -258,7 +242,7 @@ public sealed class LegendsArceusVerifier : Verifier
         var masteredIndex = permit.RecordPermitIndexes.IndexOf(alphaMove);
         // Index is already >= 0, implicitly via the above call not returning false.
         if (!pa.GetMasteredRecordFlag(masteredIndex))
-            data.AddLine(GetInvalid(LMoveShopAlphaMoveShouldBeMastered));
+            data.AddLine(GetInvalid(MoveShopAlphaMoveShouldBeMastered_0, alphaMove));
     }
 
     private void VerifyAlphaMoveZero(LegalityAnalysis data)
@@ -267,12 +251,12 @@ public sealed class LegendsArceusVerifier : Verifier
         if (enc is not IAlpha { IsAlpha: true })
             return; // okay
 
-        if (enc is EncounterSlot8a { Type: SlotType.Landmark })
+        if (enc is EncounterSlot8a { Type: SlotType8a.Landmark })
             return; // okay
 
         var pi = PersonalTable.LA.GetFormEntry(enc.Species, enc.Form);
         if (!pi.HasMoveShop) // must have had a tutor flag
-            data.AddLine(GetInvalid(LMoveShopAlphaMoveShouldBeOther));
+            data.AddLine(GetInvalid(MoveShopAlphaMoveShouldBeOther));
     }
 
     private static bool CanMasterMoveFromMoveShop(ushort move, IPermitRecord permit)

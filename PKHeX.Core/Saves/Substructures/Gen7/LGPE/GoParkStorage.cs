@@ -1,17 +1,12 @@
-﻿using System.Collections;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace PKHeX.Core;
 
-public sealed class GoParkStorage : SaveBlock<SAV7b>, IEnumerable<GP1>
+public sealed class GoParkStorage(SAV7b sav, Memory<byte> raw) : SaveBlock<SAV7b>(sav, raw), IEnumerable<GP1>
 {
-    public GoParkStorage(SAV7b sav) : base(sav)
-    {
-        Offset = sav.Blocks.GetBlockOffset(BelugaBlockIndex.GoParkEntities);
-    }
-
     public const int SlotsPerArea = 50;
     public const int Areas = 20;
     public const int Count = SlotsPerArea * Areas; // 1000
@@ -21,12 +16,12 @@ public sealed class GoParkStorage : SaveBlock<SAV7b>, IEnumerable<GP1>
         get
         {
             Debug.Assert(index < Count);
-            return GP1.FromData(Data, Offset + (GP1.SIZE * index));
+            return GP1.FromData(Data[(GP1.SIZE * index)..]);
         }
         set
         {
             Debug.Assert(index < Count);
-            value.WriteTo(Data, Offset + (GP1.SIZE * index));
+            value.WriteTo(Data[(GP1.SIZE * index)..]);
         }
     }
 
@@ -45,10 +40,16 @@ public sealed class GoParkStorage : SaveBlock<SAV7b>, IEnumerable<GP1>
             this[i] = value[i];
     }
 
-    public IEnumerable<string> DumpAll(IReadOnlyList<string> speciesNames) => GetAllEntities()
-        .Select((z, i) => (Entry: z, Index: i))
-        .Where(z => z.Entry.Species > 0)
-        .Select(z => z.Entry.Dump(speciesNames, z.Index));
+    public IEnumerable<string> DumpAll(IReadOnlyList<string> speciesNames)
+    {
+        var arr = GetAllEntities();
+        for (int i = 0; i < arr.Length; i++)
+        {
+            var entry = arr[i];
+            if (entry.Species > 0)
+                yield return entry.Dump(speciesNames, i);
+        }
+    }
 
     public IEnumerator<GP1> GetEnumerator() => (IEnumerator<GP1>)GetAllEntities().GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetAllEntities().GetEnumerator();

@@ -9,7 +9,7 @@ namespace PKHeX.Core;
 /// <remarks>
 /// <see cref="Furfrou"/> How long (days) the form can last before reverting to Form-0 (5 days max)
 /// <see cref="Hoopa"/>: How long (days) the form can last before reverting to Form-0 (3 days max)
-/// <see cref="Alcremie"/>: Topping (Strawberry, Star, etc); [0,7]
+/// <see cref="Alcremie"/>: Topping (Strawberry, Star, etc.); [0,7]
 /// <see cref="Yamask"/> How much damage the Pokémon has taken as Yamask-1 [0,9999].
 /// <see cref="Runerigus"/> How much damage the Pokémon has taken as Yamask-1 [0,9999].
 /// <see cref="Stantler"/> How many times the Pokémon has used Psyshield Bash in the Agile Style [0,9999].
@@ -17,9 +17,10 @@ namespace PKHeX.Core;
 /// <see cref="Basculin"/> How much damage the Pokémon has taken through recoil as Basculin-2 [0,9999].
 /// <see cref="Primeape"/> How many times the Pokémon has used Rage Fist [0,9999].
 /// <see cref="Bisharp"/> How many Bisharp that head up a group of Pawniard have been KOed [0,9999].
+/// <see cref="Gimmighoul"/> How many Gimmighoul Coins were in the player's Bag after last leveling up [0,998].
 /// <see cref="Gholdengo"/> How many Gimmighoul Coins were used on Gimmighoul to evolve into this Pokémon.
-/// <see cref="Koraidon"/> Flags whether or not this Pokémon was originally in its Ride Form (0/1).
-/// <see cref="Miraidon"/> Flags whether or not this Pokémon was originally in its Ride Form (0/1).
+/// <see cref="Koraidon"/> Flags whether this Pokémon was originally in its Ride Form (0/1).
+/// <see cref="Miraidon"/> Flags whether this Pokémon was originally in its Ride Form (0/1).
 /// </remarks>
 public interface IFormArgument
 {
@@ -45,7 +46,7 @@ public interface IFormArgument
 }
 
 /// <summary>
-/// Logic for mutating an <see cref="IFormArgument"/> object.
+/// Logic for mutating <see cref="IFormArgument"/> objects.
 /// </summary>
 public static class FormArgumentUtil
 {
@@ -57,8 +58,10 @@ public static class FormArgumentUtil
         if (pk is not IFormArgument)
             return;
         uint value = IsFormArgumentTypeDatePair(pk.Species, pk.Form)
-            ? GetFormArgumentMax(pk.Species, pk.Form, pk.Format)
+            ? GetFormArgumentMax(pk.Species, pk.Form, pk.Context)
             : GetFormArgumentMinEvolution(pk.Species, originalSpecies);
+        if (pk.Species is (int)Hoopa && pk.Format >= 8)
+            value = 0; // S/V does not set the argument for Hoopa
         pk.ChangeFormArgument(value);
     }
 
@@ -69,7 +72,7 @@ public static class FormArgumentUtil
     {
         if (pk is not IFormArgument f)
             return;
-        f.ChangeFormArgument(pk.Species, pk.Form, pk.Format, value);
+        f.ChangeFormArgument(pk.Species, pk.Form, pk.Context, value);
     }
 
     /// <summary>
@@ -78,9 +81,9 @@ public static class FormArgumentUtil
     /// <param name="f">Form Argument object</param>
     /// <param name="species">Entity Species</param>
     /// <param name="form">Entity Species</param>
-    /// <param name="generation">Entity current format generation</param>
+    /// <param name="context">Entity current context</param>
     /// <param name="value">Value to apply</param>
-    public static void ChangeFormArgument(this IFormArgument f, ushort species, byte form, int generation, uint value)
+    public static void ChangeFormArgument(this IFormArgument f, ushort species, byte form, EntityContext context, uint value)
     {
         if (!IsFormArgumentTypeDatePair(species, form))
         {
@@ -88,9 +91,9 @@ public static class FormArgumentUtil
             return;
         }
 
-        var max = GetFormArgumentMax(species, form, generation);
+        var max = GetFormArgumentMax(species, form, context);
         f.FormArgumentRemain = (byte)value;
-        if (value == max)
+        if (value == max || (value == 0 && species is (int)Hoopa && form == 1 && context.Generation() >= 8))
         {
             f.FormArgumentElapsed = f.FormArgumentMaximum = 0;
             return;
@@ -107,12 +110,10 @@ public static class FormArgumentUtil
     /// </summary>
     /// <param name="species">Entity Species</param>
     /// <param name="form">Entity Form</param>
-    /// <param name="generation">Generation to check with.</param>
-    public static uint GetFormArgumentMax(ushort species, byte form, int generation)
+    /// <param name="context">Context to check with.</param>
+    public static uint GetFormArgumentMax(ushort species, byte form, EntityContext context)
     {
-        if (generation <= 5)
-            return 0;
-
+        var gen = context.Generation();
         return species switch
         {
             (int)Furfrou when form != 0 => 5,
@@ -120,13 +121,14 @@ public static class FormArgumentUtil
             (int)Yamask when form == 1 => 9999,
             (int)Runerigus when form == 0 => 9999,
             (int)Alcremie => (uint)AlcremieDecoration.Ribbon,
-            (int)Qwilfish when form == 1 && generation >= 8 => 9999,
+            (int)Qwilfish when form == 1 && gen >= 8 => 9999,
             (int)Overqwil => 9999, // 20
-            (int)Stantler or (int)Wyrdeer when generation >= 8 => 9999,
+            (int)Stantler or (int)Wyrdeer when gen >= 8 => 9999,
             (int)Basculin when form == 2 => 9999, // 294
             (int)Basculegion => 9999, // 294
-            (int)Primeape or (int)Annihilape when generation >= 9 => 9999,
-            (int)Bisharp or (int)Kingambit when generation >= 9 => 9999,
+            (int)Primeape or (int)Annihilape when gen >= 8 => 9999,
+            (int)Bisharp or (int)Kingambit when gen >= 8 => 9999,
+            (int)Gimmighoul => 998,
             (int)Gholdengo => 999,
             (int)Koraidon or (int)Miraidon => 1,
             _ => 0,

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Reflection;
 
 namespace PKHeX.Core;
@@ -16,20 +15,41 @@ public static class EntityBlank
     /// <returns>New instance of a blank <see cref="PKM"/> object.</returns>
     public static PKM GetBlank(Type type)
     {
-        // Not all derived types have a parameter-less constructor, so find the minimal constructor and use that.
-        var constructors = type.GetTypeInfo().DeclaredConstructors.Where(z => !z.IsStatic);
-        var argCount = constructors.Min(z => z.GetParameters().Length);
-        var pk = Activator.CreateInstance(type, new object[argCount]) as PKM;
-        ArgumentNullException.ThrowIfNull(pk);
-        return pk;
+        var typeInfo = type.GetTypeInfo();
+        return GetBlank(typeInfo);
     }
 
-    public static PKM GetBlank(int gen, GameVersion ver) => gen switch
+    /// <inheritdoc cref="GetBlank(Type)"/>
+    public static PKM GetBlank(TypeInfo type)
     {
-        1 when ver == GameVersion.BU => new PK1(true),
-        7 when GameVersion.Gen7b.Contains(ver) => new PB7(),
-        8 when GameVersion.BDSP.Contains(ver) => new PB8(),
-        8 when GameVersion.PLA == ver => new PA8(),
+        // Not all derived types have a parameter-less constructor, so find the minimal constructor and use that.
+        ConstructorInfo? info = null;
+        int count = int.MaxValue;
+        foreach (var ctor in type.DeclaredConstructors)
+        {
+            if (ctor.IsStatic)
+                continue;
+            var parameters = ctor.GetParameters();
+            int length = parameters.Length;
+            if (length >= count)
+                continue;
+            count = length;
+            info = ctor;
+        }
+
+        ArgumentNullException.ThrowIfNull(info);
+        var result = info.Invoke(new object?[count]);
+        if (result is not PKM x)
+            throw new InvalidCastException($"Unable to cast {result} to {typeof(PKM)}");
+        return x;
+    }
+
+    public static PKM GetBlank(byte gen, GameVersion version) => gen switch
+    {
+        1 when version is GameVersion.BU => new PK1(true),
+        7 when version is GameVersion.GP or GameVersion.GE => new PB7(),
+        8 when version is GameVersion.BD or GameVersion.SP => new PB8(),
+        8 when version is GameVersion.PLA => new PA8(),
         _ => GetBlank(gen),
     };
 
@@ -40,18 +60,14 @@ public static class EntityBlank
     {
         if (tr is SaveFile s)
             return s.BlankPKM;
-        return GetBlank(tr.Generation, tr.Game);
+        return GetBlank(tr.Generation, tr.Version);
     }
 
     /// <inheritdoc cref="GetBlank(ITrainerInfo)"/>
-    public static PKM GetBlank(int gen, int ver) => GetBlank(gen, (GameVersion)ver);
-
-    /// <inheritdoc cref="GetBlank(ITrainerInfo)"/>
-    public static PKM GetBlank(int gen)
+    public static PKM GetBlank(byte gen)
     {
         var type = Type.GetType($"PKHeX.Core.PK{gen}");
-        if (type is null)
-            throw new InvalidCastException($"Unable to get the type for PK{gen}.");
+        ArgumentNullException.ThrowIfNull(type);
 
         return GetBlank(type);
     }

@@ -42,16 +42,13 @@ public static class LocalizationUtil
         return result;
     }
 
-    /// <summary>
-    /// Gets the current localization in a static class containing language-specific strings
-    /// </summary>
-    /// <param name="t"></param>
+    /// <inheritdoc cref="GetLocalization(Type, ReadOnlySpan{string})"/>
     public static string[] GetLocalization(Type t) => DumpStrings(t);
 
     /// <summary>
     /// Gets the current localization in a static class containing language-specific strings
     /// </summary>
-    /// <param name="t"></param>
+    /// <param name="t">Type of the static class containing the desired strings.</param>
     /// <param name="existingLines">Existing localization lines (if provided)</param>
     public static string[] GetLocalization(Type t, ReadOnlySpan<string> existingLines)
     {
@@ -78,23 +75,27 @@ public static class LocalizationUtil
         if (lines.Length == 0)
             return;
 
-        var translatable = new Dictionary<string, string>(lines.Length);
+        var dict = GetTranslationDict(lines);
+        var ti = t.GetTypeInfo();
+        foreach (var p in ti.DeclaredProperties)
+        {
+            if (dict.TryGetValue(p.Name, out var value))
+                p.SetValue(null, value);
+        }
+    }
+
+    private static Dictionary<string, string> GetTranslationDict(ReadOnlySpan<string> lines)
+    {
+        var result = new Dictionary<string, string>(lines.Length);
         foreach (var line in lines)
         {
             var index = line.IndexOf(TranslationFirst);
             if (index < 0)
                 continue;
             var prop = line[..index];
-            translatable[prop] = line[(index + TranslationSplitter.Length)..];
+            result[prop] = line[(index + TranslationSplitter.Length)..];
         }
-
-        var ti = t.GetTypeInfo();
-        var props = (PropertyInfo[])ti.DeclaredProperties;
-        foreach (var p in props)
-        {
-            if (translatable.TryGetValue(p.Name, out var value))
-                p.SetValue(null, value);
-        }
+        return result;
     }
 
     /// <summary>
@@ -102,10 +103,10 @@ public static class LocalizationUtil
     /// </summary>
     /// <param name="t">Type of the static class containing the desired strings.</param>
     /// <param name="languageFilePrefix">Prefix of the language file to use.  Example: if the target is legality_en.txt, <paramref name="languageFilePrefix"/> should be "legality".</param>
-    /// <param name="currentCultureCode">Culture information</param>
-    private static void SetLocalization(Type t, string languageFilePrefix, string currentCultureCode)
+    /// <param name="currentLanguageCode">Language code</param>
+    private static void SetLocalization(Type t, string languageFilePrefix, string currentLanguageCode)
     {
-        var lines = Util.GetStringList($"{languageFilePrefix}_{currentCultureCode}");
+        var lines = Util.GetStringList($"{languageFilePrefix}_{currentLanguageCode}");
         SetLocalization(t, lines);
     }
 
@@ -113,10 +114,10 @@ public static class LocalizationUtil
     /// Applies localization to a static class containing language-specific strings.
     /// </summary>
     /// <param name="t">Type of the static class containing the desired strings.</param>
-    /// <remarks>The values used to translate the given static class are retrieved from [TypeName]_[CurrentLangCode2].txt in the resource manager of PKHeX.Core.</remarks>
-    /// <param name="currentCultureCode">Culture information</param>
-    public static void SetLocalization(Type t, string currentCultureCode)
+    /// <remarks>The values used to translate the given static class are retrieved from [TypeName]_[CurrentLanguageCode].txt in the resource manager of PKHeX.Core.</remarks>
+    /// <param name="currentLanguageCode">Language code</param>
+    public static void SetLocalization(Type t, string currentLanguageCode)
     {
-        SetLocalization(t, t.Name, currentCultureCode);
+        SetLocalization(t, t.Name, currentLanguageCode);
     }
 }
