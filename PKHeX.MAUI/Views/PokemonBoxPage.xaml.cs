@@ -185,7 +185,11 @@ public partial class PokemonBoxPage : ContentPage
 
                 // Create a new Pokemon based on the save file's format
                 var newPokemon = PokemonHelper.CreateLegalPokemon(_saveFile, species, 5);
-                
+
+                // Ensure party-format values and checksum are present before writing (important for Gen8/9 boxes)
+                newPokemon.ForcePartyData();
+                newPokemon.RefreshChecksum();
+
                 // Place in box
                 _saveFile.SetBoxSlotAtIndex(newPokemon, _currentBox, slot);
                 _currentBoxPokemon[slot] = newPokemon;
@@ -236,7 +240,10 @@ public partial class PokemonBoxPage : ContentPage
                     break;
                 case "Heal Pokemon":
                     pokemon.Heal();
-                    _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
+                        // Ensure party stats and checksum updated before persisting
+                        pokemon.ForcePartyData();
+                        pokemon.RefreshChecksum();
+                        _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
                     StatusLabel.Text = $"{speciesName} has been healed!";
                     break;
                 case "Delete Pokemon":
@@ -279,6 +286,9 @@ public partial class PokemonBoxPage : ContentPage
             
             // When we return, refresh the slot display
             // Note: The pokemon object is modified by reference in the editor
+            // Ensure party stats and checksum before writing (boxes may store party-format data)
+            pokemon.ForcePartyData();
+            pokemon.RefreshChecksum();
             _saveFile.SetBoxSlotAtIndex(pokemon, _currentBox, slot);
             UpdatePokemonSlot(slot, pokemon);
         }

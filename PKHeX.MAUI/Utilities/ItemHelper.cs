@@ -166,6 +166,9 @@ public static class ItemHelper
                     if (!IsItemSafe(pokemon.HeldItem, save))
                     {
                         pokemon.HeldItem = 0; // Remove unsafe item
+                        // Ensure party-format stats and checksum are present (important for Gen8/9 storage)
+                        pokemon.ForcePartyData();
+                        pokemon.RefreshChecksum();
                         save.SetBoxSlotAtIndex(pokemon, box, slot);
                         fixedCount++;
                     }

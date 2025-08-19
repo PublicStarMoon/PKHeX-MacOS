@@ -437,6 +437,9 @@ public partial class SaveValidationPage : ContentPage
                         // Re-check if it's now legal
                         if (PokemonHelper.IsLegal(pokemon, _saveFile))
                         {
+                            // Ensure party stats and checksum are present before writing (Gen8/9 boxes can store party-format)
+                            pokemon.ForcePartyData();
+                            pokemon.RefreshChecksum();
                             _saveFile.SetBoxSlotAtIndex(pokemon, box, slot);
                             fixedCount++;
                         }
