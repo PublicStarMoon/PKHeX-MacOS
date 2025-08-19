@@ -5,7 +5,7 @@ namespace PKHeX.Core;
 /// <summary>
 /// Loosely aggregated legality logic.
 /// </summary>
-public static class Legal
+public static partial class Legal
 {
     internal const int MaxSpeciesID_1 = 151;
     internal const int MaxMoveID_1 = 165;

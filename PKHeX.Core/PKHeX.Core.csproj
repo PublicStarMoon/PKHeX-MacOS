@@ -33,7 +33,16 @@
     <EmbeddedResource Include="Resources\**" />
     <!-- Exclude old duplicate files to avoid compilation conflicts -->
     <Compile Remove="Legality\Areas\**" />
+    <Compile Remove="Legality\Assets\**" />
     <Compile Remove="Items\**" />
+    <!-- Exclude consolidated generation directories that contain duplicates -->
+    <Compile Remove="Legality\Encounters\Data\Gen45\**" />
+    <Compile Remove="Legality\Encounters\Data\Gen67\**" />
+    <Compile Remove="Legality\Encounters\Data\Gen12\**" />
+    <!-- Exclude old EncounterSlot directory -->
+    <Compile Remove="Legality\Encounters\EncounterSlot\**" />
+    <!-- Exclude specific duplicate files in root Data directory -->
+    <Compile Remove="Legality\Encounters\Data\Encounters9.cs" />
   </ItemGroup>
 
 </Project>
