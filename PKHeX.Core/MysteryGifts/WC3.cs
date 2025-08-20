@@ -11,7 +11,7 @@ namespace PKHeX.Core;
 /// </remarks>
 public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
 {
-    public override MysteryGift Clone() => (WC3)MemberwiseClone();
+    public MysteryGift Clone() => (WC3)MemberwiseClone();
 
     public WC3(bool fateful = false) => FatefulEncounter = fateful;
 
@@ -22,27 +22,23 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
 
     private const ushort UnspecifiedID = ushort.MaxValue;
 
-    public override string OT_Name { get; set; } = string.Empty;
     public int OT_Gender { get; init; } = 3;
     public override uint ID32 { get => (uint)(SID16 << 16 | TID16); set => (SID16, TID16) = ((ushort)(value >> 16), (ushort)value); }
     public override ushort TID16 { get; set; } = UnspecifiedID;
     public override ushort SID16 { get; set; } = UnspecifiedID;
-    public override int Location { get; set; } = 255;
-    public override int EggLocation { get => 0; set {} }
-    public override GameVersion Version { get; set; }
+    public override GameVersion Version { get; }
     public int Language { get; init; } = -1;
     public override ushort Species { get; set; }
     public override bool IsEgg { get; set; }
     public override Moveset Moves { get; set; }
     public bool NotDistributed { get; init; }
-    public override Shiny Shiny { get; init; }
+    public override Shiny Shiny { get; }
     public override bool FatefulEncounter { get; } // Obedience Flag
 
     // Mystery Gift Properties
-    public override int Generation => 3;
+    public override byte Generation => 3;
     public override EntityContext Context => EntityContext.Gen3;
     public override byte Level { get; set; }
-    public override int Ball { get; set; } = 4;
     public override bool IsShiny => Shiny == Shiny.Always;
     public override bool HasFixedIVs => false;
     public bool RibbonEarth { get; set; }
@@ -56,7 +52,7 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
 
     // Description
     public override string CardTitle { get; set; } = "Generation 3 Event";
-    public override string CardHeader => CardTitle;
+    public new string CardHeader => CardTitle;
 
     // Unused
     public override bool GiftUsed { get; set; }
@@ -64,9 +60,16 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
     public override bool IsItem { get; set; }
     public override int ItemID { get; set; }
     public override bool IsEntity { get; set; } = true;
-    public override bool Empty => false;
-    public override int Gender { get; set; }
+    public override bool IsEmpty => false;
+    public override byte Gender { get; set; }
     public override byte Form { get; set; }
+    
+    // Abstract members implementation
+    public override int HeldItem { get; set; }
+    public override string OriginalTrainerName { get; set; } = string.Empty;
+    public override ushort Location { get; set; } = 255;
+    public override byte Ball { get; set; } = 4;
+    public override ushort EggLocation { get; set; }
 
     // Synthetic
     private readonly int? _metLevel;

@@ -116,6 +116,31 @@
     <Compile Remove="Legality\Evolutions\EvoCriteria.cs" />
     <!-- Exclude interface files moved to better organized locations -->
     <Compile Remove="Legality\Structures\IVersion.cs" />
+    <!-- Exclude duplicate classes causing CS0101 errors -->
+    <Compile Remove="Items\HeldItemLumpImage.cs" />
+    <Compile Remove="Legality\Evolutions\EvolutionReversal.cs" />
+    <Compile Remove="Legality\Restrictions\WordFilter.cs" />
+    <!-- Exclude duplicate BattleVideo classes that incorrectly inherit from static BattleVideo -->
+    <Compile Remove="Saves\Substructures\Battle Videos\BV3.cs" />
+    <Compile Remove="Saves\Substructures\Battle Videos\BV6.cs" />
+    <Compile Remove="Saves\Substructures\Battle Videos\BV7.cs" />
+    <!-- Exclude duplicate RNG classes that have been moved to generation-specific subdirectories -->
+    <Compile Remove="Legality\Tables\MystryMew.cs" />
+    <Compile Remove="Legality\RNG\Locks\LockFinder.cs" />
+    <Compile Remove="Legality\RNG\Methods\Encounter9RNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Overworld8RNG.cs" />
+    <Compile Remove="Legality\RNG\RaidRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Overworld8aRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\OverworldParam8a.cs" />
+    <!-- Exclude duplicate interface and utility files moved to better organized locations -->
+    <Compile Remove="PKM\Shared\IObedienceLevel.cs" />
+    <Compile Remove="PKM\Util\EntityContext.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetOnly3.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetUnique3.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetUnique4.cs" />
+    <Compile Remove="Saves\Substructures\Gen7\SaveBlock.cs" />
+    <!-- Exclude Core.cs which duplicates methods already consolidated in Legal.cs -->
+    <Compile Remove="Legality\Core.cs" />
   </ItemGroup>
 
 </Project>
