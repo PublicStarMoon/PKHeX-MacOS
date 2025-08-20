@@ -19,11 +19,12 @@ public sealed class SaveHandlerBizHawk : ISaveHandler
         return _0x0b == _0x14;
     }
 
-    public bool IsRecognized(int size) => SaveUtil.IsSizeValidNoHandler(size - sizeFooter);
+    public bool IsRecognized(long size) => SaveUtil.IsSizeValidNoHandler((int)(size - sizeFooter));
 
-    public SaveHandlerSplitResult? TrySplit(ReadOnlySpan<byte> input)
+    public SaveHandlerSplitResult? TrySplit(Memory<byte> input)
     {
-        if (!GetHasFooter(input))
+        var span = input.Span;
+        if (!GetHasFooter(span))
             return null;
 
         var realSize = input.Length - sizeFooter;
@@ -31,5 +32,11 @@ public sealed class SaveHandlerBizHawk : ISaveHandler
         var data = input[..realSize].ToArray();
 
         return new SaveHandlerSplitResult(data, Array.Empty<byte>(), footer);
+    }
+
+    public void Finalize(Span<byte> input)
+    {
+        // BizHawk saves don't need any special finalization
+        // The footer is already included in the input
     }
 }

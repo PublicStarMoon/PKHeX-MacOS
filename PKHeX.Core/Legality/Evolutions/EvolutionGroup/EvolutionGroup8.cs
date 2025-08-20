@@ -214,6 +214,97 @@ public sealed class EvolutionGroup8 : IEvolutionGroup
         BDSP,
     }
 
+    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc) 
+    {
+        // Use the most relevant PersonalTable based on the PKM type
+        if (pk is PA8)
+            EvolutionUtil.Discard(result, PersonalTable.LA);
+        else if (pk is PB8)
+            EvolutionUtil.Discard(result, PersonalTable.BDSP);
+        else
+            EvolutionUtil.Discard(result, PersonalTable.SWSH);
+    }
+
+    public int Devolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
+    {
+        int present = 1;
+        for (int i = 1; i < result.Length; i++)
+        {
+            ref var prev = ref result[i - 1];
+            RevertMutatedForms(ref prev);
+            if (!TryDevolve(prev, pk, prev.LevelMax, enc.LevelMin, enc.SkipChecks, out var evo))
+                continue;
+
+            ref var reference = ref result[i];
+            if (evo.IsBetterDevolution(reference))
+                reference = evo;
+            present++;
+        }
+        return present;
+    }
+
+    private static void RevertMutatedForms(ref EvoCriteria evo)
+    {
+        // Dialga, Palkia, and Arceus have Origin forms in PLA but should revert to normal forms for other contexts
+        if (evo.Species == (int)Species.Dialga && evo.Form == 1)
+            evo = evo with { Form = 0 };
+        else if (evo.Species == (int)Species.Palkia && evo.Form == 1)
+            evo = evo with { Form = 0 };
+        else if (evo.Species == (int)Species.Arceus && evo.Form == 18) // Arceus Legend form
+            evo = evo with { Form = 0 };
+    }
+
+    public int Evolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc, EvolutionHistory history)
+    {
+        int present = 1;
+        for (int i = result.Length - 1; i >= 1; i--)
+        {
+            ref var dest = ref result[i - 1];
+            var devolved = result[i];
+            if (!TryEvolve(devolved, dest, pk, enc.LevelMax, devolved.LevelMin, enc.SkipChecks, out var evo))
+            {
+                if (dest.Method == EvoCriteria.SentinelNotReached)
+                    break; // Don't continue for higher evolutions.
+                continue;
+            }
+
+            if (evo.IsBetterEvolution(dest))
+                dest = evo;
+            present++;
+        }
+
+        // Set history based on PKM type
+        if (pk is PA8)
+            history.Gen8a = EvolutionUtil.SetHistory(result, PersonalTable.LA);
+        else if (pk is PB8)
+            history.Gen8b = EvolutionUtil.SetHistory(result, PersonalTable.BDSP);
+        else
+            history.Gen8 = EvolutionUtil.SetHistory(result, PersonalTable.SWSH);
+
+        return present;
+    }
+
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
+    {
+        // Get the appropriate tree based on PKM type
+        var tree = GetTreeForPKM(pk);
+        return tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, EvolutionRuleTweak.Default, out result);
+    }
+
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
+    {
+        // Get the appropriate tree based on PKM type
+        var tree = GetTreeForPKM(pk);
+        return tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, EvolutionRuleTweak.Default, out result);
+    }
+
+    private static EvolutionTree GetTreeForPKM(PKM pk) => pk switch
+    {
+        PA8 => Tree8a,
+        PB8 => Tree8b,
+        _ => Tree8,
+    };
+
     private static bool GetFirstEvolution<T>(T pt, ReadOnlySpan<EvoCriteria> chain, out EvoCriteria result) where T : IPersonalTable
     {
         foreach (var evo in chain)

@@ -86,6 +86,57 @@ public sealed class EvolutionGroup9 : IEvolutionGroup
         SV,
     }
 
+    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc) => EvolutionUtil.Discard(result, PersonalTable.SV);
+
+    public int Devolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
+    {
+        int present = 1;
+        for (int i = 1; i < result.Length; i++)
+        {
+            ref var prev = ref result[i - 1];
+            if (!TryDevolve(prev, pk, prev.LevelMax, enc.LevelMin, enc.SkipChecks, out var evo))
+                continue;
+
+            ref var reference = ref result[i];
+            if (evo.IsBetterDevolution(reference))
+                reference = evo;
+            present++;
+        }
+        return present;
+    }
+
+    public int Evolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc, EvolutionHistory history)
+    {
+        int present = 1;
+        for (int i = result.Length - 1; i >= 1; i--)
+        {
+            ref var dest = ref result[i - 1];
+            var devolved = result[i];
+            if (!TryEvolve(devolved, dest, pk, enc.LevelMax, devolved.LevelMin, enc.SkipChecks, out var evo))
+            {
+                if (dest.Method == EvoCriteria.SentinelNotReached)
+                    break; // Don't continue for higher evolutions.
+                continue;
+            }
+
+            if (evo.IsBetterEvolution(dest))
+                dest = evo;
+            present++;
+        }
+        history.Gen9 = EvolutionUtil.SetHistory(result, PersonalTable.SV);
+        return present;
+    }
+
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
+    {
+        return Tree9.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, EvolutionRuleTweak.Default, out result);
+    }
+
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
+    {
+        return Tree9.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, EvolutionRuleTweak.Default, out result);
+    }
+
     private static bool GetFirstEvolution<T>(T pt, ReadOnlySpan<EvoCriteria> chain, out EvoCriteria result) where T : IPersonalTable
     {
         foreach (var evo in chain)
