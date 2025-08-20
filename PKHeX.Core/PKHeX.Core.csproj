@@ -42,6 +42,10 @@
     <Compile Remove="Legality\Encounters\EncounterSlot\**" />
     <!-- Exclude specific duplicate files in root Data directory -->
     <Compile Remove="Legality\Encounters\Data\Encounters9.cs" />
+    <!-- Re-include essential files that were wrongly excluded -->
+    <Compile Include="Legality\Assets\BinLinkerAccessor16.cs" />
+    <Compile Include="Legality\Encounters\EncounterSlot\EncounterSlot.cs" />
+    <Compile Include="Legality\Areas\EncounterArea.cs" />
     <!-- Exclude old encounter structure directories that have duplicates in Templates -->
     <Compile Remove="Legality\Encounters\EncounterStatic\**" />
     <Compile Remove="Legality\Encounters\EncounterTrade\**" />
@@ -141,6 +145,13 @@
     <Compile Remove="Saves\Substructures\Gen7\SaveBlock.cs" />
     <!-- Exclude Core.cs which duplicates methods already consolidated in Legal.cs -->
     <Compile Remove="Legality\Core.cs" />
+    <!-- Exclude additional duplicate classes found during build resolution -->
+    <Compile Remove="Legality\Evolutions\EvolutionType.cs" />
+    <Compile Remove="Saves\Substructures\Gen7\HallOfFame7.cs" />
+    <Compile Remove="Legality\Structures\CheckIdentifier.cs" />
+    <Compile Remove="Legality\Structures\Severity.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLock.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLockResult.cs" />
   </ItemGroup>
 
 </Project>

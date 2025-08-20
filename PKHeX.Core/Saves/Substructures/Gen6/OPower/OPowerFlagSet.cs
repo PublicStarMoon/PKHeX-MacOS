@@ -5,14 +5,14 @@ namespace PKHeX.Core;
 
 internal sealed class OPowerFlagSet
 {
-    public readonly OPower6Type Identifier;
+    public readonly OPower6Index Identifier;
     public readonly int Count;
     public int Offset { get; set; }
     public int BaseCount => Math.Min(3, Count);
     public bool HasOPowerS => Count > 3;
     public bool HasOPowerMAX => Count == 5;
 
-    public OPowerFlagSet(int count, OPower6Type ident)
+    public OPowerFlagSet(int count, OPower6Index ident)
     {
         Identifier = ident;
         Count = count;
