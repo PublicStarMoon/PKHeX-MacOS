@@ -96,6 +96,21 @@
     <Compile Remove="Legality\Structures\Shiny.cs" />
     <Compile Remove="Legality\Encounters\Generator\AbilityPermission.cs" />
     <Compile Remove="Legality\Structures\IMasteryInitialMoveShop8.cs" />
+    <!-- Exclude duplicate RNG and interface files -->
+    <Compile Remove="Legality\RNG\Locks\SeedFrame.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLockResult.cs" />
+    <Compile Remove="Saves\Substructures\Misc\IRentalTeam.cs" />
+    <!-- Exclude more rental team duplicates -->
+    <Compile Remove="Saves\Substructures\Gen8\SWSH\RentalTeam8.cs" />
+    <!-- Exclude more RNG and utility duplicates -->
+    <Compile Remove="Saves\Substructures\Gen8\LA\Epoch1970Value.cs" />
+    <Compile Remove="Legality\RNG\Methods\ToxtricityUtil.cs" />
+    <Compile Remove="Legality\RNG\Methods\Tera9RNG.cs" />
+    <!-- Exclude root-level RNG files moved to generation-specific directories -->
+    <Compile Remove="Legality\RNG\Locks\NPCLock.cs" />
+    <Compile Remove="Legality\RNG\Methods\Roaming8bRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Wild8bRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\GenerateParam9.cs" />
   </ItemGroup>
 
 </Project>
