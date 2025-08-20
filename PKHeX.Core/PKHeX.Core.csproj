@@ -111,6 +111,11 @@
     <Compile Remove="Legality\RNG\Methods\Roaming8bRNG.cs" />
     <Compile Remove="Legality\RNG\Methods\Wild8bRNG.cs" />
     <Compile Remove="Legality\RNG\Methods\GenerateParam9.cs" />
+    <!-- Exclude root-level evolution files moved to Methods subdirectory -->
+    <Compile Remove="Legality\Evolutions\EvolutionMethod.cs" />
+    <Compile Remove="Legality\Evolutions\EvoCriteria.cs" />
+    <!-- Exclude interface files moved to better organized locations -->
+    <Compile Remove="Legality\Structures\IVersion.cs" />
   </ItemGroup>
 
 </Project>
