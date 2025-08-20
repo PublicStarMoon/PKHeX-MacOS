@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>13.0</LangVersion>
     <Description>Pokémon C# Class Library</Description>
     <RootNamespace>PKHeX.Core</RootNamespace>
   </PropertyGroup>
@@ -30,6 +31,127 @@
   <ItemGroup>
     <None Remove="Resources\**" />
     <EmbeddedResource Include="Resources\**" />
+    <!-- Exclude old duplicate files to avoid compilation conflicts -->
+    <Compile Remove="Legality\Areas\**" />
+    <Compile Remove="Legality\Assets\**" />
+    <!-- Exclude consolidated generation directories that contain duplicates -->
+    <Compile Remove="Legality\Encounters\Data\Gen45\**" />
+    <Compile Remove="Legality\Encounters\Data\Gen67\**" />
+    <Compile Remove="Legality\Encounters\Data\Gen12\**" />
+    <!-- Exclude old EncounterSlot directory -->
+    <Compile Remove="Legality\Encounters\EncounterSlot\**" />
+    <!-- Exclude specific duplicate files in root Data directory -->
+    <Compile Remove="Legality\Encounters\Data\Encounters9.cs" />
+    <!-- Re-include essential files that were wrongly excluded -->
+    <Compile Include="Legality\Assets\BinLinkerAccessor16.cs" />
+    <Compile Include="Legality\Encounters\EncounterSlot\EncounterSlot.cs" />
+    <Compile Include="Legality\Areas\EncounterArea.cs" />
+    <!-- Exclude old encounter structure directories that have duplicates in Templates -->
+    <Compile Remove="Legality\Encounters\EncounterStatic\**" />
+    <Compile Remove="Legality\Encounters\EncounterTrade\**" />
+    <Compile Remove="Legality\Encounters\EncounterMisc\**" />
+    <!-- Exclude duplicate interface files at root level -->
+    <Compile Remove="Legality\Encounters\IEncounterable.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterMatch.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterTemplate.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterConvertible.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterInfo.cs" />
+    <Compile Remove="Legality\Encounters\IEncounterFormRandom.cs" />
+    <Compile Remove="Legality\Encounters\EncounterMatchRating.cs" />
+    <!-- Exclude old structure files that duplicate Templates/Interfaces/Properties -->
+    <Compile Remove="Legality\Structures\ILocation.cs" />
+    <Compile Remove="Legality\Structures\IFixedAbilityNumber.cs" />
+    <Compile Remove="Legality\Structures\IFixedBall.cs" />
+    <Compile Remove="Legality\Structures\IMoveset.cs" />
+    <Compile Remove="Legality\Structures\IRelearn.cs" />
+    <Compile Remove="Legality\Structures\IShinyPotential.cs" />
+    <Compile Remove="Legality\Structures\IndividualValueSet.cs" />
+    <Compile Remove="Legality\Structures\Moveset.cs" />
+    <!-- Exclude duplicate save files in root directory - correct ones are in subdirectories -->
+    <Compile Remove="Saves\SAV3GCMemoryCard.cs" />
+    <!-- Exclude individual Tables files that duplicate constants in Legal.cs -->
+    <Compile Remove="Legality\Tables\Tables1.cs" />
+    <Compile Remove="Legality\Tables\Tables2.cs" />
+    <Compile Remove="Legality\Tables\Tables3.cs" />
+    <Compile Remove="Legality\Tables\Tables4.cs" />
+    <Compile Remove="Legality\Tables\Tables5.cs" />
+    <Compile Remove="Legality\Tables\Tables6.cs" />
+    <Compile Remove="Legality\Tables\Tables7.cs" />
+    <Compile Remove="Legality\Tables\Tables7b.cs" />
+    <Compile Remove="Legality\Tables\Tables8.cs" />
+    <Compile Remove="Legality\Tables\Tables8a.cs" />
+    <Compile Remove="Legality\Tables\Tables8bs.cs" />
+    <Compile Remove="Legality\Tables\Tables9.cs" />
+    <!-- Exclude old duplicate files in root Substructures directories -->
+    <Compile Remove="Saves\Substructures\PokeDex\Zukan9.cs" />
+    <Compile Remove="Saves\Substructures\Gen5\CGearBackground.cs" />
+    <!-- Exclude duplicate rental team files - correct ones in Rentals subdirectory -->
+    <Compile Remove="Saves\Substructures\Gen9\RentalTeam9.cs" />
+    <Compile Remove="Saves\Substructures\Gen9\RentalTeamSet9.cs" />
+    <!-- Exclude old files that have been reorganized to better locations -->
+    <Compile Remove="Legality\Verifiers\ParseSettings.cs" />
+    <Compile Remove="Legality\Structures\ITrainerInfo.cs" />
+    <Compile Remove="Legality\Structures\SimpleTrainerInfo.cs" />
+    <Compile Remove="Legality\Verifiers\Ribbons\RibbonIndex3.cs" />
+    <Compile Remove="Legality\Verifiers\Ribbons\RibbonIndex4.cs" />
+    <!-- Exclude duplicate files moved to Templates organization -->
+    <Compile Remove="Legality\Enums\EncounterTime.cs" />
+    <Compile Remove="Legality\Enums\GroundTileAllowed.cs" />
+    <Compile Remove="Legality\Structures\Shiny.cs" />
+    <Compile Remove="Legality\Encounters\Generator\AbilityPermission.cs" />
+    <Compile Remove="Legality\Structures\IMasteryInitialMoveShop8.cs" />
+    <!-- Exclude duplicate RNG and interface files -->
+    <Compile Remove="Legality\RNG\Locks\SeedFrame.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLockResult.cs" />
+    <Compile Remove="Saves\Substructures\Misc\IRentalTeam.cs" />
+    <!-- Exclude more rental team duplicates -->
+    <Compile Remove="Saves\Substructures\Gen8\SWSH\RentalTeam8.cs" />
+    <!-- Exclude more RNG and utility duplicates -->
+    <Compile Remove="Saves\Substructures\Gen8\LA\Epoch1970Value.cs" />
+    <Compile Remove="Legality\RNG\Methods\ToxtricityUtil.cs" />
+    <Compile Remove="Legality\RNG\Methods\Tera9RNG.cs" />
+    <!-- Exclude root-level RNG files moved to generation-specific directories -->
+    <Compile Remove="Legality\RNG\Locks\NPCLock.cs" />
+    <Compile Remove="Legality\RNG\Methods\Roaming8bRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Wild8bRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\GenerateParam9.cs" />
+    <!-- Exclude root-level evolution files moved to Methods subdirectory -->
+    <Compile Remove="Legality\Evolutions\EvolutionMethod.cs" />
+    <Compile Remove="Legality\Evolutions\EvoCriteria.cs" />
+    <!-- Exclude interface files moved to better organized locations -->
+    <Compile Remove="Legality\Structures\IVersion.cs" />
+    <!-- Exclude duplicate classes causing CS0101 errors -->
+    <Compile Remove="Items\HeldItemLumpImage.cs" />
+    <Compile Remove="Legality\Evolutions\EvolutionReversal.cs" />
+    <Compile Remove="Legality\Restrictions\WordFilter.cs" />
+    <!-- Exclude duplicate BattleVideo classes that incorrectly inherit from static BattleVideo -->
+    <Compile Remove="Saves\Substructures\Battle Videos\BV3.cs" />
+    <Compile Remove="Saves\Substructures\Battle Videos\BV6.cs" />
+    <Compile Remove="Saves\Substructures\Battle Videos\BV7.cs" />
+    <!-- Exclude duplicate RNG classes that have been moved to generation-specific subdirectories -->
+    <Compile Remove="Legality\Tables\MystryMew.cs" />
+    <Compile Remove="Legality\RNG\Locks\LockFinder.cs" />
+    <Compile Remove="Legality\RNG\Methods\Encounter9RNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Overworld8RNG.cs" />
+    <Compile Remove="Legality\RNG\RaidRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\Overworld8aRNG.cs" />
+    <Compile Remove="Legality\RNG\Methods\OverworldParam8a.cs" />
+    <!-- Exclude duplicate interface and utility files moved to better organized locations -->
+    <Compile Remove="PKM\Shared\IObedienceLevel.cs" />
+    <Compile Remove="PKM\Util\EntityContext.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetOnly3.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetUnique3.cs" />
+    <Compile Remove="Ribbons\Past\IRibbonSetUnique4.cs" />
+    <Compile Remove="Saves\Substructures\Gen7\SaveBlock.cs" />
+    <!-- Exclude Core.cs which duplicates methods already consolidated in Legal.cs -->
+    <Compile Remove="Legality\Core.cs" />
+    <!-- Exclude additional duplicate classes found during build resolution -->
+    <Compile Remove="Legality\Evolutions\EvolutionType.cs" />
+    <Compile Remove="Saves\Substructures\Gen7\HallOfFame7.cs" />
+    <Compile Remove="Legality\Structures\CheckIdentifier.cs" />
+    <Compile Remove="Legality\Structures\Severity.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLock.cs" />
+    <Compile Remove="Legality\RNG\Locks\TeamLockResult.cs" />
   </ItemGroup>
 
 </Project>

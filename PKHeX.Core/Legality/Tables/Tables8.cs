@@ -4,30 +4,6 @@ namespace PKHeX.Core;
 
 public static partial class Legal
 {
-    // Current Binaries
-    internal const int MaxSpeciesID_8 = MaxSpeciesID_8_R2;
-    internal const int MaxMoveID_8 = MaxMoveID_8_R2;
-    internal const int MaxItemID_8 = MaxItemID_8_R2;
-    internal const int MaxAbilityID_8 = MaxAbilityID_8_R2;
-
-    // Orion (No DLC)
-    internal const int MaxSpeciesID_8_O0 = 890; // Eternatus
-    internal const int MaxMoveID_8_O0 = 796; // Steel Beam
-    internal const int MaxItemID_8_O0 = 1278; // Rotom Catalog, ignore all catalog parts
-    internal const int MaxAbilityID_8_O0 = 258; // Hunger Switch
-
-    // Rigel 1 (DLC 1: Isle of Armor)
-    internal const int MaxSpeciesID_8_R1 = 893; // Zarude
-    internal const int MaxMoveID_8_R1 = 818; // Surging Strikes
-    internal const int MaxItemID_8_R1 = 1589; // Mark Charm
-    internal const int MaxAbilityID_8_R1 = 260; // Unseen Fist
-
-    // Rigel 2 (DLC 2: Crown Tundra)
-    internal const int MaxSpeciesID_8_R2 = 898; // Calyrex
-    internal const int MaxMoveID_8_R2 = 826; // Eerie Spell
-    internal const int MaxItemID_8_R2 = 1607; // Reins of Unity
-    internal const int MaxAbilityID_8_R2 = 267; // As One (Glastrier)
-
     internal const int MaxBallID_8 = 0x1A; // 26 Beast
     internal const int MaxGameID_8 = 45; // Shield
 
