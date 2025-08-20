@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <LangVersion>12.0</LangVersion>
+    <TargetFramework>net9.0</TargetFramework>
     <Description>Pokémon C# Class Library</Description>
     <RootNamespace>PKHeX.Core</RootNamespace>
   </PropertyGroup>
