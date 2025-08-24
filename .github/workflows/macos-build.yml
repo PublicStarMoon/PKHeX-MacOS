@@ -38,8 +38,8 @@ jobs:
       run: |
         cd PKHeX.MAUI
         # PKHeX.MAUI only targets net8.0-maccatalyst, not net8.0
-        # Must explicitly specify framework to avoid NETSDK1047 error
-        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst
+        # Must explicitly specify framework and runtime to avoid NETSDK1047 error
+        dotnet build --configuration Release --no-restore -f net8.0-maccatalyst -r maccatalyst-arm64
     
     - name: Verify build output
       run: |
